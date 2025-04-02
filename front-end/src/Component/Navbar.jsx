@@ -115,17 +115,6 @@ export default function Navbar({ role }) {
                         </CustomLink>
                     )}
                     
-                    {(role === "System Admin" || role === "Instructor" || role === "Curriculum Admin") && (
-                        <CustomLink 
-                            to="/StudentData" 
-                            onMouseEnter={(e) => updateAnimationBar(e.currentTarget)}
-                            onMouseLeave={() => activeItemRef.current && updateAnimationBar(activeItemRef.current)}
-                            setActiveRef={activeItemRef}
-                        >
-                            {t('Student Data')}
-                        </CustomLink>
-                    )}
-                    
                     {(role === "Curriculum Admin" ) && (
                         <CustomLink 
                             to="/Assigment" 

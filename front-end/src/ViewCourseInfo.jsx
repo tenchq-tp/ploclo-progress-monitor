@@ -37,15 +37,24 @@ function ViewCourseInfo() {
     <div>
       <h1>Course Information</h1>
       <ul>
-        {programs.map((program, index) => (
-          <li key={index} onClick={() => handleProgramClick(program)} style={{ cursor: "pointer", color: "blue" }}>
-            {program.program_name}
-          </li>
-        ))}
-      </ul>
+  {programs.map((program, index) => (
+    <li 
+      key={index} 
+      onClick={() => handleProgramClick(program)} 
+      style={{ 
+        cursor: "pointer",
+      }}
+      className="program-item"
+    >
+      {program.program_name}
+    </li>
+  ))}
+</ul>
+
+
       {selectedProgram && (
         <div>
-          <h2>Courses in {selectedProgram.program_name}</h2>
+          <h1>Courses in {selectedProgram.program_name}</h1>
           <ul>
             {courses.length > 0 ? (
               courses.map((course, index) => (
@@ -60,5 +69,6 @@ function ViewCourseInfo() {
     </div>
   );
 }
+
 
 export default ViewCourseInfo;

@@ -1,4 +1,4 @@
-//อ้อแก้ทั้งไฟล์
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -465,7 +465,9 @@ export default function Program() {
   };
 
   return (
-    <div className="card p-4 position-relative" style={{marginTop: "500px", }}>
+<div className="main-container" style={{ paddingTop: '10px', maxWidth: '1000px' }}>
+<div className="content-box">
+    <div className="card p-4 position-relative" style={{marginTop: "100px", }}>
       <h3>Add Edit Delete Program</h3>
 
       {/* Alert notification */}
@@ -562,177 +564,176 @@ export default function Program() {
       </div>
       </div> 
 
-      {/* Enhanced section to add a new program with all fields */}
-      <div className="mb-3">
-        <label className="form-label text-start">Add Program</label>
-        <div className="mb-2">
-          <input
-            type="text"
-            className="form-control mb-2"
-            placeholder="Program Name (English)"
-            name="program_name"
-            value={newProgram.program_name}
-            onChange={handleNewProgramChange}
-          />
-          <input
-            type="text"
-            className="form-control mb-2"
-            placeholder="ชื่อหลักสูตร (ภาษาไทย)"
-            name="program_name_th"
-            value={newProgram.program_name_th}
-            onChange={handleNewProgramChange}
-          />
-          <div className="row mb-2">
-            <div className="col">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Short Name (EN)"
-                name="program_shortname_en"
-                value={newProgram.program_shortname_en}
-                onChange={handleNewProgramChange}
-              />
-            </div>
-            <div className="col">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="ชื่อย่อ (ไทย)"
-                name="program_shortname_th"
-                value={newProgram.program_shortname_th}
-                onChange={handleNewProgramChange}
-              />
-            </div>
-          </div>
-          <div className="row mb-2">
-            <div className="col">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Year (e.g., 2023)"
-                name="year"
-                value={newProgram.year}
-                onChange={handleNewProgramChange}
-              />
-            </div>
-            <div className="col d-flex justify-content-end">
-              <button
-                className="btn btn-primary"
-                onClick={handleAddProgram}
-                disabled={newProgram.program_name.trim() === ""}
-              >
-                Insert
-              </button>
-            </div>
-          </div>
-        </div>
+     {/* Enhanced section to add a new program with all fields */}
+<div className="mb-3">
+  <label className="form-label text-start">Add Program</label>
+  <div className="mb-2">
+    <input
+      type="text"
+      className="form-control mb-2"
+      placeholder="Program Name (English)"
+      name="program_name"
+      value={newProgram.program_name}
+      onChange={handleNewProgramChange}
+    />
+    <input
+      type="text"
+      className="form-control mb-2"
+      placeholder="ชื่อหลักสูตร (ภาษาไทย)"
+      name="program_name_th"
+      value={newProgram.program_name_th}
+      onChange={handleNewProgramChange}
+    />
+    <div className="row mb-2">
+      <div className="col">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Short Name (EN)"
+          name="program_shortname_en"
+          value={newProgram.program_shortname_en}
+          onChange={handleNewProgramChange}
+        />
       </div>
-
-      {/* Updated section to edit an existing program with all fields */}
-      <div className="mb-3">
-        <label className="form-label text-start">Edit Program</label>
-        <div className="mb-2">
-          <select
-            className="form-select mb-2"
-            value={editProgram ? editProgram.program_id : ""}
-            onChange={(e) => {
-              const selectedId = parseInt(e.target.value, 10);
-              const selectedProgram = program.find(
-                (p) => p.program_id === selectedId
-              );
-              setEditProgram(selectedProgram);
-              if (selectedProgram) {
-                setEditFormData({
-                  program_name: selectedProgram.program_name || "",
-                  program_name_th: selectedProgram.program_name_th || "",
-                  program_shortname_en:
-                    selectedProgram.program_shortname_en || "",
-                  program_shortname_th:
-                    selectedProgram.program_shortname_th || "",
-                  year: selectedProgram.year
-                    ? selectedProgram.year.toString()
-                    : "",
-                });
-              }
-            }}
-          >
-            <option value="" disabled>
-              Select Program
-            </option>
-            {filteredProgram.map((p) => (
-              <option key={p.program_id} value={p.program_id}>
-                {p.program_name}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="text"
-            className="form-control mb-2"
-            placeholder="Program Name (English)"
-            name="program_name"
-            value={editFormData.program_name}
-            onChange={handleEditFormChange}
-            disabled={!editProgram}
-          />
-          <input
-            type="text"
-            className="form-control mb-2"
-            placeholder="ชื่อหลักสูตร (ภาษาไทย)"
-            name="program_name_th"
-            value={editFormData.program_name_th}
-            onChange={handleEditFormChange}
-            disabled={!editProgram}
-          />
-          <div className="row mb-2">
-            <div className="col">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Short Name (EN)"
-                name="program_shortname_en"
-                value={editFormData.program_shortname_en}
-                onChange={handleEditFormChange}
-                disabled={!editProgram}
-              />
-            </div>
-            <div className="col">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="ชื่อย่อ (ไทย)"
-                name="program_shortname_th"
-                value={editFormData.program_shortname_th}
-                onChange={handleEditFormChange}
-                disabled={!editProgram}
-              />
-            </div>
-
-            <div className="row mb-2">
-              <div className="col">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Year (e.g., 2023)"
-                  name="year"
-                  value={editFormData.year}
-                  onChange={handleEditFormChange}
-                  disabled={!editProgram}
-                />
-              </div>
-              <div className="col d-flex justify-content-end">
-                <button
-                  className="btn btn-primary"
-                  onClick={handleEditProgram}
-                  disabled={!editProgram}
-                >
-                  Update
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="col">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="ชื่อย่อ (ไทย)"
+          name="program_shortname_th"
+          value={newProgram.program_shortname_th}
+          onChange={handleNewProgramChange}
+        />
       </div>
+    </div>
+    <div className="row mb-2">
+      <div className="col">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Year (e.g., 2023)"
+          name="year"
+          value={newProgram.year}
+          onChange={handleNewProgramChange}
+        />
+      </div>
+      <div className="col d-flex justify-content-end">
+        <button
+          className="btn btn-primary"
+          onClick={handleAddProgram}
+          disabled={newProgram.program_name.trim() === ""}
+        >
+          Insert
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* Updated section to edit an existing program with all fields */}
+<div className="mb-3">
+  <label className="form-label text-start">Edit Program</label>
+  <div className="mb-2">
+    <select
+      className="form-select mb-2"
+      value={editProgram ? editProgram.program_id : ""}
+      onChange={(e) => {
+        const selectedId = parseInt(e.target.value, 10);
+        const selectedProgram = program.find(
+          (p) => p.program_id === selectedId
+        );
+        setEditProgram(selectedProgram);
+        if (selectedProgram) {
+          setEditFormData({
+            program_name: selectedProgram.program_name || "",
+            program_name_th: selectedProgram.program_name_th || "",
+            program_shortname_en:
+              selectedProgram.program_shortname_en || "",
+            program_shortname_th:
+              selectedProgram.program_shortname_th || "",
+            year: selectedProgram.year
+              ? selectedProgram.year.toString()
+              : "",
+          });
+        }
+      }}
+    >
+      <option value="" disabled>
+    Select Program
+  </option>
+  {filteredProgram.map((p) => (
+    <option key={p.program_id} value={p.program_id}>
+      {p.program_name} {p.program_name_th ? `(${p.program_name_th})` : ''}
+    </option>
+  ))}
+    </select>
+
+    <input
+      type="text"
+      className="form-control mb-2"
+      placeholder="Program Name (English)"
+      name="program_name"
+      value={editFormData.program_name}
+      onChange={handleEditFormChange}
+      disabled={!editProgram}
+    />
+    <input
+      type="text"
+      className="form-control mb-2"
+      placeholder="ชื่อหลักสูตร (ภาษาไทย)"
+      name="program_name_th"
+      value={editFormData.program_name_th}
+      onChange={handleEditFormChange}
+      disabled={!editProgram}
+    />
+    <div className="row mb-2">
+      <div className="col">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Short Name (EN)"
+          name="program_shortname_en"
+          value={editFormData.program_shortname_en}
+          onChange={handleEditFormChange}
+          disabled={!editProgram}
+        />
+      </div>
+      <div className="col">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="ชื่อย่อ (ไทย)"
+          name="program_shortname_th"
+          value={editFormData.program_shortname_th}
+          onChange={handleEditFormChange}
+          disabled={!editProgram}
+        />
+      </div>
+    </div>
+    <div className="row mb-2">
+      <div className="col">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Year (e.g., 2023)"
+          name="year"
+          value={editFormData.year}
+          onChange={handleEditFormChange}
+          disabled={!editProgram}
+        />
+      </div>
+      <div className="col d-flex justify-content-end">
+        <button
+          className="btn btn-primary"
+          onClick={handleEditProgram}
+          disabled={!editProgram}
+        >
+          Update
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
       {/* Program list with all fields */}
       <h5>Program</h5>
@@ -768,5 +769,7 @@ export default function Program() {
         </tbody>
       </table>
     </div>
-  );
+    </div>
+    </div>
+);
 }

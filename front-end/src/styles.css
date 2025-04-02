@@ -377,3 +377,255 @@ html, body {
     overflow-y: auto;
   }
 
+  .program-item {
+    color: inherit; /* Default text color */
+  }
+  
+  .program-item:hover, 
+  .program-item:active {
+    color: #FF8C00; /* Orange color on hover and click */
+  }
+
+  /* CSS สำหรับแก้ไขปัญหาเนื้อหาล้นจอ */
+
+/* วิธีที่ 1: แก้ไขที่ container หลัก */
+.main-container {
+    height: 100vh; /* หรือใช้ค่าที่เหมาะสม */
+    overflow-y: auto; /* เพิ่ม scrollbar แนวตั้ง */
+  }
+  
+  /* วิธีที่ 2: แก้ไขที่ body และ html */
+  html, body {
+    height: 100%;
+    overflow-y: auto;
+  }
+  
+  /* วิธีที่ 3: แก้ไขเฉพาะส่วนที่มีปัญหา (form หรือส่วนที่มีเนื้อหามาก) */
+  .form-container {
+    max-height: 80vh; /* จำกัดความสูงสูงสุด */
+    overflow-y: auto; /* เพิ่ม scrollbar แนวตั้ง */
+    padding-bottom: 20px; /* เพิ่มระยะห่างด้านล่าง */
+  }
+  
+  /* รองรับการแสดงผลบนหน้าจอขนาดเล็ก */
+  @media (max-height: 768px) {
+    .form-container {
+      max-height: 70vh;
+    }
+  }
+
+  /* CSS สำหรับ Container ของ editPLO เพื่อให้มีลักษณะเหมือน editprogram */
+
+/* ปรับตัว container หลัก */
+.program-editor-container {
+    width: 90%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  /* ให้ body มีพื้นหลังสีเทาอ่อน */
+  body {
+    background-color: #F0F0F0;
+  }
+  
+  /* สำหรับแก้ไขหน้า editPLO */
+  .plo-management-container {
+    width: 90%;
+    max-width: 1000px;
+    margin: 10px auto;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+  }
+  
+  /* สำหรับ header ของ PLO */
+  .plo-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  /* ปรับแต่ง select dropdown ให้เหมือนกัน */
+  .select-wrapper {
+    margin-bottom: 15px;
+  }
+  
+  .select-wrapper label {
+    display: inline-block;
+    margin-right: 10px;
+    min-width: 150px;
+  }
+  
+  .select-wrapper select {
+    padding: 8px 12px;
+    min-width: 200px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background-color: #6b7280;
+    color: white;
+  }
+
+  /* CSS แก้ไขปัญหาสัดส่วนและการถูก Navbar บัง */
+
+.plo-management-container {
+    width: 90%;
+    max-width: 1000px;
+    margin: 85px auto 30px; /* เพิ่ม margin-top เพื่อไม่ให้ถูก navbar บัง */
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+  }
+  
+  .filter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .filter-item {
+    display: flex;
+    align-items: center;
+  }
+  
+  .filter-label {
+    min-width: 150px;
+    margin-right: 10px;
+  }
+  
+  .filter-select {
+    flex-grow: 1;
+    max-width: 500px;
+    height: 38px;
+    background-color: #6b7280;
+    color: white;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+  }
+  
+  /* ตรึงความกว้างของ dropdown เพื่อไม่ให้เปลี่ยนเมื่อเลือก program */
+  .fixed-width-dropdown {
+    width: 100%;
+    max-width: 500px;
+  }
+  
+  /* ปรับปรุงรูปแบบของปุ่ม */
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  
+  .button-group {
+    display: flex;
+    gap: 10px;
+  }
+  
+  /* รองรับการแสดงผลบนหน้าจอขนาดต่างๆ */
+  @media (max-width: 768px) {
+    .plo-management-container {
+      width: 95%;
+      padding: 15px;
+      margin-top: 70px;
+    }
+    
+    .filter-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+    
+    .filter-label {
+      min-width: auto;
+    }
+    
+    .action-buttons {
+      flex-wrap: wrap;
+    }
+  }
+
+  /* CSS สำหรับปรับปรุงการแสดงตาราง PLO */
+
+/* ปรับปรุงตาราง PLO */
+.plo-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* สำคัญ: ช่วยให้สามารถควบคุมความกว้างคอลัมน์ได้ดีขึ้น */
+  }
+  
+  .plo-table th, .plo-table td {
+    border: 1px solid #dee2e6;
+    padding: 10px;
+    vertical-align: top; /* ให้ข้อความเริ่มต้นจากด้านบนของเซลล์ */
+  }
+  
+  .plo-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    position: sticky; /* ทำให้ header ติดอยู่เวลาเลื่อนลง */
+    top: 0;
+  }
+  
+  /* กำหนดความกว้างแต่ละคอลัมน์ */
+  .plo-code-col {
+    width: 15%;
+    text-align: center;
+  }
+  
+  .plo-name-col {
+    width: 60%; /* ให้พื้นที่มากที่สุดสำหรับ PLO Name */
+  }
+  
+  .plo-engname-col {
+    width: 15%;
+    text-align: center;
+  }
+  
+  .plo-actions-col {
+    width: 10%;
+    text-align: center;
+  }
+  
+  /* สไตล์สำหรับเซลล์ข้อมูล - ไม่ตัดข้อความและแสดงทั้งหมด */
+  .plo-cell-content {
+    white-space: normal; /* ให้ข้อความขึ้นบรรทัดใหม่เมื่อเกินความกว้าง */
+    word-wrap: break-word; /* ตัดคำเมื่อจำเป็น */
+    overflow: visible; /* แสดงเนื้อหาทั้งหมด ไม่ตัด */
+    min-height: 50px; /* กำหนดความสูงขั้นต่ำ */
+    line-height: 1.4; /* เพิ่มระยะห่างระหว่างบรรทัด */
+    text-align: left; /* จัดข้อความชิดซ้าย */
+  }
+  
+  /* สไตล์สำหรับปุ่มในตาราง */
+  .plo-table-btn {
+    width: 100%;
+    margin-bottom: 5px;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    color: white;
+  }
+  
+  .plo-edit-btn {
+    background-color: #007bff;
+  }
+  
+  .plo-delete-btn {
+    background-color: #dc3545;
+  }
+  
+  /* Container สำหรับตาราง */
+  .plo-table-container {
+    overflow-x: auto; /* เพิ่ม scrollbar แนวนอนถ้าจำเป็น */
+    margin: 20px 0;
+    max-height: 600px; /* กำหนดความสูงสูงสุดและเพิ่ม scrollbar เมื่อเกิน */
+    overflow-y: auto;
+  }
