@@ -63,6 +63,15 @@ const styles = {
     cursor: 'pointer',
     fontWeight: 'bold',
   },
+  editButton: {
+    padding: '8px 16px',
+    backgroundColor: '#ff9800',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+  },
   outlineButton: {
     padding: '8px 16px',
     backgroundColor: 'white',
@@ -71,6 +80,15 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     fontWeight: 'bold',
+  },
+  dangerButton: {
+    padding: '6px 12px',
+    backgroundColor: '#f44336',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
   },
   hidden: {
     display: 'none',
@@ -107,6 +125,10 @@ const styles = {
   },
   columnScore: {
     width: '100px',
+    textAlign: 'center',
+  },
+  columnAction: {
+    width: '80px',
     textAlign: 'center',
   },
   tableCell: {
@@ -182,17 +204,91 @@ const styles = {
     backgroundColor: '#2196f3',
     color: 'white',
   },
+  // เพิ่ม style สำหรับ modal
+  modalBackdrop: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '8px',
+    width: '400px',
+    maxWidth: '90%',
+  },
+  modalHeader: {
+    marginBottom: '16px',
+  },
+  modalTitle: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+  },
+  modalBody: {
+    marginBottom: '20px',
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '10px',
+  },
+  cancelButton: {
+    padding: '8px 16px',
+    backgroundColor: '#f5f5f5',
+    color: '#333',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  confirmButton: {
+    padding: '8px 16px',
+    backgroundColor: '#f44336',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  // สำหรับฟอร์มแก้ไข
+  editForm: {
+    marginBottom: '20px',
+  },
+  formGroup: {
+    marginBottom: '15px',
+  },
+  label: {
+    display: 'block',
+    marginBottom: '5px',
+    fontWeight: 'bold',
+  },
+  input: {
+    width: '100%',
+    padding: '8px',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    fontSize: '16px',
+  },
+  select: {
+    width: '100%',
+    padding: '8px',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    fontSize: '16px',
+    backgroundColor: 'white',
+  }
 };
 
 
-
-  
- 
-  // ส่วนที่เหลือของโค้ด...
-  const AssignmentDetail = () => {
-    const { id } = useParams();
-    const assignmentId = id;
-    console.log("ค่า id จาก useParams:", id);
+const AssignmentDetail = () => {
+  const { id } = useParams();
+  const assignmentId = id;
+  console.log("ค่า id จาก useParams:", id);
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
@@ -204,6 +300,25 @@ const styles = {
   const [alert, setAlert] = useState({ show: false, message: '', type: 'info' });
   const [tooltips, setTooltips] = useState({});
   
+  // State สำหรับโหมดการแก้ไข
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    assignment_name: '',
+    course_name: '',
+    section_id: '',
+    semester_id: '',
+    year: '',
+    program_id: ''
+  });
+  
+  // State สำหรับ modal การลบนักเรียน
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    studentId: null,
+    studentName: ''
+  });
+  const [removing, setRemoving] = useState(false);
+  
   // เมื่อคอมโพเนนต์โหลด ตรวจสอบว่ามี assignmentId หรือไม่
   useEffect(() => {
     console.log("ค่า assignmentId ที่ได้จาก URL:", assignmentId);
@@ -213,56 +328,144 @@ const styles = {
   }, []);
   
   // โหลดข้อมูล Assignment และนักเรียน
- // แก้ไขส่วนการเรียก API ในไฟล์ AssignmentDetail.jsx
-
-// ส่วนการเรียก API ในหน้า AssignmentDetail.jsx
-useEffect(() => {
-  const fetchData = async () => {
-    if (!assignmentId) {
-      showAlert('ไม่พบรหัส Assignment', 'error');
-      setLoading(false);
-      return;
-    }
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!assignmentId) {
+        showAlert('ไม่พบรหัส Assignment', 'error');
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        console.log("กำลังเรียกข้อมูลด้วย Assignment ID:", assignmentId);
+        
+        // เรียก API ด้วย path parameter
+        const response = await axios.get(`http://localhost:8000/api/get_assignment_detail/${assignmentId}`);
+        
+        console.log("ข้อมูลที่ได้รับจาก API:", response.data);
+        
+        if (response.data.success) {
+          // อัพเดท state
+          setAssignment(response.data.assignment);
+          setClos(response.data.clos || []);
+          
+          // ตั้งค่าข้อมูลเริ่มต้นสำหรับฟอร์มแก้ไข
+          setEditData({
+            assignment_name: response.data.assignment.assignment_name || '',
+            course_name: response.data.assignment.course_name || '',
+            section_id: response.data.assignment.section_id || '',
+            semester_id: response.data.assignment.semester_id || '',
+            year: response.data.assignment.year || '',
+            program_id: response.data.assignment.program_id || ''
+          });
+          
+          // ตรวจสอบข้อมูลนักเรียนก่อนอัพเดท state
+          const receivedStudents = response.data.students || [];
+          console.log("จำนวนนักเรียนที่ได้รับ:", receivedStudents.length);
+          setStudents(receivedStudents);
+          
+          // อัพเดทคะแนน (แม้ว่าจะไม่มีคะแนนจริง)
+          setScores(response.data.scores || {});
+        } else {
+          console.error("API ส่งค่า success: false", response.data.message);
+          showAlert(response.data.message || 'ไม่สามารถโหลดข้อมูล Assignment ได้', 'error');
+        }
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการโหลดข้อมูล:', error);
+        console.error('รายละเอียดข้อผิดพลาด:', error.response ? error.response.data : error.message);
+        showAlert('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + (error.response?.data?.message || error.message), 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
     
+    // เรียกฟังก์ชันเฉพาะเมื่อมี assignmentId เท่านั้น
+    if (assignmentId) {
+      fetchData();
+    }
+  }, [assignmentId]);
+  
+  // จัดการการเปลี่ยนแปลงค่าในฟอร์มแก้ไข
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // บันทึกการแก้ไขข้อมูล Assignment
+
+  const saveEditAssignment = async () => {
     try {
-      setLoading(true);
-      console.log("กำลังเรียกข้อมูลด้วย Assignment ID:", assignmentId);
+      setSaving(true);
       
-      // เรียก API ด้วย path parameter
-      const response = await axios.get(`http://localhost:8000/api/get_assignment_detail/${assignmentId}`);
+      // ตรวจสอบข้อมูลที่จำเป็น
+      const requiredFields = ['assignment_name', 'course_name', 'section_id', 'semester_id', 'year'];
+      const missingFields = requiredFields.filter(field => !editData[field]);
       
-      console.log("ข้อมูลที่ได้รับจาก API:", response.data);
+      if (missingFields.length > 0) {
+        showAlert(`กรุณากรอกข้อมูลให้ครบถ้วน: ${missingFields.join(', ')}`, 'error');
+        setSaving(false);
+        return;
+      }
       
-      if (response.data.success) {
-        // อัพเดท state
-        setAssignment(response.data.assignment);
-        setClos(response.data.clos || []);
+      // ใช้ข้อมูลที่มีอยู่แล้วเลย ไม่ต้องดึงใหม่
+      const updateData = {
+        program_id: parseInt(editData.program_id) || assignment.program_id,
+        course_name: editData.course_name,
+        section_id: parseInt(editData.section_id),
+        semester_id: parseInt(editData.semester_id),
+        year: parseInt(editData.year),
+        assignment_name: editData.assignment_name,
+        faculty_id: 1, // กำหนดค่าตายตัว
+        university_id: 1 // กำหนดค่าตายตัว
+      };
+      
+      console.log('ข้อมูลที่จะส่งไปอัพเดต:', updateData);
+      
+      // เรียกใช้ API สำหรับอัปเดตข้อมูล
+      const response = await axios.put(`http://localhost:8000/api/update_assignment/${assignmentId}`, updateData);
+      
+      console.log('ผลการอัปเดต Assignment:', response.data);
+      
+      if (response.data) {
+        // อัปเดตข้อมูลใน state
+        setAssignment(prev => ({
+          ...prev,
+          ...updateData
+        }));
         
-        // ตรวจสอบข้อมูลนักเรียนก่อนอัพเดท state
-        const receivedStudents = response.data.students || [];
-        console.log("จำนวนนักเรียนที่ได้รับ:", receivedStudents.length);
-        setStudents(receivedStudents);
-        
-        // อัพเดทคะแนน (แม้ว่าจะไม่มีคะแนนจริง)
-        setScores(response.data.scores || {});
-      } else {
-        console.error("API ส่งค่า success: false", response.data.message);
-        showAlert(response.data.message || 'ไม่สามารถโหลดข้อมูล Assignment ได้', 'error');
+        // ปิดโหมดแก้ไข
+        setIsEditing(false);
+        showAlert('บันทึกการแก้ไขข้อมูล Assignment เรียบร้อยแล้ว', 'success');
       }
     } catch (error) {
-      console.error('เกิดข้อผิดพลาดในการโหลดข้อมูล:', error);
-      console.error('รายละเอียดข้อผิดพลาด:', error.response ? error.response.data : error.message);
-      showAlert('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + (error.response?.data?.message || error.message), 'error');
+      console.error('เกิดข้อผิดพลาดในการบันทึกการแก้ไข:', error);
+      const errorDetail = error.response?.data?.error || error.message;
+      console.error('รายละเอียดข้อผิดพลาด:', errorDetail);
+      showAlert('เกิดข้อผิดพลาดในการบันทึกการแก้ไข: ' + errorDetail, 'error');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
   
-  // เรียกฟังก์ชันเฉพาะเมื่อมี assignmentId เท่านั้น
-  if (assignmentId) {
-    fetchData();
-  }
-}, [assignmentId]);
+  // ยกเลิกการแก้ไข
+  const cancelEdit = () => {
+    // รีเซ็ตข้อมูลการแก้ไขเป็นค่าเดิม
+    setEditData({
+      assignment_name: assignment.assignment_name || '',
+      course_name: assignment.course_name || '',
+      section_id: assignment.section_id || '',
+      semester_id: assignment.semester_id || '',
+      year: assignment.year || '',
+      program_id: assignment.program_id || ''
+    });
+    
+    // ปิดโหมดแก้ไข
+    setIsEditing(false);
+  };
   
   // จัดการการเปลี่ยนแปลงคะแนน
   const handleScoreChange = (studentId, cloId, value) => {
@@ -547,6 +750,68 @@ useEffect(() => {
     }
   };
   
+  // เปิด modal ยืนยันการลบนักเรียน
+  const openConfirmRemoveModal = (studentId, studentName) => {
+    setConfirmModal({
+      show: true,
+      studentId,
+      studentName
+    });
+  };
+  
+  // ปิด modal ยืนยันการลบนักเรียน
+  const closeConfirmModal = () => {
+    setConfirmModal({
+      show: false,
+      studentId: null,
+      studentName: ''
+    });
+  };
+  
+  // ลบนักเรียนออกจาก Assignment
+  const removeStudentFromAssignment = async () => {
+    const { studentId } = confirmModal;
+    
+    if (!studentId || !assignmentId) {
+      closeConfirmModal();
+      return;
+    }
+    
+    try {
+      setRemoving(true);
+      
+      // เรียก API สำหรับลบนักเรียน
+      const response = await axios.delete('http://localhost:8000/api/remove_student_from_assignment', {
+        data: {
+          assignment_id: parseInt(assignmentId),
+          student_id: studentId
+        }
+      });
+      
+      if (response.data.success) {
+        // อัพเดทรายชื่อนักเรียนในหน้าจอ
+        setStudents(prevStudents => prevStudents.filter(student => student.student_id !== studentId));
+        
+        // ลบคะแนนของนักเรียนที่ถูกลบออก
+        setScores(prevScores => {
+          const newScores = { ...prevScores };
+          delete newScores[studentId];
+          return newScores;
+        });
+        
+        showAlert('ลบนักเรียนออกจาก Assignment เรียบร้อยแล้ว', 'success');
+      } else {
+        showAlert(response.data.message || 'ไม่สามารถลบนักเรียนได้', 'error');
+      }
+    } catch (error) {
+      console.error('เกิดข้อผิดพลาดในการลบนักเรียน:', error);
+      showAlert('เกิดข้อผิดพลาดในการลบนักเรียน: ' + (error.response?.data?.message || error.message), 'error');
+    } finally {
+      setRemoving(false);
+      closeConfirmModal();
+    }
+  };
+  
   // แสดงข้อความแจ้งเตือน
   const showAlert = (message, type = 'info') => {
     setAlert({ show: true, message, type });
@@ -580,7 +845,6 @@ useEffect(() => {
       </div>
     );
   }
-  
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -591,55 +855,146 @@ useEffect(() => {
           ← กลับไปหน้า Assignments
         </button>
         
-        <h1 style={styles.heading}>
-          {assignment.assignment_name} - คะแนนนักเรียน
-        </h1>
-        
-        <div style={styles.assignmentInfo}>
-          <p>
-            <strong>วิชา:</strong> {assignment.course_name}
-            &nbsp;&nbsp;|&nbsp;&nbsp;
-            <strong>เซคชัน:</strong> {assignment.section_id}
-            &nbsp;&nbsp;|&nbsp;&nbsp;
-            <strong>ภาคการศึกษา:</strong> {assignment.semester_id}/{assignment.year}
-          </p>
-        </div>
-        
-        <div style={styles.buttonContainer}>
-          <button 
-            style={saving ? styles.primaryButtonDisabled : styles.primaryButton} 
-            onClick={saveScores}
-            disabled={saving}
-          >
-            {saving ? 'กำลังบันทึก...' : 'บันทึกคะแนน'}
-          </button>
-          
-          <label htmlFor="excel-file-input">
-            <button 
-              style={styles.secondaryButton} 
-              onClick={() => document.getElementById('excel-file-input').click()}
-            >
-              นำเข้าจาก Excel
-            </button>
-          </label>
-          <input
-            id="excel-file-input"
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={handleFileImport}
-            style={styles.hidden}
-          />
-          
-          <button 
-            style={styles.outlineButton} 
-            onClick={downloadExcelTemplate}
-          >
-            ดาวน์โหลดเทมเพลต Excel
-          </button>
-        </div>
+        {isEditing ? (
+          // แสดงฟอร์มแก้ไขเมื่ออยู่ในโหมดการแก้ไข
+          <div style={styles.editForm}>
+            <h1 style={styles.heading}>แก้ไขข้อมูล Assignment</h1>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.label}>ชื่อ Assignment:</label>
+              <input
+                type="text"
+                name="assignment_name"
+                value={editData.assignment_name}
+                onChange={handleEditChange}
+                style={styles.input}
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.label}>ชื่อวิชา:</label>
+              <input
+                type="text"
+                name="course_name"
+                value={editData.course_name}
+                onChange={handleEditChange}
+                style={styles.input}
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.label}>เซคชัน:</label>
+              <input
+                type="text"
+                name="section_id"
+                value={editData.section_id}
+                onChange={handleEditChange}
+                style={styles.input}
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.label}>ภาคการศึกษา:</label>
+              <input
+                type="text"
+                name="semester_id"
+                value={editData.semester_id}
+                onChange={handleEditChange}
+                style={styles.input}
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.label}>ปีการศึกษา:</label>
+              <input
+                type="text"
+                name="year"
+                value={editData.year}
+                onChange={handleEditChange}
+                style={styles.input}
+              />
+            </div>
+            
+            <div style={styles.buttonContainer}>
+              <button
+                style={saving ? styles.primaryButtonDisabled : styles.primaryButton}
+                onClick={saveEditAssignment}
+                disabled={saving}
+              >
+                {saving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+              </button>
+              
+              <button
+                style={styles.cancelButton}
+                onClick={cancelEdit}
+                disabled={saving}
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        ) : (
+          // แสดงข้อมูล Assignment ปกติ
+          <>
+            <h1 style={styles.heading}>
+              {assignment.assignment_name} - คะแนนนักเรียน
+            </h1>
+            
+            <div style={styles.assignmentInfo}>
+              <p>
+                <strong>วิชา:</strong> {assignment.course_name}
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                <strong>เซคชัน:</strong> {assignment.section_id}
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                <strong>ภาคการศึกษา:</strong> {assignment.semester_id}/{assignment.year}
+              </p>
+            </div>
+            
+            <div style={styles.buttonContainer}>
+              {/* เพิ่มปุ่มแก้ไข Assignment */}
+              <button 
+                style={styles.editButton} 
+                onClick={() => setIsEditing(true)}
+              >
+                แก้ไขข้อมูล Assignment
+              </button>
+              
+              <button 
+                style={saving ? styles.primaryButtonDisabled : styles.primaryButton} 
+                onClick={saveScores}
+                disabled={saving}
+              >
+                {saving ? 'กำลังบันทึก...' : 'บันทึกคะแนน'}
+              </button>
+              
+              <label htmlFor="excel-file-input">
+                <button 
+                  style={styles.secondaryButton} 
+                  onClick={() => document.getElementById('excel-file-input').click()}
+                >
+                  นำเข้าจาก Excel
+                </button>
+              </label>
+              <input
+                id="excel-file-input"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileImport}
+                style={styles.hidden}
+              />
+              
+              <button 
+                style={styles.outlineButton} 
+                onClick={downloadExcelTemplate}
+              >
+                ดาวน์โหลดเทมเพลต Excel
+              </button>
+            </div>
+          </>
+        )}
       </div>
       
-      {students && students.length > 0 ? (
+      {!isEditing && students && students.length > 0 ? (
         <div style={styles.tableContainer}>
           <table style={styles.table}>
             <thead style={styles.tableHead}>
@@ -667,6 +1022,7 @@ useEffect(() => {
                     </div>
                   </th>
                 ))}
+                <th style={{...styles.tableHeaderCell, ...styles.columnAction}}>การจัดการ</th>
               </tr>
             </thead>
             <tbody>
@@ -700,17 +1056,25 @@ useEffect(() => {
                       </td>
                     );
                   })}
+                  <td style={{...styles.tableCell, textAlign: 'center'}}>
+                    <button
+                      style={styles.dangerButton}
+                      onClick={() => openConfirmRemoveModal(student.student_id, student.student_name || '')}
+                    >
+                      ลบ
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : (
+      ) : !isEditing ? (
         <div style={styles.emptyState}>
           <h2>ไม่พบรายชื่อนักเรียนใน Assignment นี้</h2>
           <p>กรุณาเพิ่มรายชื่อนักเรียนใน Assignment ก่อน</p>
         </div>
-      )}
+      ) : null}
       
       {/* แสดงข้อความแจ้งเตือน */}
       {alert.show && (
@@ -724,8 +1088,37 @@ useEffect(() => {
         </div>
       )}
       
+      {/* Modal ยืนยันการลบนักเรียน */}
+      {confirmModal.show && (
+        <div style={styles.modalBackdrop}>
+          <div style={styles.modalContent}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>ยืนยันการลบนักเรียน</h3>
+            </div>
+            <div style={styles.modalBody}>
+              <p>คุณต้องการลบนักเรียน <strong>{confirmModal.studentName}</strong> (รหัส {confirmModal.studentId}) ออกจาก Assignment นี้หรือไม่?</p>
+              <p>การลบจะทำให้คะแนนทั้งหมดของนักเรียนคนนี้หายไปด้วย และไม่สามารถกู้คืนได้</p>
+            </div>
+            <div style={styles.modalFooter}>
+              <button 
+                style={styles.cancelButton} 
+                onClick={closeConfirmModal}
+                disabled={removing}
+              >
+                ยกเลิก
+              </button>
+              <button 
+                style={styles.confirmButton} 
+                onClick={removeStudentFromAssignment}
+                disabled={removing}
+              >
+                {removing ? 'กำลังลบ...' : 'ยืนยันการลบ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-    
   );
 };
 

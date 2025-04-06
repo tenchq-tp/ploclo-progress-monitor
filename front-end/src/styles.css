@@ -1,5 +1,5 @@
 * {
-    font-family: sans-serif;
+
     box-sizing: border-box;
     /* margin: 0;
     padding: 0; */
@@ -15,6 +15,7 @@ body {
 }
 
 .nav {
+    font-family: 'Kanit', sans-serif; /* เพิ่มฟอนต์ที่นี่ */
     position: fixed;
     top: 0;
     left: 0;
@@ -514,16 +515,40 @@ html, body {
     max-width: 500px;
   }
   
-  /* ปรับปรุงรูปแบบของปุ่ม */
   .action-buttons {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap; /* เพิ่ม flex-wrap เพื่อให้ปุ่มขึ้นบรรทัดใหม่เมื่อพื้นที่ไม่พอ */
+    justify-content: space-between; /* จัดวางปุ่มให้กระจายตามขอบ */
+    align-items: center; /* จัดให้ปุ่มอยู่กึ่งกลางแนวตั้ง */
+    gap: 10px; /* ระยะห่างระหว่างปุ่ม */
     margin-bottom: 15px;
   }
   
   .button-group {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap; /* เพิ่ม flex-wrap ให้ปุ่มสามารถขึ้นบรรทัดใหม่ได้ */
+    gap: 10px; /* ระยะห่างระหว่างปุ่ม */
+    align-items: center; /* จัดปุ่มให้อยู่กึ่งกลาง */
+  }
+  
+  /* สำหรับหน้าจอขนาดเล็ก */
+  @media (max-width: 768px) {
+    .action-buttons {
+      flex-direction: column; /* เรียงปุ่มแนวตั้งสำหรับหน้าจอเล็ก */
+      align-items: stretch; /* ยืดปุ่มให้เต็มความกว้าง */
+    }
+    
+    .button-group {
+      flex-direction: column; /* เรียงปุ่มแนวตั้ง */
+      width: 100%; /* ให้กินความกว้างเต็ม */
+    }
+  }
+  
+  /* ปรับสไตล์ปุ่มให้สวยงาม */
+  .btn {
+    flex-grow: 1; /* ให้ปุ่มขยายตามพื้นที่ */
+    white-space: nowrap; /* ไม่ให้ข้อความปุ่มขึ้นบรรทัดใหม่ */
+    text-align: center; /* จัดข้อความปุ่มให้อยู่กึ่งกลาง */
   }
   
   /* รองรับการแสดงผลบนหน้าจอขนาดต่างๆ */

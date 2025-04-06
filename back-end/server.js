@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const mariadb = require('mariadb');
 const port = process.env.PORT || 8000; // port server
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 // Create a connection pool to MariaDB
 const pool = mariadb.createPool({
@@ -13,11 +15,63 @@ const pool = mariadb.createPool({
     connectionLimit: 50,       // Limit the number of connections in the pool
 });
 
-
 const table = 'data';
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// app.post('/login', (req, res) => {
+//     const { userId, email } = req.body;  // สมมุติว่าได้ข้อมูลจาก Google
+//     const token = jwt.sign({ userId, email }, '958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com', { expiresIn: '1d' });
+  
+//     // เก็บ JWT ใน cookie
+//     res.cookie('auth_token', token, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === 'production',
+//       maxAge: 7 * 24 * 60 * 60 * 1000,
+//       sameSite: 'Strict'
+//     });
+  
+//     res.send('Login successful');
+//   });
+  
+//   // Middleware สำหรับการตรวจสอบ JWT ใน cookie
+//   const authenticateToken = (req, res, next) => {
+//     const token = req.cookies.auth_token;
+  
+//     if (token) {
+//       jwt.verify(token, '958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com', (err, user) => {
+//         if (err) return res.sendStatus(403);
+//         req.user = user;
+//         next();
+//       });
+//     } else {
+//       res.sendStatus(401);
+//     }
+
+//     if (token) {
+//         jwt.verify(token, '958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com', (err, user) => {
+//           if (err) {
+//             return res.sendStatus(403); // JWT ไม่ถูกต้องหรือหมดอายุ
+//           }
+//           req.user = user; // เพิ่มข้อมูลผู้ใช้ลงใน request
+//           next();
+//         });
+//       } else {
+//         res.sendStatus(401); // ไม่มี JWT ใน cookie
+//       }
+//   };
+  
+//   // ใช้ middleware เพื่อป้องกันหน้าไหนที่ต้องการ login
+//   app.get('/dashboard', authenticateToken, (req, res) => {
+//     res.send('Welcome to the Dashboard');
+//   });
+  
+//   app.get('/dashboard', authenticateToken, (req, res) => {
+//     res.json({ message: 'Welcome to the Dashboard', user: req.user });
+//   });
+  
+
 
 // Test database connection
 pool.getConnection()
@@ -28,6 +82,7 @@ pool.getConnection()
     .catch(err => {
         console.error('Error connecting to Database:', err);
     });
+    
 
 // API root route
 app.get('/', (req, res) => {
@@ -85,9 +140,6 @@ app.post('/insert', async (req, res) => {
         });
     }
 });
-
-
-
 
 
 // API root route
@@ -238,8 +290,37 @@ app.get('/api/get_assignment_detail/:assignment_id', async (req, res) => {
         const studentList = Array.isArray(students) ? students : (students ? [students] : []);
         console.log("จำนวนนักเรียนที่พบ:", studentList.length);
         
-        // สร้าง empty scores object เพื่อความเข้ากันได้กับ frontend
+        // ดึงข้อมูลคะแนนที่บันทึกไว้
+        const scoresQuery = `
+            SELECT 
+                student_id, 
+                assignment_clo_id, 
+                score
+            FROM 
+                student_assignment_scores
+            WHERE 
+                assignment_id = ?
+        `;
+        
+        const scoresResult = await conn.query(scoresQuery, [assignment_id]);
+        console.log("ผลลัพธ์ SQL คะแนน:", scoresResult);
+        
+        // แปลงข้อมูลคะแนนเป็นรูปแบบที่ frontend ต้องการ
         const scoresMap = {};
+        
+        if (scoresResult && scoresResult.length > 0) {
+            scoresResult.forEach(row => {
+                const { student_id, assignment_clo_id, score } = row;
+                
+                if (!scoresMap[student_id]) {
+                    scoresMap[student_id] = {};
+                }
+                
+                scoresMap[student_id][assignment_clo_id] = parseFloat(score);
+            });
+        }
+        
+        console.log("ข้อมูลคะแนนที่จัดรูปแบบแล้ว:", scoresMap);
         
         // ส่งข้อมูลกลับไปยัง client
         res.json({
@@ -3257,124 +3338,111 @@ app.get('/api/program', (req, res) => {
 
 //อ้อแก้ไข
 app.post('/plo_clo', async (req, res) => {
-    const { course_id, section_id, semester_id, year, scores } = req.body;
+    console.log('Received PLO-CLO mapping request:', JSON.stringify(req.body, null, 2));
+    
+    const { program_id, course_id, section_id, semester_id, year, scores } = req.body;
 
-    if (!course_id || !section_id || !semester_id || !year || !scores || !Array.isArray(scores)) {
-        return res.status(400).json({ success: false, message: 'Missing required fields or invalid scores array.' });
+    // Basic validation
+    if (!program_id || !course_id || !section_id || !semester_id || !year) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Missing required fields.' 
+        });
     }
 
+    // Ensure scores is an array and not empty
+    if (!scores || !Array.isArray(scores) || scores.length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Scores must be a non-empty array.' 
+        });
+    }
+
+    console.log(`Processing ${scores.length} score mappings`);
+    
     try {
         const conn = await pool.getConnection();
-
-        // 1. Validate program course
-        const programCourseQuery = `
-            SELECT program_course_id FROM program_course 
-            WHERE course_id = ? AND section_id = ? AND semester_id = ? AND year = ?`;
-        const [programCourseResult] = await conn.query(programCourseQuery, [course_id, section_id, semester_id, year]);
-
-        if (!programCourseResult || programCourseResult.length === 0) {
-            conn.release();
-            return res.status(400).json({ success: false, message: 'Program course not found.' });
-        }
-
-        // 2. Validate CLO IDs - MODIFY THIS PART
-        const cloIds = scores.map(score => score.clo_id);
-        const cloQuery = `
-            SELECT CLO_id FROM course_clo 
-            WHERE course_id = ? AND semester_id = ? AND section_id = ? AND year = ? AND CLO_id IN (?)`;
         
-        // Use let instead of const to allow reassignment
-        let [validClos] = await conn.query(cloQuery, [course_id, semester_id, section_id, year, cloIds]);
-
-        // Ensure validClos is an array
-        validClos = Array.isArray(validClos) 
-            ? validClos 
-            : (validClos ? [validClos] : []);
-
-        // If validClos is an object (single result), convert to array
-        if (validClos.length === 0 && validClos.CLO_id) {
-            validClos = [validClos];
-        }
-
-        if (validClos.length === 0) {
-            conn.release();
-            return res.status(400).json({ success: false, message: 'No valid CLOs found.' });
-        }
-
-        const validCloIds = validClos.map(clo => clo.CLO_id);
-
-        // Similar modifications for PLO validation
-        const ploIds = scores.map(score => score.plo_id);
-        const ploQuery = `SELECT PLO_id FROM program_plo WHERE PLO_id IN (?)`;
-        let [validPlos] = await conn.query(ploQuery, [ploIds]);
-
-        // Ensure validPlos is an array
-        validPlos = Array.isArray(validPlos) 
-            ? validPlos 
-            : (validPlos ? [validPlos] : []);
-
-        // If validPlos is an object (single result), convert to array
-        if (validPlos.length === 0 && validPlos.PLO_id) {
-            validPlos = [validPlos];
-        }
-
-        if (validPlos.length === 0) {
-            conn.release();
-            return res.status(400).json({ success: false, message: 'No valid PLOs found.' });
-        }
-
-        const validPloIds = validPlos.map(plo => plo.PLO_id);
-
-        // Rest of the code remains the same...
+        // Create an array to collect all the successful inserts
+        const successfulInserts = [];
+        const errors = [];
         
-        // 4. Check for duplicate mappings
-        const duplicateCheckQuery = `
-            SELECT PLO_id, CLO_id FROM plo_clo
-            WHERE course_id = ? AND section_id = ? AND semester_id = ? AND year = ? 
-            AND PLO_id IN (?) AND CLO_id IN (?)`;
-        let [duplicateCheckResult] = await conn.query(duplicateCheckQuery, [course_id, section_id, semester_id, year, ploIds, cloIds]);
-
-        // Ensure duplicateCheckResult is an array
-        duplicateCheckResult = Array.isArray(duplicateCheckResult) 
-            ? duplicateCheckResult 
-            : (duplicateCheckResult ? [duplicateCheckResult] : []);
-
-        const existingPairs = new Set(duplicateCheckResult.map(row => `${row.PLO_id}-${row.CLO_id}`));
-
-        // 5. Prepare values for insertion
-        const values = scores
-            .filter(score => 
-                validCloIds.includes(score.clo_id) && 
-                validPloIds.includes(score.plo_id) && 
-                !existingPairs.has(`${score.plo_id}-${score.clo_id}`)
-            )
-            .map(score => `(${course_id}, ${section_id}, ${semester_id}, ${year}, ${score.plo_id}, ${score.clo_id}, ${score.weight})`);
-
-        if (values.length === 0) {
-            conn.release();
-            return res.status(400).json({ success: false, message: 'No valid mappings to add (Duplicates or Invalid Data).' });
+        // Process each score mapping INDIVIDUALLY to ensure all are attempted
+        for (const score of scores) {
+            try {
+                const { plo_id, clo_id, weight } = score;
+                
+                // Validate this specific score
+                if (!plo_id || !clo_id || weight === undefined) {
+                    errors.push(`Invalid score data: ${JSON.stringify(score)}`);
+                    continue;
+                }
+                
+                // Check if this mapping already exists
+                const checkQuery = `
+                    SELECT * FROM plo_clo 
+                    WHERE course_id = ? AND section_id = ? AND semester_id = ? 
+                    AND year = ? AND PLO_id = ? AND CLO_id = ?`;
+                
+                const [existingMapping] = await conn.query(checkQuery, [
+                    course_id, section_id, semester_id, year, plo_id, clo_id
+                ]);
+                
+                if (existingMapping && existingMapping.length > 0) {
+                    // The mapping already exists, skip or update
+                    console.log(`Mapping already exists: PLO=${plo_id}, CLO=${clo_id}`);
+                    continue;
+                }
+                
+                // Insert this single mapping
+                const insertQuery = `
+                    INSERT INTO plo_clo (course_id, section_id, semester_id, year, PLO_id, CLO_id, weight)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)`;
+                
+                const insertResult = await conn.query(insertQuery, [
+                    course_id, section_id, semester_id, year, plo_id, clo_id, weight
+                ]);
+                
+                console.log(`Inserted mapping: PLO=${plo_id}, CLO=${clo_id}, weight=${weight}`, insertResult);
+                
+                successfulInserts.push({
+                    plo_id,
+                    clo_id,
+                    weight
+                });
+            } catch (scoreError) {
+                // Log error but continue processing other scores
+                console.error(`Error processing score: ${JSON.stringify(score)}`, scoreError);
+                errors.push(`Error with PLO=${score.plo_id}, CLO=${score.clo_id}: ${scoreError.message}`);
+            }
         }
-
-        // 6. Insert data
-        const insertQuery = `
-            INSERT INTO plo_clo (course_id, section_id, semester_id, year, PLO_id, CLO_id, weight) 
-            VALUES ${values.join(',')}`;
-        const result = await conn.query(insertQuery);
+        
         conn.release();
-
-        res.json({
-            success: true,
-            message: 'PLO-CLO mappings added successfully.',
-            result: { 
-                affectedRows: result.affectedRows, 
-                insertId: result.insertId ? result.insertId.toString() : null, 
-                warningStatus: result.warningStatus 
-            },
-        });
-
+        
+        // Report on the overall operation
+        console.log(`Processed ${scores.length} mappings. Inserted: ${successfulInserts.length}, Errors: ${errors.length}`);
+        
+        // Return appropriate response based on results
+        if (successfulInserts.length > 0) {
+            return res.json({
+                success: true,
+                message: `Successfully added ${successfulInserts.length} PLO-CLO mappings.`,
+                details: {
+                    totalSubmitted: scores.length,
+                    totalInserted: successfulInserts.length,
+                    errors: errors.length > 0 ? errors : []
+                }
+            });
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'No mappings were added.',
+                errors
+            });
+        }
     } catch (error) {
-        console.error('Error adding PLO-CLO mappings:', error);
-        res.status(500).json({ 
+        console.error('Error in PLO-CLO endpoint:', error);
+        return res.status(500).json({ 
             success: false, 
             message: 'Internal server error.', 
             error: error.message 
@@ -3488,6 +3556,79 @@ app.delete('/api/delete_assignment/:id', async (req, res) => {
     }
 });
 
+app.delete('/api/remove_student_from_assignment', async (req, res) => {
+    const { assignment_id, student_id } = req.body;
+    
+    if (!assignment_id || !student_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'ข้อมูลไม่ครบถ้วน กรุณาระบุ assignment_id และ student_id'
+      });
+    }
+    
+    let conn;
+    
+    try {
+      // สร้างการเชื่อมต่อกับฐานข้อมูล
+      conn = await pool.getConnection();
+      
+      // ตรวจสอบว่ามีนักเรียนนี้ใน Assignment หรือไม่
+      const assignmentStudentsCheck = await conn.query(
+        `SELECT * FROM assignments_students 
+         WHERE assignment_id = ? AND student_id = ?`,
+        [assignment_id, student_id]
+      );
+      
+      if (!assignmentStudentsCheck || assignmentStudentsCheck.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'ไม่พบข้อมูลนักเรียนใน Assignment นี้'
+        });
+      }
+      
+      // เริ่ม transaction
+      await conn.beginTransaction();
+      
+      // ลบข้อมูลคะแนนของนักเรียนในทุก CLO ของ Assignment นี้
+      await conn.query(
+        `DELETE FROM student_assignment_scores 
+         WHERE assignment_id = ? AND student_id = ?`,
+        [assignment_id, student_id]
+      );
+      
+      // ลบข้อมูลนักเรียนออกจาก Assignment
+      await conn.query(
+        `DELETE FROM assignments_students 
+         WHERE assignment_id = ? AND student_id = ?`,
+        [assignment_id, student_id]
+      );
+      
+      // ยืนยัน transaction
+      await conn.commit();
+      
+      res.json({
+        success: true,
+        message: 'ลบนักเรียนออกจาก Assignment เรียบร้อยแล้ว'
+      });
+      
+    } catch (error) {
+      // ถ้าเกิดข้อผิดพลาด ให้ rollback transaction
+      if (conn) {
+        await conn.rollback();
+      }
+      
+      console.error('Error removing student:', error);
+      res.status(500).json({
+        success: false,
+        message: 'เกิดข้อผิดพลาดในการลบนักเรียน: ' + error.message
+      });
+    } finally {
+      if (conn) {
+        conn.release();
+      }
+    }
+  });
+
 // UPDATE Assignment
 // UPDATE Assignment (ไม่ต้องตรวจสอบความครบถ้วน)
 
@@ -3575,9 +3716,23 @@ app.put('/api/update_assignment/:id', async (req, res) => {
         year, 
         assignment_name,
         faculty_id,
-        university_id,
-        clo_scores 
+        university_id
       } = req.body;
+      
+      // ตรวจสอบข้อมูลที่จำเป็น
+      const requiredFields = {
+        program_id, course_name, section_id, semester_id, 
+        year, assignment_name, faculty_id, university_id
+      };
+      
+      // ตรวจสอบว่าทุกฟิลด์มีค่า
+      for (const [field, value] of Object.entries(requiredFields)) {
+        if (value === undefined || value === null) {
+          return res.status(400).json({ 
+            error: `Missing required field: ${field}`
+          });
+        }
+      }
       
       // Update the assignment
       const updateQuery = `
@@ -3593,7 +3748,7 @@ app.put('/api/update_assignment/:id', async (req, res) => {
         WHERE assignment_id = ?
       `;
       
-      await pool.query(updateQuery, [
+      console.log('Executing update query with data:', [
         program_id,
         course_name,
         section_id,
@@ -3605,35 +3760,34 @@ app.put('/api/update_assignment/:id', async (req, res) => {
         assignmentId
       ]);
       
-      // Update CLO scores
-      // First delete existing scores
-      await pool.query('DELETE FROM assignment_clo_scores WHERE assignment_id = ?', [assignmentId]);
+      const result = await pool.query(updateQuery, [
+        program_id,
+        course_name,
+        section_id,
+        semester_id,
+        year,
+        assignment_name,
+        faculty_id,
+        university_id,
+        assignmentId
+      ]);
       
-      // Then insert new scores
-      if (clo_scores && clo_scores.length > 0) {
-        const scoreValues = clo_scores.map(score => [
-          assignmentId,
-          score.clo_id,
-          score.score
-        ]);
-        
-        await pool.query(
-          'INSERT INTO assignment_clo_scores (assignment_id, clo_id, score) VALUES ?', 
-          [scoreValues]
-        );
-      }
+      console.log('Update result:', result);
       
       res.json({ 
         message: 'Assignment updated successfully', 
-        assignment_id: assignmentId 
+        assignment_id: assignmentId,
+        affectedRows: result.affectedRows
       });
       
     } catch (error) {
       console.error('Error updating assignment:', error);
-      res.status(500).json({ error: 'Failed to update assignment' });
+      res.status(500).json({ 
+        error: 'Failed to update assignment',
+        details: error.message
+      });
     }
   });
-
 
 //อ้อเพิ่ม
 app.get('/university', async (req, res) => {

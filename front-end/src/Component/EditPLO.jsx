@@ -36,6 +36,7 @@ const CoursePloManagement = () => {
   const [showLoadPreviousPLOModal, setShowLoadPreviousPLOModal] =
     useState(false);
   const [previousYearPLOs, setPreviousYearPLOs] = useState([]);
+  const [showPasteArea, setShowPasteArea] = useState(false);
 
   // Fetch universities, facultys, and years
   useEffect(() => {
@@ -534,13 +535,25 @@ const CoursePloManagement = () => {
   };
 
   const handleUploadButtonClick = () => {
-    if (excelData) {
+    if (excelData && excelData.length > 0) {
+      // ตรวจสอบว่าได้เลือกโปรแกรมแล้วหรือไม่
+      if (!selectedProgram) {
+        alert("กรุณาเลือกโปรแกรมก่อนอัปโหลดข้อมูล");
+        return;
+      }
+  
+      // เตรียมข้อมูลสำหรับส่งไปยัง API
+      const dataToUpload = excelData.map(item => ({
+        ...item,
+        program_id: selectedProgram
+      }));
+  
       fetch("http://localhost:8000/plo/excel", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(excelData),
+        body: JSON.stringify(dataToUpload),
       })
         .then((response) => {
           if (!response.ok) {
@@ -552,14 +565,24 @@ const CoursePloManagement = () => {
         })
         .then((data) => {
           console.log("Success:", data);
-          alert("Data Uploaded Successfully!");
+          alert("อัปโหลดข้อมูลสำเร็จ!");
+          
+          // รีเฟรชข้อมูล PLO หลังจากอัปโหลด
+          fetch(`http://localhost:8000/program_plo?program_id=${selectedProgram}`)
+            .then((response) => response.json())
+            .then((data) => {
+              setPlos(data.success ? data.message : []);
+            });
+            
+          // ล้างข้อมูลหลังจากอัปโหลดสำเร็จ
+          setExcelData(null);
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert("An error occurred: " + error.message);
+          alert("เกิดข้อผิดพลาด: " + error.message);
         });
     } else {
-      console.error("No data to upload");
+      alert("ไม่มีข้อมูลที่จะอัปโหลด กรุณาอัปโหลดไฟล์หรือวางข้อมูลก่อน");
     }
   };
 
@@ -567,24 +590,42 @@ const CoursePloManagement = () => {
     try {
       // อ่านข้อมูลจาก Clipboard
       const text = await navigator.clipboard.readText();
-
-      // ใช้ XLSX เพื่อแปลงข้อมูลที่วางเป็น JSON
-      const workbook = XLSX.read(text, { type: "string" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(sheet);
-
-      // เพิ่ม program_id ให้กับทุกแถว
-      const updatedData = jsonData.map((row) => ({
-        ...row,
-        program_id: selectedProgram, // ใส่ program_id ที่เลือก
-      }));
-
-      setExcelData(updatedData); // อัปเดตข้อมูลใน State
-      console.log("Pasted Data:", updatedData);
+      
+      // ตรวจสอบว่าข้อมูลมีหรือไม่
+      if (!text || text.trim() === '') {
+        alert('ไม่พบข้อมูลใน clipboard โปรดคัดลอกข้อมูลก่อนกดปุ่ม Paste Data');
+        return;
+      }
+      
+      // แยกข้อมูลตามบรรทัด
+      const rows = text.trim().split(/\r?\n/);
+      
+      // ตรวจสอบว่ามีการใช้ tab หรือ comma เป็นตัวคั่น
+      let delimiter = '\t'; // ค่าเริ่มต้นคือ tab
+      if (rows[0].includes(',') && !rows[0].includes('\t')) {
+        delimiter = ',';
+      }
+      
+      // แปลงข้อมูลเป็น array ของ objects
+      const parsedData = rows.map(row => {
+        const columns = row.split(delimiter);
+        return {
+          program_id: selectedProgram,
+          PLO_code: columns[0] || '',
+          PLO_name: columns[1] || '',
+          PLO_engname: columns[2] || ''
+        };
+      });
+      
+      // อัปเดต excelData state
+      setExcelData(parsedData);
+      console.log("Pasted Data:", parsedData);
+      
+      // แสดงข้อความแจ้งเตือนว่าวางข้อมูลสำเร็จ
+      alert(`วางข้อมูลสำเร็จ: พบ ${parsedData.length} รายการ`);
     } catch (err) {
       console.error("Failed to paste data:", err);
-      alert("Failed to paste data. Make sure you copied valid Excel data.");
+      alert("ไม่สามารถวางข้อมูลได้ โปรดตรวจสอบว่าได้คัดลอกข้อมูลที่ถูกต้อง");
     }
   };
 
@@ -625,6 +666,45 @@ const handleEditPlo = (plo) => {
     PLO_engname: plo.PLO_engname,
   });
   setShowEditModal(true);
+};
+
+const handleDirectPaste = (e) => {
+  e.preventDefault();
+  
+  // รับข้อมูลจาก clipboard event
+  const clipboardData = e.clipboardData || window.clipboardData;
+  const text = clipboardData.getData('text');
+  
+  if (!text || text.trim() === '') {
+    return;
+  }
+  
+  // แยกข้อมูลตามบรรทัด
+  const rows = text.trim().split(/\r?\n/);
+  
+  // ตรวจสอบว่ามีการใช้ tab หรือ comma เป็นตัวคั่น
+  let delimiter = '\t'; // ค่าเริ่มต้นคือ tab
+  if (rows[0].includes(',') && !rows[0].includes('\t')) {
+    delimiter = ',';
+  }
+  
+  // แปลงข้อมูลเป็น array ของ objects
+  const parsedData = rows.map(row => {
+    const columns = row.split(delimiter);
+    return {
+      program_id: selectedProgram,
+      PLO_code: columns[0] || '',
+      PLO_name: columns[1] || '',
+      PLO_engname: columns[2] || ''
+    };
+  });
+  
+  // อัปเดต excelData state
+  setExcelData(parsedData);
+  console.log("Directly Pasted Data:", parsedData);
+  
+  // ปิดพื้นที่วางข้อมูล
+  setShowPasteArea(false);
 };
 
 // แก้ไขฟังก์ชัน handleUpdatePlo
@@ -954,14 +1034,92 @@ const handleUpdatePlo = () => {
               style={{ backgroundColor: "#FF8C00", color: "white" }}
             >
               Add PLO
-            </button>
-            
+            </button>            
+
             <button
               onClick={handleLoadPreviousPLO}
               className="btn btn-secondary"
             >
               Load Previous Year PLOs
             </button>
+              
+
+              
+                {/* ✅ ตรวจสอบว่า Modal เปิดเมื่อ showLoadPreviousPLOModal === true */}
+      {showLoadPreviousPLOModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            backgroundColor: "white",
+            padding: "20px",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
+            zIndex: 1000,
+            width: "500px",
+            maxHeight: "70%",
+            overflowY: "auto",
+          }}
+        >
+          <h3>Previous Year PLOs</h3>
+          {previousYearPLOs.length > 0 ? (
+            <>
+              <table
+                border="1"
+                style={{ width: "100%", borderCollapse: "collapse" }}
+              >
+                <thead>
+                  <tr>
+                    <th>PLO Code</th>
+                    <th>PLO Name</th>
+                    <th>PLO English Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previousYearPLOs.map((plo, index) => (
+                    <tr key={index}>
+                      <td>{plo.PLO_code}</td>
+                      <td>{plo.PLO_name}</td>
+                      <td>{plo.PLO_engname}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ marginTop: "15px", textAlign: "center" }}>
+                <button
+                  onClick={handleMergePLOs}
+                  style={{
+                    backgroundColor: "green",
+                    color: "white",
+                    padding: "10px 20px",
+                    border: "none",
+                    cursor: "pointer",
+                    marginRight: "10px",
+                  }}
+                >
+                  Merge All PLOs
+                </button>
+                <button
+                  onClick={() => setShowLoadPreviousPLOModal(false)}
+                  style={{
+                    backgroundColor: "red",
+                    color: "white",
+                    padding: "10px 20px",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : (
+            <p>No PLOs found for the previous year.</p>
+          )}
+        </div>
+      )}
+
           </div>
           
           <div className="button-group ms-auto">
@@ -986,6 +1144,31 @@ const handleUpdatePlo = () => {
             >
               Paste Data
             </button>
+            {/* เพิ่มส่วนนี้หลังจากปุ่ม "Paste Data" */}
+<div className="paste-area mt-3" style={{ display: showPasteArea ? 'block' : 'none' }}>
+  <div className="card">
+    <div className="card-header">
+      <h5>วางข้อมูล PLO</h5>
+      <p className="text-muted mb-0">คัดลอกข้อมูลจาก Excel แล้ววางที่นี่ (รองรับทั้งคอลัมน์ที่คั่นด้วย Tab และ Comma)</p>
+    </div>
+    <div className="card-body">
+      <textarea 
+        className="form-control" 
+        rows="5" 
+        placeholder="วางข้อมูล PLO ที่นี่... (PLO Code, PLO Name, PLO English Name)"
+        onPaste={handleDirectPaste}
+      ></textarea>
+      <div className="mt-2">
+        <button 
+          className="btn btn-sm btn-secondary"
+          onClick={() => setShowPasteArea(false)}
+        >
+          ปิด
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
             
             <button
               onClick={handleUploadButtonClick}
@@ -995,11 +1178,39 @@ const handleUpdatePlo = () => {
               Submit Excel Data
             </button>
           </div>
+          
+          <div>
+          {excelData && excelData.length > 0 && (
+            <div className="mt-3">
+              <h5>Preview Data</h5>
+              <table className="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>PLO Code</th>
+                    <th>PLO Name</th>
+                    <th>PLO English Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {excelData.map((row, index) => (
+                    <tr key={index}>
+                      <td>{row.PLO_code}</td>
+                      <td>{row.PLO_name}</td>
+                      <td>{row.PLO_engname}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          </div>
         </div>
 
         {typeError && (
           <div className="alert alert-danger mb-3">{typeError}</div>
         )}
+
+        
 
         {/* PLO Table */}
         <div className="plo-table-container">
@@ -1190,6 +1401,75 @@ const handleUpdatePlo = () => {
             ))}
           </tbody>
         </table>
+
+        {showAddModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            backgroundColor: "white",
+            padding: "20px",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
+            zIndex: 1000,
+            width: "300px",
+          }}
+        >
+          <h3>Add New PLO</h3>
+          <label>PLO Code:</label>
+          <input
+            type="text"
+            value={newPlo.PLO_code}
+            onChange={(e) => setNewPlo({ ...newPlo, PLO_code: e.target.value })}
+            style={{ width: "100%" }}
+          />
+          <label>PLO Name:</label>
+          <input
+            type="text"
+            value={newPlo.PLO_name}
+            onChange={(e) => setNewPlo({ ...newPlo, PLO_name: e.target.value })}
+            style={{ width: "100%" }}
+          />
+          <label>PLO English Name:</label>
+          <input
+            type="text"
+            value={newPlo.PLO_engname}
+            onChange={(e) =>
+              setNewPlo({ ...newPlo, PLO_engname: e.target.value })
+            }
+            style={{ width: "100%" }}
+          />
+          <button
+            onClick={handleAddPlo}
+            style={{
+              backgroundColor: "blue",
+              color: "white",
+              padding: "8px 16px",
+              border: "none",
+              cursor: "pointer",
+              marginTop: "10px",
+              width: "100%",
+            }}
+          >
+            Add PLO
+          </button>
+          <button
+            onClick={() => setShowAddModal(false)}
+            style={{
+              backgroundColor: "red",
+              color: "white",
+              padding: "8px 16px",
+              border: "none",
+              cursor: "pointer",
+              marginTop: "10px",
+              width: "100%",
+            }}
+          >
+            Close
+          </button>
+        </div>
+      )}
 
         {/* Modal and other components remain the same as in the original document */}
         {/* (You would include the existing modal code here) */}

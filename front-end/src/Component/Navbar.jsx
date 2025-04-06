@@ -122,7 +122,7 @@ export default function Navbar({ role }) {
                             onMouseLeave={() => activeItemRef.current && updateAnimationBar(activeItemRef.current)}
                             setActiveRef={activeItemRef}
                         >
-                            {t('Assigment')}
+                            {t('Assignment')}
                         </CustomLink>
                     )}
 
@@ -229,9 +229,10 @@ export default function Navbar({ role }) {
                 
                 <div className="language-selector">
                     <span className="language-label">
-                        {t('Select Language')}:
+                        {t('Select Language')}
                     </span>
                     <ul className="language-menu d-grid gap-0">
+                        <li onClick={() => changeLanguage('th')}>Thai</li>
                         <li onClick={() => changeLanguage('en')}>English</li>
                         <li onClick={() => changeLanguage('ch')}>Chinese</li>
                     </ul>

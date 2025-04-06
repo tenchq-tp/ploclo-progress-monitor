@@ -38,6 +38,7 @@ export default function CurriculumManagement() {
   const [showPreviousYearCLOsModal, setShowPreviousYearCLOsModal] =
     useState(false);
   const [allPLOs, setAllPLOs] = useState([]);
+  const [showPasteArea, setShowPasteArea] = useState(false);
 
   useEffect(() => {
     // ดึงข้อมูลมหาวิทยาลัย
@@ -579,6 +580,49 @@ useEffect(() => {
       }
     }
   };
+  // 2. แก้ไขฟังก์ชัน handleDirectPaste
+const handleDirectPaste = (e) => {
+  e.preventDefault();
+  
+  // รับข้อมูลจาก clipboard event
+  const clipboardData = e.clipboardData || window.clipboardData;
+  const text = clipboardData.getData('text');
+  
+  if (!text || text.trim() === '') {
+    return;
+  }
+  
+  // แยกข้อมูลตามบรรทัด
+  const rows = text.trim().split(/\r?\n/);
+  
+  // ตรวจสอบว่ามีการใช้ tab หรือ comma เป็นตัวคั่น
+  let delimiter = '\t'; // ค่าเริ่มต้นคือ tab
+  if (rows[0].includes(',') && !rows[0].includes('\t')) {
+    delimiter = ',';
+  }
+  
+  // แปลงข้อมูลเป็น array ของ objects
+  const parsedData = rows.map(row => {
+    const columns = row.split(delimiter);
+    return {
+      program_id: parseInt(selectedProgram),
+      course_id: parseInt(selectedCourseId),
+      semester_id: parseInt(selectedSemesterId),
+      section_id: parseInt(selectedSectionId),
+      year: parseInt(selectedYear),
+      CLO_code: columns[0] || '',
+      CLO_name: columns[1] || '',
+      CLO_engname: columns[2] || ''
+    };
+  });
+  
+  // อัปเดต excelData state
+  setExcelData(parsedData);
+  console.log("Directly Pasted Data:", parsedData);
+  
+  // ปิดพื้นที่วางข้อมูล
+  setShowPasteArea(false);
+};
 
   const handleAddClo = async () => {
     // Find the selected program data
@@ -681,6 +725,8 @@ useEffect(() => {
     }
   };
 
+  
+
   const handleFileUpload = async (e) => {
     let fileTypes = [
       "application/vnd.ms-excel",
@@ -719,16 +765,16 @@ useEffect(() => {
               semester_id: parseInt(selectedSemesterId),
               section_id: parseInt(selectedSectionId),
               year: parseInt(selectedYear),
-              CLO_code: row.CLO_code || "",
-              CLO_name: row.CLO_name || "",
-              CLO_engname: row.CLO_engname || ""
+              CLO_code: row.CLO_code || "DEFAULT_CODE", // ให้ค่าเริ่มต้นแทนค่าว่าง
+              CLO_name: row.CLO_name || "DEFAULT_NAME", // ให้ค่าเริ่มต้นแทนค่าว่าง
+              CLO_engname: row.CLO_engname || "DEFAULT_ENG_NAME" // ให้ค่าเริ่มต้นแทนค่าว่าง
             }));
 
             // Validate that all required fields are present in each row
             const invalidRows = updatedData.filter(row => 
               !row.program_id || !row.course_id || !row.semester_id || 
-              !row.section_id || !row.year || !row.CLO_code || 
-              !row.CLO_name || !row.CLO_engname
+              !row.section_id || !row.year || !row.CLO_code
+              // อาจพิจารณาไม่ตรวจสอบ CLO_name หรือ CLO_engname ถ้าไม่จำเป็นต้องมีทั้งหมด
             );
 
             if (invalidRows.length > 0) {
@@ -758,78 +804,54 @@ useEffect(() => {
     }
 };
 
+// 1. แก้ไขฟังก์ชัน handlePasteButtonClick
 const handlePasteButtonClick = async () => {
   try {
-    if (!navigator.clipboard || !navigator.clipboard.readText) {
-      alert("Clipboard API is not supported in this browser.");
-      return;
-    }
-
-    // Validate all selections are made
-    if (!selectedProgram || !selectedCourseId || !selectedSectionId || 
-        !selectedSemesterId || !selectedYear) {
-      alert("Please select Program, Course, Section, Semester, and Year before pasting data.");
-      return;
-    }
-
-    // Find the selected program
-    const programData = programs.find(
-      (program) => program.program_id.toString() === selectedProgram.toString()
-    );
-
-    if (!programData) {
-      alert("Error: Selected program not found. Please select a valid program.");
-      return;
-    }
-
+    // เปิดพื้นที่วางข้อมูล
+    setShowPasteArea(true);
+    
     // อ่านข้อมูลจาก Clipboard
     const text = await navigator.clipboard.readText();
-
-    if (!text) {
-      alert("No text found in clipboard!");
+    
+    // ตรวจสอบว่าข้อมูลมีหรือไม่
+    if (!text || text.trim() === '') {
+      alert('ไม่พบข้อมูลใน clipboard โปรดคัดลอกข้อมูลก่อนกดปุ่ม Paste Data');
       return;
     }
-
-    console.log("Raw Clipboard Data:", text);
-
-    // ใช้ XLSX เพื่อแปลงข้อมูลที่วางเป็น JSON
-    const workbook = XLSX.read(text, { type: "string" }); // แปลงข้อมูลใน clipboard เป็น workbook
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(sheet);
-
-    console.log("Parsed Data:", jsonData);
-
-    // เพิ่มข้อมูลที่เกี่ยวข้องจาก UI
-    const updatedData = jsonData.map((row) => ({
-      program_id: parseInt(programData.program_id),
-      course_id: parseInt(selectedCourseId),
-      semester_id: parseInt(selectedSemesterId),
-      section_id: parseInt(selectedSectionId),
-      year: parseInt(selectedYear),
-      CLO_code: row.CLO_code || "",
-      CLO_name: row.CLO_name || "",
-      CLO_engname: row.CLO_engname || ""
-    }));
-
-    // Validate that all required fields are present in each row
-    const invalidRows = updatedData.filter(row => 
-      !row.program_id || !row.course_id || !row.semester_id || 
-      !row.section_id || !row.year || !row.CLO_code || 
-      !row.CLO_name || !row.CLO_engname
-    );
-
-    if (invalidRows.length > 0) {
-      console.error("Invalid rows found:", invalidRows);
-      alert(`Error: ${invalidRows.length} rows are missing required fields. Please check your Excel data.`);
-      return;
+    
+    // แยกข้อมูลตามบรรทัด
+    const rows = text.trim().split(/\r?\n/);
+    
+    // ตรวจสอบว่ามีการใช้ tab หรือ comma เป็นตัวคั่น
+    let delimiter = '\t'; // ค่าเริ่มต้นคือ tab
+    if (rows[0].includes(',') && !rows[0].includes('\t')) {
+      delimiter = ',';
     }
-
-    setExcelData(updatedData); // อัปเดตข้อมูลใน State
-    console.log("Pasted Data:", updatedData);
+    
+    // แปลงข้อมูลเป็น array ของ objects
+    const parsedData = rows.map(row => {
+      const columns = row.split(delimiter);
+      return {
+        program_id: parseInt(selectedProgram),
+        course_id: parseInt(selectedCourseId),
+        semester_id: parseInt(selectedSemesterId),
+        section_id: parseInt(selectedSectionId),
+        year: parseInt(selectedYear),
+        CLO_code: columns[0] || '',
+        CLO_name: columns[1] || '',
+        CLO_engname: columns[2] || ''
+      };
+    });
+    
+    // อัปเดต excelData state
+    setExcelData(parsedData);
+    console.log("Pasted Data:", parsedData);
+    
+    // แสดงข้อความแจ้งเตือนว่าวางข้อมูลสำเร็จ
+    alert(`วางข้อมูลสำเร็จ: พบ ${parsedData.length} รายการ`);
   } catch (err) {
     console.error("Failed to paste data:", err);
-    alert("Failed to paste data. Make sure you copied valid Excel data: " + err.message);
+    alert("ไม่สามารถวางข้อมูลได้ โปรดตรวจสอบว่าได้คัดลอกข้อมูลที่ถูกต้อง");
   }
 };
 
@@ -1465,17 +1487,42 @@ const handleUploadButtonClick = () => {
 
         {/* ปุ่มใหม่สำหรับ Paste และ Upload */}
         <div className="mt-3 d-flex flex-column align-items-start">
-          {/* ปุ่ม Paste from Clipboard */}
-          <button
-            onClick={handlePasteButtonClick}
-            className="btn btn-secondary mb-2"
-          >
-            Paste from Clipboard
-          </button>
+        <button
+  onClick={handlePasteButtonClick}
+  className="btn btn-secondary mb-2"
+>
+  Paste from Clipboard
+</button>
+
+{/* พื้นที่วางข้อมูล
+<div className="paste-area mt-3" style={{ display: showPasteArea ? 'block' : 'none' }}>
+  <div className="card">
+    <div className="card-header">
+      <h5>วางข้อมูล CLO</h5>
+      <p className="text-muted mb-0">คัดลอกข้อมูลจาก Excel แล้ววางที่นี่ (รองรับทั้งคอลัมน์ที่คั่นด้วย Tab และ Comma)</p>
+    </div>
+    <div className="card-body">
+      <textarea 
+        className="form-control" 
+        rows="5" 
+        placeholder="วางข้อมูล CLO ที่นี่... (CLO Code, CLO Name, CLO English Name)"
+        onPaste={handleDirectPaste}
+      ></textarea>
+      <div className="mt-2">
+        <button 
+          className="btn btn-sm btn-secondary"
+          onClick={() => setShowPasteArea(false)}
+        >
+          ปิด
+        </button>
+      </div>
+    </div>
+  </div>
+</div> */}
 
           {excelData && excelData.length > 0 && (
             <div className="mt-3">
-              <h5>Preview Data:</h5>
+              <h5>Preview Data</h5>
               <table className="table table-bordered">
                 <thead>
                   <tr>

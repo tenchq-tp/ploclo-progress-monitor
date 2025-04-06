@@ -3,6 +3,19 @@ import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
+const Dashboard = () => {
+  useEffect(() => {
+    // เรียก API เพื่อเช็คว่า JWT ยัง valid หรือไม่
+    axios.get('/dashboard', { withCredentials: true })
+      .then(response => {
+        console.log('Dashboard data:', response.data);
+      })
+      .catch(error => {
+        console.error('Error accessing dashboard:', error);
+      });
+  }, []);
+};
+
 function Login({ setRole }) {
   const clientId = "958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com";
   const [profile, setProfile] = useState(null);
