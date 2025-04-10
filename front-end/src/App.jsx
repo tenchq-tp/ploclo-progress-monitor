@@ -2,7 +2,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import ViewCourseInfo from "./ViewCourseInfo.jsx";
+// import ViewCourseInfo from "./ViewCourseInfo.jsx";
 import ViewChart from './ViewChart.jsx';
 import Login from './Login.jsx';
 import Navbar from './Component/Navbar.jsx';
@@ -28,7 +28,7 @@ function App() {
             <div className="">
                 <Routes>
                     <Route path="/" element={<Login setRole={setRole} />} /> 
-                    <Route path="/ViewCourseInfo" element={<ViewCourseInfo />} />
+                    {/* <Route path="/ViewCourseInfo" element={<ViewCourseInfo />} /> */}
                     <Route path="/ViewChart" element={<ViewChart />} />
                     <Route path="/StudentData" element={<StudentData />} />
                     <Route path="/aboutData" element={<AboutData />} />

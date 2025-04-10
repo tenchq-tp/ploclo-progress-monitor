@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import i18n from './i18n.js';  // ตรวจสอบว่าไฟล์นี้ตั้งค่า i18n ถูกต้อง
-import './index.css';
 import './styles.css';
 import { BrowserRouter } from 'react-router-dom';
 

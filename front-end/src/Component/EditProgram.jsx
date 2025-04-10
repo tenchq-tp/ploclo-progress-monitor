@@ -1,8 +1,23 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next"; // เพิ่มการ import useTranslation
+import CoursePloManagement from "./EditPLO"; // หรือตำแหน่งที่ถูกต้อง
+
+
+
 
 export default function Program() {
+  const EditPLO = ({ selectedProgram, selectedFaculty, selectedUniversity, selectedYear }) => {
+    return (
+      <CoursePloManagement 
+        selectedProgram={selectedProgram}
+        selectedFaculty={selectedFaculty}
+        selectedUniversity={selectedUniversity}
+        selectedYear={selectedYear}
+      />
+    );
+  };
   const [program, setProgram] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState("all");
   const [filteredProgram, setFilteredProgram] = useState([]);
@@ -27,6 +42,10 @@ export default function Program() {
   const [facultys, setFacultys] = useState([]);
   const [selectedFaculty, setSelectedFaculty] = useState("all");
   const [alert, setAlert] = useState({ show: false, message: "", type: "" });
+  const [activeTab, setActiveTab] = useState(0);
+  const { t, i18n } = useTranslation(); // เรียกใช้ hook useTranslation และดึง i18n object
+
+
 
   // Fetch program, universities, and facultys when the component loads
   useEffect(() => {
@@ -464,10 +483,123 @@ export default function Program() {
     setSelectedYear(e.target.value);
   };
 
+  const handleTabClick = (tabIndex) => {
+    setActiveTab(tabIndex);
+  };
+
   return (
-<div className="main-container" style={{ paddingTop: '10px', maxWidth: '1000px' }}>
-<div className="content-box">
-    <div className="card p-4 position-relative" style={{marginTop: "100px", }}>
+    
+
+<div className="mb-3" style={{ paddingTop: '80px', maxWidth: '1000px', marginLeft: '20px'}}>
+
+<div style={{ 
+  position: 'fixed', // เปลี่ยนจาก sticky เป็น fixed เพื่อให้ติดอยู่ที่ตำแหน่งเดิมตลอด
+  top: 0, 
+  left: 0, // กำหนดให้ชิดซ้ายของหน้าจอ
+  right: 0, // กำหนดให้ขยายไปถึงขอบขวาของหน้าจอ
+  zIndex: 1000, 
+  marginLeft: '250px',
+  backgroundColor: '#FFFFFF',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  borderBottom: '1px solid #eee'
+}}>
+  {/* หัวข้อหลักสูตรและแถบเมนู */}
+  <div style={{ 
+    maxWidth: '1000px', 
+    margin: '0 0',
+    marginLeft: '15px',
+    padding: '0 15px'
+  }}>
+    <h3 className="mb-0" style={{fontSize: '1.4rem', padding: '10px 0', marginTop: 15 }}>{t('Program Information')}</h3>
+    
+    {/* แถบเมนู */}
+    <ul className="tab-bar" style={{ margin: 0, padding: '5px 0 10px 5px', borderBottom: 'none' }}>
+      <li className={`tab-item ${activeTab === 0 ? 'active' : ''}`} onClick={() => handleTabClick(0)}>{t('General Information')}</li>
+      <li className={`tab-item ${activeTab === 1 ? 'active' : ''}`} onClick={() => handleTabClick(1)}>{t('Program Learning Outcomes (PLO)')}</li>
+    </ul>
+
+    {/* จัดให้ 4 element อยู่ในแถวเดียวกัน */}
+    <div className="d-flex flex-row" style={{ flexWrap: 'nowrap', marginTop: '0px' }}>
+  <div className="mb-3 me-2" style={{ width: '380px' }}>
+    <label className="form-label">Choose a university</label>
+    <select
+      className="form-select form-container-uni"
+      value={selectedUniversity}
+      onChange={handleUniversityChange}
+    >
+      <option value="all">All Universities</option>
+      {universities.map((university) => (
+        <option
+          key={university.university_id}
+          value={university.university_id}
+        >
+          {university.university_name_en} ({university.university_name_th})
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div className="mb-3 me-2" style={{ width: '380px' }}>
+    <label className="form-label text-start">Choose a Faculty</label>
+    <select
+      className="form-select form-container-faculty"
+      value={selectedFaculty}
+      onChange={handleFacultyChange}
+    >
+      <option value="all">All Facultys</option>
+      {facultys.map((faculty) => (
+        <option key={faculty.faculty_id} value={faculty.faculty_id}>
+          {faculty.faculty_name_en} ({faculty.faculty_name_th})
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div className="mb-3 me-2" style={{ width: '380px' }}>
+    <label className="form-label text-start">Choose a Program</label>
+    <select
+      className="form-select form-container-program"
+      value={selectedProgram || "all"}
+      onChange={(e) => setSelectedProgram(e.target.value)}
+    >
+      <option value="all">All Programs</option>
+      {program.map((p) => (
+        <option key={p.program_id} value={p.program_id}>
+          {p.program_name} ({p.program_name_th || ""})
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div className="mb-3" style={{ width: '120px' }}>
+    <label className="form-label text-start">Year</label>
+    <select
+      className="form-select form-container-year"
+      value={selectedYear}
+      onChange={handleYearChange}
+    >
+      <option value="all">All Years</option>
+      {years.map((year) => (
+        <option key={year} value={year}>
+          {year}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+
+  </div>
+</div>
+
+{/* เพิ่ม padding ด้านบนของเนื้อหาเพื่อไม่ให้โดนแถบเมนูทับ */}
+<div style={{ 
+  paddingTop: '10px', // ต้องเพิ่ม padding ให้มากพอสำหรับความสูงของแถบเมนู 
+  padding: '120px 15px 0 15px' 
+}}>
+  {/* เนื้อหาแท็บต่างๆ */}
+  <div
+  className={`tab-content ${activeTab === 0 ? 'active' : ''}`}
+  style={{ marginTop: 10 }}>
       <h3>Add Edit Delete Program</h3>
 
       {/* Alert notification */}
@@ -485,84 +617,41 @@ export default function Program() {
         </div>
       )}
 
-      {/* University selector */}
-      <div className="d-flex justify-content-center">
-  <div className="mb-3 col-md-6 text-center" >
-    <label className="form-label">Choose a university</label>
-    <select
-      className="form-select"
-      value={selectedUniversity}
-      onChange={handleUniversityChange}
-    >
-      <option value="all">All Universities</option>
-      {universities.map((university) => (
-        <option
-          key={university.university_id}
-          value={university.university_id}
-        >
-          {university.university_name_en} ({university.university_name_th})
-        </option>
-      ))}
-    </select>
-  </div>
-</div>
+      
 
-      {/* Faculty selector */}
-      <div className="d-flex justify-content-center">
-  <div className="mb-3 col-md-6 text-center" >
-        <label className="form-label text-start">Choose a Faculty</label>
-        <select
-          className="form-select"
-          value={selectedFaculty}
-          onChange={handleFacultyChange}
-        >
-          <option value="all">All Facultys</option>
-          {facultys.map((faculty) => (
-            <option key={faculty.faculty_id} value={faculty.faculty_id}>
-              {faculty.faculty_name_en} ({faculty.faculty_name_th})
-            </option>
-            ))}
-            </select>
-          </div>
-          </div> 
-
-          <div className="d-flex justify-content-center">
-      <div className="mb-3 col-md-6 text-center " >
-        <label className="form-label text-start ">Choose a Program</label>
-        <select
-          className="form-select"
-          value={selectedProgram || "all"}
-          onChange={(e) => setSelectedProgram(e.target.value)}
-        >
-          <option value="all">All Programs</option>
-          {program.map((p) => (
-            <option key={p.program_id} value={p.program_id}>
-              {p.program_name} ({p.program_name_th || ""})
-            </option>
+      {/* Program list with all fields */}
+      <h5>Program</h5>
+      <table className="table table-bordered mt-3">
+        <thead>
+          <tr>
+            <th>Program Name</th>
+            <th>ชื่อหลักสูตร (ไทย)</th>
+            <th>Short Name</th>
+            <th>ชื่อย่อ (ไทย)</th>
+            <th>Year</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredProgram.map((p) => (
+            <tr key={p.program_id}>
+              <td>{p.program_name}</td>
+              <td>{p.program_name_th || "-"}</td>
+              <td>{p.program_shortname_en || "-"}</td>
+              <td>{p.program_shortname_th || "-"}</td>
+              <td>{p.year || "-"}</td>
+              <td>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => handleDeleteProgram(p.program_id)}
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
           ))}
-        </select>
-      </div>
-      </div> 
-
-
-      {/* Year selector */}
-      <div className="d-flex justify-content-center">
-      <div className="mb-3 col-md-6 text-center" >
-        <label className="form-label text-start">Program Revision Year</label>
-        <select
-          className="form-select"
-          value={selectedYear}
-          onChange={handleYearChange}
-        >
-          <option value="all">All Years</option>
-          {years.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </div>
-      </div> 
+        </tbody>
+      </table>
 
      {/* Enhanced section to add a new program with all fields */}
 <div className="mb-3">
@@ -735,40 +824,26 @@ export default function Program() {
   </div>
 </div>
 
-      {/* Program list with all fields */}
-      <h5>Program</h5>
-      <table className="table table-bordered mt-3">
-        <thead>
-          <tr>
-            <th>Program Name</th>
-            <th>ชื่อหลักสูตร (ไทย)</th>
-            <th>Short Name</th>
-            <th>ชื่อย่อ (ไทย)</th>
-            <th>Year</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredProgram.map((p) => (
-            <tr key={p.program_id}>
-              <td>{p.program_name}</td>
-              <td>{p.program_name_th || "-"}</td>
-              <td>{p.program_shortname_en || "-"}</td>
-              <td>{p.program_shortname_th || "-"}</td>
-              <td>{p.year || "-"}</td>
-              <td>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleDeleteProgram(p.program_id)}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+  </div>
+  <div
+  className={`tab-content ${activeTab === 1 ? 'active' : ''}`}
+  style={{ marginTop: 10 }}>
+          {activeTab === 1 && selectedProgram && selectedProgram !== "all" ? (
+            <EditPLO 
+              selectedProgram={selectedProgram}
+              selectedFaculty={selectedFaculty}
+              selectedUniversity={selectedUniversity}
+              selectedYear={selectedYear}
+            />
+          ) : (
+            <div className="alert alert-warning">
+              กรุณาเลือกหลักสูตรก่อนจัดการ PLO
+            </div>
+          )}
+  </div>
+
+
+
     </div>
     </div>
 );

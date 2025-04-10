@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import { useClipboard } from 'use-clipboard-copy';
 import { Button, Modal } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import ViewCourseInfo from "../ViewCourseInfo.jsx";
+// import ViewCourseInfo from "../ViewCourseInfo.jsx";
 import DataTable from './DataTable.jsx';
 
 function StudentData() {

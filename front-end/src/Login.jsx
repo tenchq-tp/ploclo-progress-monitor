@@ -2,23 +2,12 @@ import React, { useState } from "react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-
-const Dashboard = () => {
-  useEffect(() => {
-    // เรียก API เพื่อเช็คว่า JWT ยัง valid หรือไม่
-    axios.get('/dashboard', { withCredentials: true })
-      .then(response => {
-        console.log('Dashboard data:', response.data);
-      })
-      .catch(error => {
-        console.error('Error accessing dashboard:', error);
-      });
-  }, []);
-};
+import { useTranslation } from "react-i18next";
 
 function Login({ setRole }) {
   const clientId = "958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com";
   const [profile, setProfile] = useState(null);
+  const { t } = useTranslation();
 
   const fetchUserRole = async (email) => {
     try {
@@ -61,23 +50,30 @@ function Login({ setRole }) {
 
   return (
     <GoogleOAuthProvider clientId={clientId}>
-      <div className="App">
-        <header className="App-header">
-          {!profile && <h2>LOGIN</h2>}
-          <div className="login-buttons">
-            {!profile ? (
-              <GoogleLogin onSuccess={onGoogleSuccess} onError={() => console.log("Login Failed")} />
-            ) : (
-              <div>
-                <h2>Welcome</h2>
-                <h2>{profile.name}</h2>
-                <p>Email: {profile.email}</p>
-                <p>Role: {profile.role}</p>
-                <button onClick={handleLogout}>Logout</button>
+      <div className="login-container">
+        <div className="login-card">
+          {!profile ? (
+            <>
+              <h2 className="login-title">{t('LOGIN')}</h2>
+              <div className="login-buttons">
+                <GoogleLogin 
+                  onSuccess={onGoogleSuccess} 
+                  onError={() => console.log("Login Failed")} 
+                />
               </div>
-            )}
-          </div>
-        </header>
+            </>
+          ) : (
+            <div className="user-profile">
+              <h2>{t('Welcome')}</h2>
+              <h2>{profile.name}</h2>
+              <p>{t('Email')}: {profile.email}</p>
+              <p>{t('Role')}: {profile.role}</p>
+              <button className="logout-button" onClick={handleLogout}>
+                {t('Logout')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </GoogleOAuthProvider>
   );
