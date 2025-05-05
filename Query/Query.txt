@@ -61,6 +61,7 @@ CREATE TABLE `course_clo` (
   `semester_id` int NOT NULL,
   `section_id` int NOT NULL,
   `year` int DEFAULT NULL,
+  `weight` INT DEFAULT NULL,
   PRIMARY KEY (`course_clo_id`),
   KEY `course_id` (`course_id`),
   KEY `clo_id` (`clo_id`),
@@ -174,12 +175,6 @@ CREATE TABLE `assignment_clo_selection` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- ข้อมูลเทส
-INSERT INTO semester(semester_id, semester_name)
-VALUES (1,'ภาคเรียนที่ 1'),(2,'ภาคเรียนที่ 2'),(3,'ภาคเรียนที่3'),(4,'ภาคเรียนที่ 4');
-
-INSERT INTO section()
-VALUES (1);
 
 
 CREATE TABLE university (
@@ -274,4 +269,20 @@ CREATE INDEX idx_assignment_clo ON assignments_students (assignment_clo_id);
 -- 5. สร้าง Foreign Key กลับคืน
 ALTER TABLE assignments_students
 ADD CONSTRAINT FK_assignments_students_student FOREIGN KEY (student_id) REFERENCES studentdata (student_id);
+
+-- ข้อมูลเทส
+INSERT INTO university(university_id, university_name_en, university_name_th)
+VALUES (1,"Naresuan University","มหาวิทยาลัยนเรศวร");
+
+INSERT INTO faculty(faculty_id, faculty_name_th, faculty_name_en)
+VALUES (1,"Faculty of Engineering","คณะวิศวกรรมศาสตร์");
+
+INSERT INTO university_faculty(id, university_id, faculty_id)
+VALUES (1,1,1);
+
+INSERT INTO semester(semester_id, semester_name)
+VALUES (1,'ภาคเรียนที่ 1'),(2,'ภาคเรียนที่ 2'),(3,'ภาคเรียนที่3'),(4,'ภาคเรียนที่ 4');
+
+INSERT INTO section()
+VALUES (1);
 

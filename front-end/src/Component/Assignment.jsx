@@ -27,6 +27,7 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
   const [selectedSemesterId, setSelectedSemesterId] = useState("")
   const [selectedYear, setSelectedYear] = useState("")
   const [assignmentName, setAssignmentName] = useState("")
+
   const [typeError, setTypeError] = useState(null)
   const [programCourseData, setProgramCourseData] = useState({
     courses: [],
@@ -68,7 +69,7 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
 
   // Fetch universities on component mount
   useEffect(() => {
-    fetch("http://localhost:8000/university")
+    fetch("/university")
       .then((response) => response.json())
       .then((data) => {
         setUniversities(data)
@@ -85,7 +86,7 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
   useEffect(() => {
     if (!selectedUniversity) return
 
-    fetch(`http://localhost:8000/faculty?university_id=${selectedUniversity}`)
+    fetch(`/faculty?university_id=${selectedUniversity}`)
       .then(async (response) => {
         if (!response.ok) {
           console.error(`HTTP Error: ${response.status}`)
@@ -110,7 +111,7 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
   // Fetch programs when faculty is selected
   useEffect(() => {
     if (selectedFaculty) {
-      fetch(`http://localhost:8000/program?faculty_id=${selectedFaculty}`)
+      fetch(`/program?faculty_id=${selectedFaculty}`)
         .then((response) => response.json())
         .then((data) => setPrograms(data))
         .catch((error) => console.error("Error fetching programs:", error))
@@ -125,7 +126,7 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
 
       console.log("Fetching courses for Program ID:", programId)
 
-      fetch(`http://localhost:8000/program_courses_detail?program_id=${programId}`)
+      fetch(`/program_courses_detail?program_id=${programId}`)
         .then((response) => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
@@ -202,7 +203,7 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
     if (selectedCourseId && selectedSectionId && selectedSemesterId && selectedYear && selectedProgram) {
       setLoading(true)
       fetch(
-        `http://localhost:8000/api/get_course_assignments?course_id=${selectedCourseId}&section_id=${selectedSectionId}&semester_id=${selectedSemesterId}&year=${selectedYear}&program_id=${selectedProgram}`,
+        `/api/get_course_assignments?course_id=${selectedCourseId}&section_id=${selectedSectionId}&semester_id=${selectedSemesterId}&year=${selectedYear}&program_id=${selectedProgram}`,
       )
         .then((response) => {
           if (!response.ok) throw new Error("Failed to fetch assignments")
@@ -235,118 +236,68 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
   }, [selectedCourseId, selectedSectionId, selectedSemesterId, selectedYear, selectedProgram])
 
   // Fetch CLOs for selected course, section, semester, and year
-  useEffect(() => {
-    if (selectedCourseId && selectedSectionId && selectedSemesterId && selectedYear && selectedProgram) {
-      // Find the program data first
-      const selectedProgramData = programs.find(
-        (program) => program.program_id.toString() === selectedProgram.toString(),
-      )
+ // Fetch CLOs for selected course, section, semester, and year
+// Fetch CLOs for selected course, section, semester, and year
+useEffect(() => {
+  if (selectedCourseId && selectedSectionId && selectedSemesterId && selectedYear && selectedProgram) {
+    // Find the program data first
+    const selectedProgramData = programs.find(
+      (program) => program.program_id.toString() === selectedProgram.toString(),
+    )
 
-      if (!selectedProgramData) {
-        console.error("Program not found:", selectedProgram)
+    if (!selectedProgramData) {
+      console.error("Program not found:", selectedProgram)
+      setCLOs([])
+      setCloWeights({})
+      return
+    }
+
+    const programId = selectedProgramData.program_id
+
+    // เปลี่ยนเป็นใช้ API endpoint ใหม่ที่มีข้อมูล weight
+    fetch(
+      `/course_clo_with_weight?program_id=${programId}&course_id=${selectedCourseId}&semester_id=${selectedSemesterId}&section_id=${selectedSectionId}&year=${selectedYear}`,
+    )
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to fetch CLOs")
+        return response.json()
+      })
+      .then((cloData) => {
+        console.log("CLO Data with weight received:", cloData)
+        
+        // ตรวจสอบว่ามี weight หรือไม่ในแต่ละรายการ
+        cloData.forEach((clo, index) => {
+          console.log(`CLO ${index + 1} (ID: ${clo.CLO_id}) weight:`, clo.weight)
+        })
+        
+        const formattedCLOs = Array.isArray(cloData) ? cloData : [cloData]
+        setCLOs(formattedCLOs)
+
+        // Initialize CLO weights
+        const initialWeights = {}
+        formattedCLOs.forEach((clo) => {
+          // ใช้ weight จาก API หรือค่าเริ่มต้น 0 ถ้าไม่มี
+          initialWeights[clo.CLO_id] = clo.weight || 0
+        })
+        
+        console.log("Initial weights:", initialWeights)
+        setCloWeights(initialWeights)
+
+        // Reset homework scores for the new CLOs
+        resetHomeworkScores(formattedCLOs)
+      })
+      .catch((error) => {
+        console.error("Error fetching CLOs:", error)
         setCLOs([])
-        setMappings([])
-        setPlos([])
-        return
-      }
-
-      const programId = selectedProgramData.program_id
-
-      // แก้ไขชื่อ API จาก course_clo เป็น assignment_clo
-      fetch(
-        `http://localhost:8000/assignment_clo?program_id=${programId}&course_id=${selectedCourseId}&semester_id=${selectedSemesterId}&section_id=${selectedSectionId}&year=${selectedYear}`,
-      )
-        .then((response) => {
-          if (!response.ok) throw new Error("Failed to fetch CLOs")
-          return response.json()
-        })
-        .then((cloData) => {
-          console.log("CLO Data received:", cloData)
-          const formattedCLOs = Array.isArray(cloData) ? cloData : [cloData]
-          setCLOs(formattedCLOs)
-
-          // Initialize CLO weights
-          const initialWeights = {}
-          formattedCLOs.forEach((clo) => {
-            // ฟิลด์ CLO_id แทน clo_id ในข้อมูลที่ได้จาก API
-            const cloId = clo.CLO_id || clo.clo_id
-            initialWeights[cloId] = clo.weight || 10
-          })
-          setCloWeights(initialWeights)
-
-          // Reset homework scores for the new CLOs
-          resetHomeworkScores(formattedCLOs)
-        })
-        .catch((error) => {
-          console.error("Error fetching CLOs:", error)
-          setCLOs([])
-          setCloWeights({})
-        })
-    }
-  }, [selectedCourseId, selectedSectionId, selectedSemesterId, selectedYear, selectedProgram, programs])
-
-  // Fetch PLO-CLO mappings
-  useEffect(() => {
-    if (selectedCourseId && selectedSectionId && selectedSemesterId && selectedYear && selectedProgram) {
-      // Find the program data first
-      const selectedProgramData = programs.find(
-        (program) => program.program_id.toString() === selectedProgram.toString(),
-      )
-
-      if (!selectedProgramData) {
-        console.error("Program not found:", selectedProgram)
-        setMappings([])
-        return
-      }
-
-      const programId = selectedProgramData.program_id
-
-      // ดึงข้อมูลความสัมพันธ์ระหว่าง PLO และ CLO (ซึ่งมี weight)
-      fetch(
-        `http://localhost:8000/clo_mapping?course_id=${selectedCourseId}&section_id=${selectedSectionId}&semester_id=${selectedSemesterId}&year=${selectedYear}&program_id=${programId}`,
-      )
-        .then((response) => {
-          if (!response.ok) throw new Error("Failed to fetch PLO-CLO mappings")
-          return response.json()
-        })
-        .then((data) => {
-          console.log("PLO-CLO Mapping data:", data)
-          const formattedMappings = Array.isArray(data) ? data : [data]
-          setMappings(formattedMappings)
-
-          // อัปเดต weight ของ CLO จากข้อมูล mappings
-          // สร้าง object ใหม่เพื่อเก็บ weight ของแต่ละ CLO
-          const updatedWeights = {}
-
-          // วนลูปผ่านข้อมูล mapping แต่ละรายการ
-          formattedMappings.forEach((mapping) => {
-            const cloId = mapping.CLO_id
-            const weight = mapping.weight || 10 // ใช้ค่าเริ่มต้น 10 ถ้าไม่มี weight
-
-            // ถ้ายังไม่มี weight สำหรับ CLO นี้ หรือ weight ที่พบมีค่ามากกว่าเดิม
-            // ให้ใช้ weight นี้แทน (เพื่อให้ได้ weight สูงสุดของแต่ละ CLO)
-            if (!updatedWeights[cloId] || weight > updatedWeights[cloId]) {
-              updatedWeights[cloId] = weight
-            }
-          })
-
-          // อัปเดต state cloWeights
-          setCloWeights(updatedWeights)
-
-          // ตรวจสอบการอัปเดต
-          console.log("Updated CLO weights from mappings:", updatedWeights)
-        })
-        .catch((error) => {
-          console.error("Error fetching PLO-CLO mappings:", error)
-          setMappings([])
-        })
-    }
-  }, [selectedCourseId, selectedSectionId, selectedSemesterId, selectedYear, selectedProgram, programs])
-
+        setCloWeights({})
+      })
+  }
+}, [selectedCourseId, selectedSectionId, selectedSemesterId, selectedYear, selectedProgram, programs])
+  
   // Fetch all assignments
   useEffect(() => {
     setLoading(true)
-    fetch("http://localhost:8000/api/get_assignments")
+    fetch("/api/get_assignments")
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`)
@@ -376,51 +327,53 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
   }, [homeworks]);
 
   // Reset homework scores when CLOs change
-  const resetHomeworkScores = (clos) => {
-    const updatedHomeworks = homeworks.map((hw) => {
-      const newScores = {}
-      clos.forEach((clo) => {
-        // Support both CLO_id and clo_id
-        const cloId = clo.CLO_id || clo.clo_id
-        newScores[cloId] = 0
-      })
-
-      return {
-        ...hw,
-        scores: newScores,
-      }
+ // Reset homework scores when CLOs change
+const resetHomeworkScores = (clos) => {
+  const updatedHomeworks = homeworks.map((hw) => {
+    const newScores = {}
+    clos.forEach((clo) => {
+      // ใช้ CLO_id ตามโครงสร้างที่ API ส่งกลับมา
+      newScores[clo.CLO_id] = 0
     })
 
-    setHomeworks(updatedHomeworks)
-    setValidationErrors({})
-  }
+    return {
+      ...hw,
+      scores: newScores,
+    }
+  })
 
-  // Validate CLO scores
-  const validateCloScores = () => {
-    const errors = {}
+  setHomeworks(updatedHomeworks)
+  setValidationErrors({})
+}
 
-    // For each CLO
-    CLOs.forEach((clo) => {
-      // รองรับทั้ง CLO_id และ clo_id
-      const cloId = clo.CLO_id || clo.clo_id
-      // ใช้ weight จาก cloWeights ที่อัปเดตจาก mappings
-      const maxWeight = cloWeights[cloId] || 10 // ใช้ค่าเริ่มต้น 10 ถ้าไม่มี weight
+// Validate CLO scores
+const validateCloScores = () => {
+  const errors = {}
 
-      // Calculate total across all homeworks for this CLO
-      const total = homeworks.reduce((sum, hw) => {
-        return sum + (hw.scores[cloId] || 0)
-      }, 0)
+  // For each CLO
+  CLOs.forEach((clo) => {
+    const cloId = clo.CLO_id
+    // ใช้ weight จากฐานข้อมูลโดยตรง
+    const maxWeight = cloWeights[cloId]
 
-      // If total exceeds max weight, mark as error
-      if (total > maxWeight) {
-        const cloCode = clo.CLO_code || `CLO${cloId}`
-        errors[cloId] = `Total scores (${total}) exceed the maximum weight (${maxWeight}) for ${cloCode}`
-      }
-    })
+    // Calculate total across all homeworks for this CLO
+    const total = homeworks.reduce((sum, hw) => {
+      return sum + (hw.scores[cloId] || 0)
+    }, 0)
 
-    setValidationErrors(errors)
-    return errors
-  }
+    // If total exceeds max weight, mark as error
+    if (total > maxWeight) {
+      const cloCode = clo.CLO_code || `CLO${cloId}`
+      errors[cloId] = `Total scores (${total}) exceed the maximum weight (${maxWeight}) for ${cloCode}`
+    }
+  })
+
+  setValidationErrors(errors)
+  return errors
+}
+
+
+ 
 
   // Handle saving Step 1
   const handleSaveStep1 = () => {
@@ -524,19 +477,16 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
 
     // สร้างข้อมูล API ในรูปแบบที่ถูกต้อง
     const prepareDataForApi = () => {
-      // สร้าง array ของข้อมูล CLO สำหรับทุก homework
       const apiData = []
-
+    
       homeworks.forEach((hw) => {
-        // วนลูปสำหรับแต่ละ CLO ใน homework
         for (const cloId in hw.scores) {
           if (Object.prototype.hasOwnProperty.call(hw.scores, cloId)) {
             const score = hw.scores[cloId]
-
-            // ใช้ weight จาก cloWeights ที่อัปเดตจาก mappings
-            const weight = cloWeights[cloId] || 10 // ใช้ค่าเริ่มต้น 10 ถ้าไม่มี weight
-
-            // เพิ่มข้อมูลในรูปแบบที่ API ต้องการ
+    
+            // ใช้ weight จากฐานข้อมูลโดยตรง
+            const weight = cloWeights[cloId]
+    
             apiData.push({
               assignment_id: hw.id,
               item: {
@@ -548,7 +498,7 @@ const [currentAssignment, setCurrentAssignment] = useState(null)
           }
         }
       })
-
+    
       return apiData
     }
 
@@ -897,6 +847,7 @@ const handleSaveImportedStudents = () => {
   // แสดงข้อมูลที่จะส่งในคอนโซล
   const studentsData = importedStudents.map((student) => ({
     student_id: student.student_id,
+    name: student.name,
     assignment_id: assignmentIdToUse,
     // ไม่ต้องส่ง assignment_clo_id เพราะ backend จะดึงข้อมูลทั้งหมดจาก assignment_id
     // และทำการเชื่อมโยงกับ CLO ทั้งหมดให้อัตโนมัติ
@@ -1236,7 +1187,7 @@ const handleSaveImportedStudents = () => {
                     )
                   }
                 >
-                  Next <i className="fas fa-arrow-right ms-2"></i>
+                  SAVE <i className="fas fa-arrow-right ms-2"></i>
                 </button>
               </div>
             </div>
@@ -1244,166 +1195,161 @@ const handleSaveImportedStudents = () => {
         )}
 
         {/* Step 2: CLO Scoring System */}
-        {currentStep === 2 && (
-          <div className="row">
-            <div className="col-12">
-              <div className="card shadow-sm">
-                <div className="card-header bg-primary text-white">
-                  <h5 className="mb-0 text-center">ระบบกรอกคะแนนตามน้ำหนัก CLO</h5>
-                </div>
-                <div className="card-body p-4">
-                  {CLOs.length > 0 ? (
-                    <>
-                      <div className="table-responsive">
-                        <table className="table table-bordered table-hover">
-                          <thead className="table-light">
-                            <tr>
-                              <th className="text-center" style={{ width: "50px" }}>
-                                No.
-                              </th>
-                              <th className="text-center" style={{ width: "200px" }}>
-                                HW
-                              </th>
-                              {CLOs.map((clo) => {
-                                const cloId = clo.CLO_id || clo.clo_id
-                                return (
-                                  <th key={cloId} className="text-center">
-                                    {clo.CLO_code || `CLO${cloId}`}
-                                  </th>
-                                )
-                              })}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {/* Weights row (yellow) */}
-                            <tr className="table-warning">
-                              <td className="font-weight-bold"></td>
-                              <td className="font-weight-bold text-center">น้ำหนักคะแนน</td>
-                              {CLOs.map((clo) => {
-                                const cloId = clo.CLO_id || clo.clo_id
-                                const weight = cloWeights[cloId] || 0
-                                return (
-                                  <td key={cloId} className="text-center font-weight-bold">
-                                    {weight}
-                                  </td>
-                                )
-                              })}
-                            </tr>
+{currentStep === 2 && (
+  <div className="row">
+    <div className="col-12">
+      <div className="card shadow-sm">
+        <div className="card-header bg-primary text-white">
+          <h5 className="mb-0 text-center">ระบบกรอกคะแนนตามน้ำหนัก CLO</h5>
+        </div>
+        <div className="card-body p-4">
+          {CLOs.length > 0 ? (
+            <>
+              <div className="table-responsive">
+                <table className="table table-bordered table-hover">
+                  <thead className="table-light">
+                    <tr>
+                      <th className="text-center" style={{ width: "50px" }}>
+                        No.
+                      </th>
+                      <th className="text-center" style={{ width: "200px" }}>
+                        HW
+                      </th>
+                      {CLOs.map((clo) => (
+                        <th key={clo.CLO_id} className="text-center">
+                          {clo.CLO_code || `CLO${clo.CLO_id}`}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Weights row (yellow) */}
+                  <tr className="table-warning">
+                    <td className="font-weight-bold"></td>
+                    <td className="font-weight-bold text-center">น้ำหนักคะแนน</td>
+                    {CLOs.map((clo) => {
+                      // ใช้ weight จากฐานข้อมูลโดยตรง
+                      const weight = cloWeights[clo.CLO_id]
+                      return (
+                        <td key={clo.CLO_id} className="text-center font-weight-bold">
+                          {weight}
+                        </td>
+                      )
+                    })}
+                  </tr>
 
-                            {/* Homework rows */}
-                            {homeworks.map((hw, index) => (
-                              <tr key={hw.id}>
-                                <td className="text-center">{index + 1}</td>
-                                <td>{hw.name}</td>
-                                {CLOs.map((clo) => {
-                                  const cloId = clo.CLO_id || clo.clo_id
-                                  const currentScore = hw.scores[cloId] !== undefined ? hw.scores[cloId] : ""
-                                  return (
-                                    <td key={cloId} className={getScoreColor(currentScore || 0)}>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max={cloWeights[cloId] || 10}
-                                        value={currentScore}
-                                        onChange={(e) => handleScoreChange(hw.id, cloId, e.target.value)}
-                                        className={`form-control form-control-sm text-center ${getScoreColor(currentScore || 0)}`}
-                                        style={{ border: "none" }}
-                                      />
-                                    </td>
-                                  )
-                                })}
-                              </tr>
-                            ))}
+                    {/* Homework rows */}
+                    {homeworks.map((hw, index) => (
+                      <tr key={hw.id}>
+                        <td className="text-center">{index + 1}</td>
+                        <td>{hw.name}</td>
+                        {CLOs.map((clo) => {
+                          const currentScore = hw.scores[clo.CLO_id] !== undefined ? hw.scores[clo.CLO_id] : ""
+                          return (
+                            <td key={clo.CLO_id} className={getScoreColor(currentScore || 0)}>
+                              <input
+                              type="number"
+                              min="0"
+                              max={cloWeights[clo.CLO_id]}
+                              value={currentScore}
+                              onChange={(e) => handleScoreChange(hw.id, clo.CLO_id, e.target.value)}
+                              className={`form-control form-control-sm text-center ${getScoreColor(currentScore || 0)}`}
+                              style={{ border: "none" }}
+                            />
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
 
-                            {/* Totals row */}
-                            <tr className="table-secondary font-weight-bold">
-                              <td></td>
-                              <td className="text-center">รวม</td>
-                              {CLOs.map((clo) => {
-                                const cloId = clo.CLO_id || clo.clo_id
-                                const total = calculateCloTotal(cloId)
-                                const maxWeight = cloWeights[cloId] || 0
-                                const isValid = total <= maxWeight
+                    {/* Totals row */}
+                      <tr className="table-secondary font-weight-bold">
+                        <td></td>
+                        <td className="text-center">รวม</td>
+                        {CLOs.map((clo) => {
+                          const total = calculateCloTotal(clo.CLO_id)
+                          // ใช้ weight จากฐานข้อมูลโดยตรง
+                          const maxWeight = cloWeights[clo.CLO_id]
+                          const isValid = total <= maxWeight
 
-                                return (
-                                  <td key={cloId} className={`text-center ${!isValid ? "text-danger" : ""}`}>
-                                    {total} / {maxWeight}
-                                  </td>
-                                )
-                              })}
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Add button */}
-                      <div className="mt-3 mb-4">
-                        <button
-                          className="btn btn-sm btn-primary"
-                          onClick={() => {
-                            const newHomework = {
-                              id: -Math.floor(Math.random() * 1000),
-                              name: `การบ้าน ${homeworks.length + 1}`,
-                              scores: {},
-                            }
-                            const newScores = {}
-                            CLOs.forEach((clo) => {
-                              const cloId = clo.CLO_id || clo.clo_id
-                              newScores[cloId] = 0
-                            })
-                            newHomework.scores = newScores
-                            setHomeworks([...homeworks, newHomework])
-                          }}
-                        >
-                          <i className="fas fa-plus me-2"></i> เพิ่มการบ้าน
-                        </button>
-                      </div>
-
-                      {/* Validation errors */}
-                      {Object.keys(validationErrors).length > 0 && (
-                        <div className="alert alert-danger mt-3">
-                          <strong>คะแนนที่กรอกเกินน้ำหนักที่กำหนด:</strong>
-                          <ul className="mb-0 mt-2">
-                            {Object.values(validationErrors).map((error, index) => (
-                              <li key={index}>{error}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="alert alert-info">
-                      <i className="fas fa-info-circle me-2"></i>
-                      ไม่พบข้อมูล CLO สำหรับรายวิชาที่เลือก กรุณาตรวจสอบข้อมูลการเลือกวิชา, ตอน, ภาคเรียน และปีการศึกษา
-                    </div>
-                  )}
-                </div>
+                          return (
+                            <td key={clo.CLO_id} className={`text-center ${!isValid ? "text-danger" : ""}`}>
+                              {total} / {maxWeight}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                  </tbody>
+                </table>
               </div>
 
-              <div className="d-flex justify-content-between mt-4">
-                <button className="btn btn-secondary px-4" onClick={goToPreviousStep}>
-                  <i className="fas fa-arrow-left me-2"></i> Back
+              {/* Add button */}
+              <div className="mt-3 mb-4">
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={() => {
+                    const newHomework = {
+                      id: -Math.floor(Math.random() * 1000),
+                      name: `การบ้าน ${homeworks.length + 1}`,
+                      scores: {},
+                    }
+                    const newScores = {}
+                    CLOs.forEach((clo) => {
+                      newScores[clo.CLO_id] = 0
+                    })
+                    newHomework.scores = newScores
+                    setHomeworks([...homeworks, newHomework])
+                  }}
+                >
+                  <i className="fas fa-plus me-2"></i> เพิ่มการบ้าน
                 </button>
-                <div>
-                  <button
-                    className="btn btn-success px-4 me-2"
-                    onClick={handleSaveAssignment}
-                    disabled={Object.keys(validationErrors).length > 0 || CLOs.length === 0}
-                  >
-                    <i className="fas fa-save me-2"></i> Save Assignment
-                  </button>
-                  <button
-                    className="btn btn-primary px-4"
-                    onClick={goToStep3}
-                    disabled={Object.keys(validationErrors).length > 0 || CLOs.length === 0}
-                  >
-                    <i className="fas fa-arrow-right me-2"></i> Next
-                  </button>
-                </div>
               </div>
+
+              {/* Validation errors */}
+              {Object.keys(validationErrors).length > 0 && (
+                <div className="alert alert-danger mt-3">
+                  <strong>คะแนนที่กรอกเกินน้ำหนักที่กำหนด:</strong>
+                  <ul className="mb-0 mt-2">
+                    {Object.values(validationErrors).map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="alert alert-info">
+              <i className="fas fa-info-circle me-2"></i>
+              ไม่พบข้อมูล CLO สำหรับรายวิชาที่เลือก กรุณาตรวจสอบข้อมูลการเลือกวิชา, ตอน, ภาคเรียน และปีการศึกษา
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
+
+      <div className="d-flex justify-content-between mt-4">
+        <button className="btn btn-secondary px-4" onClick={goToPreviousStep}>
+          <i className="fas fa-arrow-left me-2"></i> Back
+        </button>
+        <div>
+          <button
+            className="btn btn-success px-4 me-2"
+            onClick={handleSaveAssignment}
+            disabled={Object.keys(validationErrors).length > 0 || CLOs.length === 0}
+          >
+            <i className="fas fa-save me-2"></i> Save Assignment
+          </button>
+          <button
+            className="btn btn-primary px-4"
+            onClick={goToStep3}
+            disabled={Object.keys(validationErrors).length > 0 || CLOs.length === 0}
+          >
+            <i className="fas fa-arrow-right me-2"></i> Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Step 3: Import Students from Excel or Clipboard */}
         {currentStep === 3 && (

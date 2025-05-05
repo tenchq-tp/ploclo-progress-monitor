@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from "./axios";
 import { useParams, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { useLocation } from 'react-router-dom';
@@ -341,7 +341,7 @@ const AssignmentDetail = () => {
         console.log("กำลังเรียกข้อมูลด้วย Assignment ID:", assignmentId);
         
         // เรียก API ด้วย path parameter
-        const response = await axios.get(`http://localhost:8000/api/get_assignment_detail/${assignmentId}`);
+        const response = await axios.get("/get_assignment_detail/$",{assignmentId});
         
         console.log("ข้อมูลที่ได้รับจาก API:", response.data);
         
@@ -426,7 +426,7 @@ const AssignmentDetail = () => {
       console.log('ข้อมูลที่จะส่งไปอัพเดต:', updateData);
       
       // เรียกใช้ API สำหรับอัปเดตข้อมูล
-      const response = await axios.put(`http://localhost:8000/api/update_assignment/${assignmentId}`, updateData);
+      const response = await axios.put(`/update_assignment/${assignmentId}`, updateData);
       
       console.log('ผลการอัปเดต Assignment:', response.data);
       
@@ -526,7 +526,7 @@ const AssignmentDetail = () => {
       
       console.log("ข้อมูลคะแนนที่จะบันทึก:", scoreData);
       
-      const response = await axios.post('http://localhost:8000/api/save_student_scores', {
+      const response = await axios.post('/save_student_scores', {
         assignment_id: parseInt(assignmentId),
         scores: scoreData
       });
@@ -781,7 +781,7 @@ const AssignmentDetail = () => {
       setRemoving(true);
       
       // เรียก API สำหรับลบนักเรียน
-      const response = await axios.delete('http://localhost:8000/api/remove_student_from_assignment', {
+      const response = await axios.delete('/remove_student_from_assignment', {
         data: {
           assignment_id: parseInt(assignmentId),
           student_id: studentId

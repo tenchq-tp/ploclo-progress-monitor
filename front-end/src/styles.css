@@ -659,7 +659,7 @@ li.nav-item .dropdown-menu a:not(.active) {
 .plo-table th, .plo-table td {
   border: 1px solid #dee2e6;
   padding: 10px;
-  vertical-align: top;
+  vertical-align: auto;
 }
 
 .plo-table th {
@@ -894,4 +894,52 @@ li.nav-item .dropdown-menu a:not(.active) {
   .login-card {
     padding: 1.5rem;
   }
+}
+
+tbody, td, tfoot, th, thead, tr {
+  border-color: inherit;
+  border-style: solid;
+  border-width: 0;
+  font-size: 13px;
+}
+
+.table>tbody {
+  vertical-align: 0;
+}
+
+.my-4 {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: .375rem .75rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* สไตล์สำหรับปุ่ม Logout ใน Navbar */
+/* เพิ่มในไฟล์ styles.css */
+.logout-nav-item {
+  display: flex;
+  align-items: center;
+  margin-left: auto; /* ทำให้ปุ่มอยู่ด้านขวาสุด */
+}
+
+.logout-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+  background-color: #c82333;
 }

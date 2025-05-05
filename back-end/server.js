@@ -9,7 +9,7 @@ const cookieParser = require('cookie-parser');
 const pool = mariadb.createPool({
     host: 'localhost',       // Database host
     user: 'root',            // Database username
-    database: 'react_ploclo2',// Database name
+    database: 'react_ploclo',// Database name
     password: '123456',            // Database password
     port: '3306',            // Database port
     connectionLimit: 50,       // Limit the number of connections in the pool
@@ -19,58 +19,6 @@ const table = 'data';
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// app.post('/login', (req, res) => {
-//     const { userId, email } = req.body;  // สมมุติว่าได้ข้อมูลจาก Google
-//     const token = jwt.sign({ userId, email }, '958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com', { expiresIn: '1d' });
-  
-//     // เก็บ JWT ใน cookie
-//     res.cookie('auth_token', token, {
-//       httpOnly: true,
-//       secure: process.env.NODE_ENV === 'production',
-//       maxAge: 7 * 24 * 60 * 60 * 1000,
-//       sameSite: 'Strict'
-//     });
-  
-//     res.send('Login successful');
-//   });
-  
-//   // Middleware สำหรับการตรวจสอบ JWT ใน cookie
-//   const authenticateToken = (req, res, next) => {
-//     const token = req.cookies.auth_token;
-  
-//     if (token) {
-//       jwt.verify(token, '958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com', (err, user) => {
-//         if (err) return res.sendStatus(403);
-//         req.user = user;
-//         next();
-//       });
-//     } else {
-//       res.sendStatus(401);
-//     }
-
-//     if (token) {
-//         jwt.verify(token, '958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com', (err, user) => {
-//           if (err) {
-//             return res.sendStatus(403); // JWT ไม่ถูกต้องหรือหมดอายุ
-//           }
-//           req.user = user; // เพิ่มข้อมูลผู้ใช้ลงใน request
-//           next();
-//         });
-//       } else {
-//         res.sendStatus(401); // ไม่มี JWT ใน cookie
-//       }
-//   };
-  
-//   // ใช้ middleware เพื่อป้องกันหน้าไหนที่ต้องการ login
-//   app.get('/dashboard', authenticateToken, (req, res) => {
-//     res.send('Welcome to the Dashboard');
-//   });
-  
-//   app.get('/dashboard', authenticateToken, (req, res) => {
-//     res.json({ message: 'Welcome to the Dashboard', user: req.user });
-//   });
-  
 
 
 // Test database connection
@@ -190,13 +138,336 @@ app.delete('/students/:_', async (req, res) => {
     }
 });
 
+app.get('/clo', async (req, res) => {
+    let conn;
+    
+    try {
+      conn = await pool.getConnection();
+      const query = "SELECT * FROM clo";
+      const clos = await conn.query(query);
+      res.json(Array.isArray(clos) ? clos : [clos]);
+    } catch (err) {
+      console.error("Error fetching CLOs:", err);
+      res.status(500).json({ success: false, message: "Database error" });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+
+app.get('/course_clo/weight', async (req, res) => {
+    const { program_id, course_id, semester_id, year } = req.query;
+
+    if (!program_id || !course_id || !semester_id || !year) {
+        return res.status(400).json({ message: "Missing required parameters" });
+    }
+
+    let conn;
+
+    try {
+        conn = await pool.getConnection();
+
+        const query = `
+            SELECT 
+                course_clo.course_clo_id,
+                course_clo.course_id,
+                course_clo.semester_id,
+                course_clo.section_id,
+                course_clo.year,
+                course_clo.weight,
+                clo.CLO_id,
+                clo.CLO_code,
+                clo.CLO_name,
+                clo.CLO_engname,
+                clo.timestamp,
+                course.course_name,
+                course.course_engname
+            FROM 
+                program_course pc
+            JOIN 
+                course_clo ON pc.course_id = course_clo.course_id
+                AND pc.semester_id = course_clo.semester_id
+                AND pc.year = course_clo.year
+            JOIN 
+                clo ON course_clo.clo_id = clo.CLO_id
+            JOIN 
+                course ON course_clo.course_id = course.course_id
+            WHERE 
+                pc.program_id = ?
+                AND course_clo.course_id = ?
+                AND course_clo.semester_id = ?
+                AND course_clo.year = ?
+        `;
+
+        const rows = await conn.query(query, [program_id, course_id, semester_id,  year]);
+
+        // บังคับให้ rows เป็น array
+        const result = Array.isArray(rows) ? rows : [rows];
+
+        res.json(result);
+    } catch (err) {
+        console.error("Error fetching course CLOs:", err);
+        res.status(500).json({ message: "Database error" });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+app.post('/course_clo/weight', async (req, res) => {
+    console.log('Received Course-CLO weight data:', JSON.stringify(req.body, null, 2));
+    
+    const { program_id, semester_id, section_id, year, scores } = req.body;
+
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!semester_id || !section_id || !year || !Array.isArray(scores) || scores.length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Missing required data or invalid scores array'
+        });
+    }
+    
+    try {
+        const conn = await pool.getConnection();
+        await conn.beginTransaction();
+        
+        const results = {
+            success: 0,
+            errors: 0,
+            details: []
+        };
+        
+        // ประมวลผลข้อมูลทีละรายการ
+        for (const score of scores) {
+            try {
+                const { course_id, clo_id, weight } = score;
+                
+                if (!course_id || !clo_id || weight === undefined) {
+                    results.errors++;
+                    results.details.push({ 
+                        error: 'Missing required fields', 
+                        data: score 
+                    });
+                    continue;
+                }
+                
+                // แปลงค่า weight เป็น integer
+                const weightValue = parseInt(weight);
+                
+                // ตรวจสอบว่าข้อมูลมีอยู่แล้วหรือไม่
+                const exists = await conn.query(
+                    'SELECT course_clo_id FROM course_clo WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?',
+                    [course_id, clo_id, semester_id, section_id, year]
+                );
+                
+                if (exists && exists.length > 0) {
+                    // อัพเดตข้อมูลที่มีอยู่
+                    await conn.query(
+                        'UPDATE course_clo SET weight = ? WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?',
+                        [weightValue, course_id, clo_id, semester_id, section_id, year]
+                    );
+                    
+                    results.success++;
+                    results.details.push({ 
+                        status: 'updated', 
+                        course_id, 
+                        clo_id, 
+                        weight: weightValue 
+                    });
+                    
+                    console.log(`Updated weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
+                } else {
+                    // เพิ่มข้อมูลใหม่
+                    await conn.query(
+                        'INSERT INTO course_clo (course_id, clo_id, semester_id, section_id, year, weight) VALUES (?, ?, ?, ?, ?, ?)',
+                        [course_id, clo_id, semester_id, section_id, year, weightValue]
+                    );
+                    
+                    results.success++;
+                    results.details.push({ 
+                        status: 'inserted', 
+                        course_id, 
+                        clo_id, 
+                        weight: weightValue 
+                    });
+                    
+                    console.log(`Inserted new record with weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
+                }
+            } catch (err) {
+                results.errors++;
+                results.details.push({ 
+                    error: err.message, 
+                    data: score 
+                });
+                console.error('Error processing individual score:', err);
+            }
+        }
+        
+        await conn.commit();
+        conn.release();
+        
+        console.log(`Processed ${scores.length} records. Success: ${results.success}, Errors: ${results.errors}`);
+        
+        res.json({
+            success: true,
+            message: `Successfully processed ${results.success} out of ${scores.length} scores`,
+            results
+        });
+    } catch (error) {
+        console.error('Error processing scores:', error);
+        
+        try {
+            const conn = await pool.getConnection();
+            await conn.rollback();
+            conn.release();
+        } catch (rollbackError) {
+            console.error('Error during rollback:', rollbackError);
+        }
+        
+        res.status(500).json({
+            success: false,
+            message: 'Database error',
+            error: error.message
+        });
+    }
+});
+
+app.patch('/course_clo/weight', async (req, res) => {
+    console.log('Received Course-CLO weight update request:', JSON.stringify(req.body, null, 2));
+    
+    const { program_id, semester_id, section_id, year, scores } = req.body;
+  
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!program_id || !semester_id || !section_id || !year || !Array.isArray(scores) || scores.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: program_id, semester_id, section_id, year, or scores array.' 
+      });
+    }
+  
+    try {
+      const conn = await pool.getConnection();
+      await conn.beginTransaction();
+      
+      // ตรวจสอบและอัพเดตแต่ละรายการใน scores
+      const results = [];
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const item of scores) {
+        const { course_id, clo_id, weight } = item;
+        
+        // ตรวจสอบว่ามีข้อมูลครบหรือไม่
+        if (!course_id || !clo_id || weight === undefined) {
+          errorCount++;
+          continue;
+        }
+        
+        try {
+          // ตรวจสอบว่ามีข้อมูลอยู่ในฐานข้อมูลหรือไม่
+          const checkQuery = `
+            SELECT course_clo_id FROM course_clo 
+            WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?
+          `;
+          
+          const existingRecords = await conn.query(checkQuery, [
+            course_id, clo_id, semester_id, section_id, year
+          ]);
+          
+          // แปลงผลลัพธ์ให้เป็น array
+          const existingRecord = Array.isArray(existingRecords) ? existingRecords : [existingRecords];
+          
+          if (existingRecord && existingRecord.length > 0) {
+            // อัพเดตข้อมูลที่มีอยู่
+            const updateQuery = `
+              UPDATE course_clo 
+              SET weight = ? 
+              WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?
+            `;
+            
+            // ใช้ weight ที่รับเข้ามาโดยตรง (ไม่ต้องแปลงอีก)
+            const updateResult = await conn.query(updateQuery, [
+              weight, course_id, clo_id, semester_id, section_id, year
+            ]);
+            
+            console.log(`Updated weight for Course=${course_id}, CLO=${clo_id} to ${weight}`);
+            results.push({
+              course_id,
+              clo_id,
+              weight,
+              action: 'updated',
+              success: true
+            });
+            successCount++;
+          } else {
+            // เพิ่มข้อมูลใหม่
+            const insertQuery = `
+              INSERT INTO course_clo (course_id, clo_id, semester_id, section_id, year, weight)
+              VALUES (?, ?, ?, ?, ?, ?)
+            `;
+            
+            const insertResult = await conn.query(insertQuery, [
+              course_id, clo_id, semester_id, section_id, year, weight
+            ]);
+            
+            console.log(`Inserted new record with weight ${weight} for Course=${course_id}, CLO=${clo_id}`);
+            results.push({
+              course_id,
+              clo_id,
+              weight,
+              action: 'inserted',
+              success: true
+            });
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`Error processing Course=${course_id}, CLO=${clo_id}:`, error);
+          results.push({
+            course_id,
+            clo_id,
+            error: error.message,
+            success: false
+          });
+          errorCount++;
+        }
+      }
+      
+      // บันทึกการเปลี่ยนแปลง
+      await conn.commit();
+      
+      // ส่งผลลัพธ์กลับไปยัง client
+      res.json({
+        success: true,
+        message: `Course-CLO weights updated successfully. Success: ${successCount}, Errors: ${errorCount}`,
+        results: results
+      });
+      
+      conn.release();
+    } catch (error) {
+      // กรณีเกิดข้อผิดพลาด ให้ rollback
+      try {
+        const conn = await pool.getConnection();
+        await conn.rollback();
+        conn.release();
+      } catch (rollbackError) {
+        console.error('Error during rollback:', rollbackError);
+      }
+      
+      console.error('Error updating Course-CLO weights:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  });
+
+
+
 
 //นินิวเพิ่ม วันที่ 28 มีนาคม.
 // API to get assignment details including CLOs and students
 // API ดึงข้อมูล Assignment และรายชื่อนักเรียน
 // API ดึงข้อมูล Assignment และรายชื่อนิสิต
 
-// แก้ไขในฝั่ง API (server.js หรือไฟล์ที่มี route /api/get_assignment_detail)
 
 // เปลี่ยนเป็นใช้ path parameter แทน query parameter
 // แก้ไข API ให้ตรงกับโครงสร้างตาราง
@@ -518,6 +789,150 @@ app.post('/api/save_student_scores', async (req, res) => {
     }
 });
 
+app.post('/program_course/excel', async (req, res) => {
+    const coursesData = req.body;
+    
+    if (!Array.isArray(coursesData) || coursesData.length === 0) {
+      return res.status(400).json({ 
+        message: 'No course data provided. Please upload valid Excel data.' 
+      });
+    }
+    
+    try {
+      const conn = await pool.getConnection();
+      
+      for (const course of coursesData) {
+        const {
+          program_id,
+          course_id,
+          course_name,
+          course_engname,
+          semester_id,
+          year,
+          section_id
+        } = course;
+        
+        // ตรวจสอบว่าข้อมูลในแต่ละรายการครบถ้วนหรือไม่
+        if (!program_id || !course_id || !course_name || !semester_id || !year) {
+          conn.release();
+          return res.status(400).json({
+            message: "Missing required fields in some rows. Please ensure all fields are complete."
+          });
+        }
+        
+        // 1. ตรวจสอบว่ามีคอร์สในตาราง 'course' หรือไม่
+        const checkCourseQuery = `
+          SELECT 1 FROM course WHERE course_id = ?
+        `;
+        
+        const courseResult = await conn.query(checkCourseQuery, [course_id]);
+        const existingCourse = courseResult[0];
+        
+        // 2. ถ้าไม่มีคอร์ส ให้เพิ่มคอร์สใหม่ลงในตาราง 'course'
+        if (!existingCourse || existingCourse.length === 0) {
+          const insertCourseQuery = `
+            INSERT INTO course (course_id, course_name, course_engname, timestamp)
+            VALUES (?, ?, ?, NOW())
+          `;
+          
+          await conn.query(insertCourseQuery, [
+            course_id,
+            course_name,
+            course_engname
+          ]);
+        } else {
+          // หากมีคอร์สอยู่แล้ว อัปเดตข้อมูลคอร์ส
+          const updateCourseQuery = `
+            UPDATE course
+            SET course_name = ?, course_engname = ?, timestamp = NOW()
+            WHERE course_id = ?
+          `;
+          
+          await conn.query(updateCourseQuery, [
+            course_name,
+            course_engname,
+            course_id
+          ]);
+        }
+        
+        // 3. ตรวจสอบว่ามี section_id ในตาราง 'section' หรือไม่
+        const checkSectionQuery = `
+          SELECT 1 FROM section WHERE section_id = ?
+        `;
+        
+        const sectionResult = await conn.query(checkSectionQuery, [section_id]);
+        const existingSection = sectionResult[0];
+        
+        // 4. ถ้าไม่มี section ให้เพิ่ม section ใหม่
+        if (!existingSection || existingSection.length === 0) {
+            const insertSectionQuery = `
+              INSERT INTO section (section_id) 
+              VALUES (?)
+            `;
+            
+            await conn.query(insertSectionQuery, [section_id]);
+          }
+        
+        // 5. ตรวจสอบว่ามีความสัมพันธ์ในตาราง 'program_course' หรือไม่
+        const checkProgramCourseQuery = `
+          SELECT 1 
+          FROM program_course 
+          WHERE program_id = ? AND course_id = ? AND semester_id = ?
+        `;
+        
+        const programCourseResult = await conn.query(checkProgramCourseQuery, [
+          program_id,
+          course_id,
+          semester_id
+        ]);
+        
+        const existingProgramCourse = programCourseResult[0];
+        
+        // 6. ถ้าไม่มีความสัมพันธ์ ให้เพิ่มความสัมพันธ์ใหม่
+        if (!existingProgramCourse || existingProgramCourse.length === 0) {
+          const insertProgramCourseQuery = `
+            INSERT INTO program_course (
+              program_id, course_id, semester_id, year, section_id
+            )
+            VALUES (?, ?, ?, ?, ?)
+          `;
+          
+          await conn.query(insertProgramCourseQuery, [
+            program_id,
+            course_id,
+            semester_id,
+            year,
+            section_id
+          ]);
+        } else {
+          // หากมีความสัมพันธ์อยู่แล้ว อัปเดตข้อมูล
+          const updateProgramCourseQuery = `
+            UPDATE program_course 
+            SET year = ?, section_id = ?
+            WHERE program_id = ? AND course_id = ? AND semester_id = ?
+          `;
+          
+          await conn.query(updateProgramCourseQuery, [
+            year,
+            section_id,
+            program_id,
+            course_id,
+            semester_id
+          ]);
+        }
+      }
+      
+      res.status(201).json({ message: "All courses uploaded successfully!" });
+      conn.release();
+    } catch (err) {
+      console.error("Error adding courses from Excel:", err);
+      res.status(500).json({ 
+        message: "Database error occurred while processing Excel data.",
+        error: err.message 
+      });
+    }
+  });
+
 // API to import scores from Excel
 app.post('/api/import_scores_excel', async (req, res) => {
     const { assignment_id, scores_data } = req.body;
@@ -666,34 +1081,26 @@ app.post('/api/add_students_to_assignment', async (req, res) => {
 
         for (const student of students) {
             try {
-                // ขั้นตอนที่ 1: ตรวจสอบว่านักศึกษามีอยู่ในตาราง studentdata หรือไม่
-                const checkStudentQuery = `
-                    SELECT 1 FROM studentdata WHERE student_id = ?
+                // แสดงข้อมูลที่ได้รับจาก frontend เพื่อการตรวจสอบ
+                console.log(`Processing student data:`, student);
+                
+                // บังคับอัพเดตข้อมูลนักศึกษาเสมอ ไม่ว่าจะมีอยู่แล้วหรือไม่
+                const studentName = student.name || 'Unknown';
+                console.log(`Student ${student.student_id}, name: ${studentName}`);
+                
+                // ใช้ UPSERT เพื่อเพิ่มหรืออัพเดตข้อมูลนักศึกษา
+                const upsertStudentQuery = `
+                    INSERT INTO studentdata (student_id, name) 
+                    VALUES (?, ?)
+                    ON DUPLICATE KEY UPDATE name = VALUES(name)
                 `;
                 
-                const studentExists = await conn.query(checkStudentQuery, [student.student_id]);
+                const upsertResult = await conn.query(upsertStudentQuery, [
+                    student.student_id,
+                    studentName
+                ]);
                 
-                // ถ้าไม่พบนักศึกษา ให้เพิ่มข้อมูลนักศึกษาก่อน
-                if (!studentExists || studentExists.length === 0) {
-                    // ถ้ามีชื่อของนักศึกษา (อาจมีมาจาก frontend)
-                    const studentName = student.name || 'Unknown';
-                    
-                    const insertStudentQuery = `
-                        INSERT INTO studentdata (student_id, name) 
-                        VALUES (?, ?)
-                        ON DUPLICATE KEY UPDATE name = ?
-                    `;
-                    
-                    await conn.query(insertStudentQuery, [
-                        student.student_id,
-                        studentName,
-                        studentName
-                    ]);
-                    
-                    console.log(`Added student ${student.student_id} to studentdata table`);
-                } else {
-                    console.log(`Student ${student.student_id} already exists in studentdata table`);
-                }
+                console.log(`Upsert student result:`, upsertResult);
                 
                 // ขั้นตอนที่ 2: ดึง CLO IDs ทั้งหมดของ assignment นี้
                 const getCloIdsQuery = `
@@ -715,13 +1122,13 @@ app.post('/api/add_students_to_assignment', async (req, res) => {
                 
                 // ขั้นตอนที่ 3: เพิ่มนักศึกษาเข้า assignment_clo แต่ละรายการ
                 const insertQuery = `
-    INSERT INTO assignments_students (
-        student_id,
-        assignment_id,
-        assignment_clo_id,
-        created_at
-    ) VALUES (?, ?, ?, NOW())
-`;
+                    INSERT INTO assignments_students (
+                        student_id,
+                        assignment_id,
+                        assignment_clo_id,
+                        created_at
+                    ) VALUES (?, ?, ?, NOW())
+                `;
                 
                 let successCount = 0;
                 
@@ -843,7 +1250,6 @@ app.post('/api/add_students_to_assignment', async (req, res) => {
 //     }
 // });
 
-// app.get('/api/get_assignment_detail', async (req, res) => {
 //     const { assignment_id } = req.query;  // ตรวจสอบพารามิเตอร์ assignment_id
 
 //     // ตรวจสอบว่า assignment_id ถูกต้องหรือไม่
@@ -1277,29 +1683,75 @@ app.put('/update', async (req, res) => {
     }
 });
 
+
+
 // API route to handle login
+// ในฟังก์ชัน /login
 app.post('/login', async (req, res) => {
-    const { email } = req.body;
+    const { email, token } = req.body;
 
     try {
         const conn = await pool.getConnection();
 
-        // Check if the email exists in the database
+        // ตรวจสอบว่าอีเมลมีอยู่ในฐานข้อมูลหรือไม่
         const results = await conn.query('SELECT role FROM role WHERE email = ?', [email]);
 
+        let role;
         if (results.length > 0) {
-            // If the email exists, return the role
-            res.json({ role: results[0].role });
+            // ถ้าอีเมลมีอยู่ ดึงบทบาท (role)
+            role = results[0].role;
         } else {
-            // If the email doesn't exist, insert a new user with a default role
-            const defaultRole = 'user';
+            // ถ้าอีเมลไม่มีอยู่ เพิ่มผู้ใช้ใหม่ด้วยบทบาทเริ่มต้น
+            const defaultRole = 'Student';
             await conn.query('INSERT INTO role (email, role) VALUES (?, ?)', [email, defaultRole]);
-            res.json({ role: defaultRole });
+            role = defaultRole;
         }
+
+        // สร้าง JWT token ที่มีอายุยาวนาน
+        const jwtToken = jwt.sign(
+            { email, role }, 
+            '958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com', 
+            { expiresIn: '1d' }
+        );
+        
+        // เก็บ JWT ใน cookie ที่มีอายุยาวนาน
+        res.cookie('auth_token', jwtToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 24 * 60 * 60 * 1000, 
+            sameSite: 'Strict'
+        });
+
+        // ส่งข้อมูลกลับไปยัง frontend รวมถึง token สำหรับเก็บใน localStorage
+        res.json({ 
+            success: true,
+            role,
+            token: jwtToken
+        });
+        
         conn.release();
     } catch (err) {
         console.error(err);
-        res.status(500).send(err);
+        res.status(500).json({ success: false, message: 'Database error' });
+    }
+});
+
+// เพิ่ม API endpoint สำหรับตรวจสอบสถานะการล็อกอิน
+app.get('/verify-token', async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+        return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+    
+    try {
+        const decoded = jwt.verify(token, '958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com');
+        
+        // ถ้า token ยังไม่หมดอายุ ส่งข้อมูลผู้ใช้กลับไป
+        res.json({ success: true, user: decoded });
+    } catch (error) {
+        // ถ้า token หมดอายุหรือไม่ถูกต้อง
+        res.status(401).json({ success: false, message: 'Invalid or expired token' });
     }
 });
 
@@ -2912,42 +3364,37 @@ app.post('/program_course_clo/excel', async (req, res) => {
 // });
 
 app.get('/course_plo', async (req, res) => {
-    const { program_id } = req.query;
+    const { program_id, year } = req.query;
     
-    if (!program_id) {
-        return res.status(400).json({ success: false, message: 'Program ID is required' });
+    if (!program_id || !year) {
+        return res.status(400).json({ success: false, message: 'Program ID and year are required' });
     }
-    
+
     try {
-        // Revised query based on actual database schema
-        // Using program_plo table to link PLOs to programs
         const query = `
             SELECT cp.course_id, cp.plo_id, cp.weight, c.course_name, p.PLO_code
             FROM course_plo cp
             JOIN course c ON cp.course_id = c.course_id
             JOIN plo p ON cp.plo_id = p.plo_id
             JOIN program_plo pp ON p.plo_id = pp.plo_id
-            WHERE pp.program_id = ?
+            JOIN program pr ON pp.program_id = pr.program_id
+            WHERE pr.program_id = ? AND pr.year = ?
         `;
         
         const conn = await pool.getConnection();
-        const rows = await conn.query(query, [program_id]);
+        const rows = await conn.query(query, [program_id, year]);
         conn.release();
+
+        console.log(`Retrieved ${rows.length} course-PLO mappings for program ${program_id} in year ${year}`);
         
-        console.log(`Retrieved ${rows.length} course-PLO mappings for program ${program_id}`);
-        
-        if (rows.length === 0) {
-            return res.json({ success: true, message: [] });
-        }
-        
-        // Return consistent format - always an object with success and message fields
         res.json({ success: true, message: rows });
-        
+
     } catch (error) {
         console.error('Error fetching course-PLO mappings:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
+
 
 app.post('/course_plo', async (req, res) => {
     const { program_id, scores } = req.body;
@@ -3103,9 +3550,65 @@ app.patch('/course_plo', async (req, res) => {
     }
 });
 
+app.get('/course_clo_with_weight', async (req, res) => {
+    const { program_id, course_id, semester_id, section_id, year } = req.query;
+    
+    if (!program_id || !course_id || !semester_id || !section_id || !year) {
+      return res.status(400).json({ message: "Missing required parameters" });
+    }
+    
+    let conn;
+    try {
+      conn = await pool.getConnection();
+      const query = `
+        SELECT
+          course_clo.course_clo_id,
+          course_clo.course_id,
+          course_clo.semester_id,
+          course_clo.section_id,
+          course_clo.year,
+          course_clo.weight,   /* เพิ่มการดึงค่า weight จากตาราง course_clo */
+          clo.CLO_id,
+          clo.CLO_code,
+          clo.CLO_name,
+          clo.CLO_engname,
+          clo.timestamp,
+          course.course_name,
+          course.course_engname
+        FROM
+          program_course pc
+        JOIN
+          course_clo ON pc.course_id = course_clo.course_id
+          AND pc.semester_id = course_clo.semester_id
+          AND pc.section_id = course_clo.section_id
+          AND pc.year = course_clo.year
+        JOIN
+          clo ON course_clo.clo_id = clo.CLO_id
+        JOIN
+          course ON course_clo.course_id = course.course_id
+        WHERE
+          pc.program_id = ?
+          AND course_clo.course_id = ?
+          AND course_clo.semester_id = ?
+          AND course_clo.section_id = ?
+          AND course_clo.year = ?
+      `;
+      
+      const rows = await conn.query(query, [program_id, course_id, semester_id, section_id, year]);
+      // บังคับให้ rows เป็น array
+      const result = Array.isArray(rows) ? rows : [rows];
+      
+      res.json(result);
+    } catch (err) {
+      console.error("Error fetching course CLOs with weight:", err);
+      res.status(500).json({ message: "Database error" });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
 
 app.get('/program_courses_detail', async (req, res) => {
-    const { program_id } = req.query;
+    const { program_id, year } = req.query; // รับ parameter year เพิ่มเติม
 
     if (!program_id) {
         return res.status(400).json({ message: 'Program ID is required' });
@@ -3113,8 +3616,7 @@ app.get('/program_courses_detail', async (req, res) => {
 
     try {
         const conn = await pool.getConnection();
-        const result = await conn.query(
-            `SELECT 
+        let query = `SELECT 
                 pc.program_course_id, 
                 pc.year, 
                 pc.semester_id, 
@@ -3131,22 +3633,34 @@ app.get('/program_courses_detail', async (req, res) => {
             LEFT JOIN section s ON pc.section_id = s.section_id
             JOIN semester sm ON pc.semester_id = sm.semester_id
             WHERE 
-                pc.program_id = ?`,
-            [program_id]
-        );
+                pc.program_id = ?`;
+        
+        let params = [program_id];
+
+        // ถ้ามีการส่ง year มา ให้เพิ่มเงื่อนไขในการกรอง
+        if (year) {
+            query += " AND pc.year = ?";
+            params.push(year);
+        }
+
+        const result = await conn.query(query, params);
 
         if (Array.isArray(result)) {
-            // console.log('Number of rows fetched:', result.length);
-            // console.log('Fetched rows:', result);
+            console.log('Number of rows fetched:', result.length);
+            console.log('Using filters - Program ID:', program_id, 'Year:', year || 'All years');
         } else {
             console.log('Result is not an array:', result);
         }
 
         if (result.length === 0) {
-            return res.status(404).json({ message: 'No courses found for the given program' });
+            return res.status(404).json({ 
+                message: year 
+                    ? `No courses found for program ${program_id} in year ${year}` 
+                    : `No courses found for program ${program_id}` 
+            });
         }
 
-        res.status(200).json(result); // ส่งคืนข้อมูลทั้งหมด
+        res.status(200).json(result);
         conn.release();
     } catch (err) {
         console.error(err);
@@ -3155,20 +3669,23 @@ app.get('/program_courses_detail', async (req, res) => {
 });
 
 
-//อ้อแก้ไข
 app.get('/plo_clo', async (req, res) => {
-    const { course_id, section_id, semester_id, year, program_id } = req.query;
+    const { course_id, section_id, semester_id, year, program_id, clo_ids } = req.query;
 
-    console.log("Received Query Params:", req.query); // ✅ Debug ค่าที่รับมา
+    console.log("Received Query Params for GET /plo_clo:", req.query);
 
     if (!course_id || !section_id || !semester_id || !year || !program_id) {
-        return res.status(400).json({ message: "Missing required parameters" });
+        return res.status(400).json({ 
+            success: false,
+            message: "Missing required parameters: course_id, section_id, semester_id, year, program_id" 
+        });
     }
 
     let conn;
     try {
         conn = await pool.getConnection();
 
+        // แสดงคำสั่ง SQL ที่ใช้ในการดึงข้อมูล PLO-CLO mappings
         const query = `
             SELECT 
                 plo_clo.PLO_CLO_id,
@@ -3191,34 +3708,61 @@ app.get('/plo_clo', async (req, res) => {
                 plo ON plo_clo.PLO_id = plo.PLO_id
             JOIN 
                 clo ON plo_clo.CLO_id = clo.CLO_id
+            JOIN
+                program_plo pp ON plo.PLO_id = pp.plo_id 
             WHERE 
                 plo_clo.course_id = ? 
                 AND plo_clo.section_id = ? 
                 AND plo_clo.semester_id = ? 
                 AND plo_clo.year = ? 
-                AND plo_clo.PLO_id IN (
-                    SELECT plo_id FROM program_plo WHERE program_id = ?
-                )
+                AND pp.program_id = ?
         `;
 
-        const result = await conn.query(query, [course_id, section_id, semester_id, year, program_id]);
-        console.log("Raw Query Result:", result); // ✅ Debug ดูว่าผลลัพธ์เป็นอะไร
+        console.log("Executing SQL Query:", query);
+        console.log("Parameters:", [course_id, section_id, semester_id, year, program_id]);
 
-        // ตรวจสอบว่า result มีโครงสร้างที่ถูกต้อง
-        const rows = Array.isArray(result) ? result : [];
+        const result = await conn.query(query, [
+            course_id, 
+            section_id, 
+            semester_id, 
+            year, 
+            program_id
+        ]);
 
-        console.log("Processed Query Result:", rows); // ✅ Debug ข้อมูลที่ใช้ส่งกลับ
-
-        if (!Array.isArray(rows) || rows.length === 0) {
-            return res.status(404).json({ message: "No PLO-CLO mappings found" });
+        console.log("Query Result Count:", result ? (Array.isArray(result) ? result.length : 1) : 0);
+        
+        if (!result || (Array.isArray(result) && result.length === 0)) {
+            console.log("No PLO-CLO mappings found");
+            return res.status(200).json([]); // ส่ง array ว่างแทนที่จะส่ง 404
         }
 
-        return res.status(200).json(rows);
+        // แปลงข้อมูลให้เป็น array เสมอ
+        const mappings = Array.isArray(result) ? result : [result];
+        
+        // แปลงค่า BigInt เป็น string ก่อนส่งกลับ
+        const sanitizedMappings = mappings.map(mapping => {
+            const sanitizedMapping = {};
+            
+            // แปลงทุก property ที่เป็น BigInt เป็น string
+            Object.keys(mapping).forEach(key => {
+                sanitizedMapping[key] = typeof mapping[key] === 'bigint' 
+                    ? mapping[key].toString() 
+                    : mapping[key];
+            });
+            
+            return sanitizedMapping;
+        });
+
+        return res.status(200).json(sanitizedMappings);
     } catch (err) {
         console.error("Error fetching PLO-CLO mappings:", err);
-        return res.status(500).json({ message: "Database error" });
+        return res.status(500).json({ 
+            success: false, 
+            message: "Database error", 
+            error: err.message 
+        });
     } finally {
-        if (conn) conn.release(); // ✅ ปิดการเชื่อมต่อทุกครั้ง
+        if (conn) conn.release();
     }
 });
 
@@ -3336,122 +3880,231 @@ app.get('/api/program', (req, res) => {
         });
 });
 
-//อ้อแก้ไข
 app.post('/plo_clo', async (req, res) => {
-    console.log('Received PLO-CLO mapping request:', JSON.stringify(req.body, null, 2));
+    console.log('Received PLO-CLO mapping request body type:', typeof req.body);
+    console.log('Is array?', Array.isArray(req.body));
     
-    const { program_id, course_id, section_id, semester_id, year, scores } = req.body;
-
-    // Basic validation
-    if (!program_id || !course_id || !section_id || !semester_id || !year) {
+    // แสดงข้อมูลโดยแปลง BigInt เป็น string ก่อน
+    const safeStringify = (obj) => {
+        return JSON.stringify(obj, (key, value) =>
+            typeof value === 'bigint' ? value.toString() : value
+        );
+    };
+    
+    console.log('Received PLO-CLO mapping request:', safeStringify(req.body));
+    
+    // ตรวจสอบและแปลงข้อมูลเป็น array
+    let mappingsArray = [];
+    
+    // กรณีส่งเป็น array
+    if (Array.isArray(req.body)) {
+        mappingsArray = req.body;
+    } 
+    // กรณีส่งเป็น object ที่มี scores เป็น array
+    else if (req.body.scores && Array.isArray(req.body.scores)) {
+        mappingsArray = req.body.scores;
+    }
+    // กรณีส่งเป็น object เดี่ยว
+    else {
+        mappingsArray = [req.body];
+    }
+    
+    // ถ้าไม่มีข้อมูล
+    if (mappingsArray.length === 0) {
         return res.status(400).json({ 
             success: false, 
-            message: 'Missing required fields.' 
+            message: 'No mapping data provided'
         });
     }
-
-    // Ensure scores is an array and not empty
-    if (!scores || !Array.isArray(scores) || scores.length === 0) {
+    
+    console.log(`Processing ${mappingsArray.length} mappings`);
+    
+    // ตรวจสอบฟิลด์ที่จำเป็น
+    const requiredFields = [
+        'PLO_id', 'CLO_id', 'course_id', 'section_id', 'semester_id', 'year', 'weight'
+    ];
+    
+    // สำหรับเก็บ mapping ที่มีปัญหา
+    const invalidMappings = [];
+    
+    // สำหรับเก็บ mapping ที่ถูกต้อง
+    const validMappings = [];
+    
+    // ตรวจสอบและเตรียมข้อมูล
+    for (const mapping of mappingsArray) {
+        // กรณีที่ข้อมูลอยู่ใน property 'data'
+        const dataToCheck = mapping.data || mapping;
+        
+        // ตรวจสอบฟิลด์ที่จำเป็น
+        const missingFields = requiredFields.filter(field => 
+            dataToCheck[field] === undefined
+        );
+        
+        if (missingFields.length > 0) {
+            invalidMappings.push({
+                ...dataToCheck,
+                missingFields: missingFields
+            });
+            continue;
+        }
+        
+        // ข้อมูลถูกต้อง ให้แปลงเป็นตัวเลข
+        const processedData = {};
+        requiredFields.forEach(field => {
+            processedData[field] = typeof dataToCheck[field] === 'string' 
+                ? parseInt(dataToCheck[field], 10) 
+                : Number(dataToCheck[field]);
+        });
+        
+        // ตรวจสอบว่าข้อมูลเป็นตัวเลขทั้งหมด
+        const invalidFields = Object.entries(processedData)
+            .filter(([key, value]) => isNaN(value))
+            .map(([key]) => key);
+        
+        if (invalidFields.length > 0) {
+            invalidMappings.push({
+                ...dataToCheck,
+                invalidFields: invalidFields
+            });
+            continue;
+        }
+        
+        // ข้อมูลถูกต้องทั้งหมด
+        validMappings.push(processedData);
+    }
+    
+    // ถ้าไม่มีข้อมูลที่ถูกต้อง
+    if (validMappings.length === 0) {
         return res.status(400).json({ 
             success: false, 
-            message: 'Scores must be a non-empty array.' 
+            message: 'No valid mappings found', 
+            invalidMappings: invalidMappings
         });
     }
-
-    console.log(`Processing ${scores.length} score mappings`);
     
     try {
         const conn = await pool.getConnection();
         
-        // Create an array to collect all the successful inserts
-        const successfulInserts = [];
-        const errors = [];
+        // เริ่ม transaction
+        await conn.beginTransaction();
         
-        // Process each score mapping INDIVIDUALLY to ensure all are attempted
-        for (const score of scores) {
+        // สำหรับเก็บผลลัพธ์
+        const results = {
+            inserted: [],
+            updated: [],
+            errors: []
+        };
+        
+        // ประมวลผลทีละ mapping
+        for (const data of validMappings) {
             try {
-                const { plo_id, clo_id, weight } = score;
-                
-                // Validate this specific score
-                if (!plo_id || !clo_id || weight === undefined) {
-                    errors.push(`Invalid score data: ${JSON.stringify(score)}`);
-                    continue;
-                }
-                
-                // Check if this mapping already exists
+                // ตรวจสอบว่ามีข้อมูลนี้อยู่แล้วหรือไม่
                 const checkQuery = `
                     SELECT * FROM plo_clo 
                     WHERE course_id = ? AND section_id = ? AND semester_id = ? 
                     AND year = ? AND PLO_id = ? AND CLO_id = ?`;
                 
-                const [existingMapping] = await conn.query(checkQuery, [
-                    course_id, section_id, semester_id, year, plo_id, clo_id
+                const existingMappings = await conn.query(checkQuery, [
+                    data.course_id, data.section_id, data.semester_id, 
+                    data.year, data.PLO_id, data.CLO_id
                 ]);
                 
-                if (existingMapping && existingMapping.length > 0) {
-                    // The mapping already exists, skip or update
-                    console.log(`Mapping already exists: PLO=${plo_id}, CLO=${clo_id}`);
-                    continue;
+                // แปลงให้เป็น array เสมอ
+                const existingMapping = Array.isArray(existingMappings) 
+                    ? existingMappings 
+                    : existingMappings ? [existingMappings] : [];
+                
+                let result;
+                
+                if (existingMapping.length > 0) {
+                    // ถ้ามีข้อมูลอยู่แล้ว ให้อัพเดต
+                    const updateQuery = `
+                        UPDATE plo_clo 
+                        SET weight = ? 
+                        WHERE course_id = ? AND section_id = ? AND semester_id = ? 
+                        AND year = ? AND PLO_id = ? AND CLO_id = ?`;
+                    
+                    result = await conn.query(updateQuery, [
+                        data.weight, data.course_id, data.section_id, data.semester_id, 
+                        data.year, data.PLO_id, data.CLO_id
+                    ]);
+                    
+                    console.log(`Updated existing mapping: PLO=${data.PLO_id}, CLO=${data.CLO_id}, weight=${data.weight}`);
+                    
+                    results.updated.push({
+                        ...data,
+                        PLO_CLO_id: existingMapping[0].PLO_CLO_id
+                    });
+                } else {
+                    // ถ้ายังไม่มีข้อมูล ให้เพิ่มใหม่
+                    const insertQuery = `
+                        INSERT INTO plo_clo (course_id, section_id, semester_id, year, PLO_id, CLO_id, weight)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)`;
+                    
+                    result = await conn.query(insertQuery, [
+                        data.course_id, data.section_id, data.semester_id, 
+                        data.year, data.PLO_id, data.CLO_id, data.weight
+                    ]);
+                    
+                    console.log(`Inserted new mapping: PLO=${data.PLO_id}, CLO=${data.CLO_id}, weight=${data.weight}`);
+                    
+                    // แปลง BigInt เป็น Number
+                    const insertId = typeof result.insertId === 'bigint' 
+                        ? Number(result.insertId) 
+                        : result.insertId;
+                    
+                    results.inserted.push({
+                        ...data,
+                        PLO_CLO_id: insertId
+                    });
                 }
-                
-                // Insert this single mapping
-                const insertQuery = `
-                    INSERT INTO plo_clo (course_id, section_id, semester_id, year, PLO_id, CLO_id, weight)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)`;
-                
-                const insertResult = await conn.query(insertQuery, [
-                    course_id, section_id, semester_id, year, plo_id, clo_id, weight
-                ]);
-                
-                console.log(`Inserted mapping: PLO=${plo_id}, CLO=${clo_id}, weight=${weight}`, insertResult);
-                
-                successfulInserts.push({
-                    plo_id,
-                    clo_id,
-                    weight
+            } catch (mappingError) {
+                console.error(`Error processing mapping:`, safeStringify(data), mappingError);
+                results.errors.push({
+                    mapping: data,
+                    error: mappingError.message
                 });
-            } catch (scoreError) {
-                // Log error but continue processing other scores
-                console.error(`Error processing score: ${JSON.stringify(score)}`, scoreError);
-                errors.push(`Error with PLO=${score.plo_id}, CLO=${score.clo_id}: ${scoreError.message}`);
             }
         }
         
+        // ยืนยัน transaction
+        await conn.commit();
         conn.release();
         
-        // Report on the overall operation
-        console.log(`Processed ${scores.length} mappings. Inserted: ${successfulInserts.length}, Errors: ${errors.length}`);
+        // ตรวจสอบผลลัพธ์
+        const successCount = results.inserted.length + results.updated.length;
         
-        // Return appropriate response based on results
-        if (successfulInserts.length > 0) {
-            return res.json({
+        if (successCount > 0) {
+            // เตรียมข้อมูลสำหรับส่งกลับ
+            const response = {
                 success: true,
-                message: `Successfully added ${successfulInserts.length} PLO-CLO mappings.`,
+                message: `Successfully processed ${successCount} PLO-CLO mappings`,
                 details: {
-                    totalSubmitted: scores.length,
-                    totalInserted: successfulInserts.length,
-                    errors: errors.length > 0 ? errors : []
+                    inserted: results.inserted.length,
+                    updated: results.updated.length,
+                    errors: results.errors.length
                 }
-            });
+            };
+            
+            // ส่งข้อมูลกลับไปยัง client
+            return res.status(200).json(response);
         } else {
-            return res.status(400).json({
+            return res.status(500).json({
                 success: false,
-                message: 'No mappings were added.',
-                errors
+                message: 'No mappings were processed successfully',
+                errors: results.errors
             });
         }
     } catch (error) {
         console.error('Error in PLO-CLO endpoint:', error);
         return res.status(500).json({ 
             success: false, 
-            message: 'Internal server error.', 
+            message: 'Internal server error',
             error: error.message 
         });
     }
 });
 
-
-//อ้อแก้ไข
 app.patch('/plo_clo', async (req, res) => {
     const { program_id, year, semester_id, course_id, section_id, PLO_id, CLO_id, weight } = req.body;
 
@@ -3789,7 +4442,7 @@ app.put('/api/update_assignment/:id', async (req, res) => {
     }
   });
 
-//อ้อเพิ่ม
+
 app.get('/university', async (req, res) => {
     try {
         const conn = await pool.getConnection();
@@ -3801,14 +4454,14 @@ app.get('/university', async (req, res) => {
         const rows = await conn.query(query);
         conn.release();
 
-        res.status(200).json(rows);
+        res.status(200).json(Array.isArray(rows) ? rows : [rows]);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error fetching universities', error: err });
     }
 });
 
-//อ้อเพิ่ม
+// แก้ไข API `/faculty` ในไฟล์ server.js
 app.get('/faculty', async (req, res) => {
     try {
         const { university_id } = req.query;
@@ -3818,24 +4471,33 @@ app.get('/faculty', async (req, res) => {
         }
 
         const conn = await pool.getConnection();
-        const query = `
-            SELECT f.faculty_id, f.faculty_name_en, f.faculty_name_th 
-            FROM university_faculty uf
-            JOIN faculty f ON uf.faculty_id = f.faculty_id
-            WHERE uf.university_id = ? 
-            ORDER BY f.faculty_name_en;
-        `;
-        const [rows] = await conn.query(query, [university_id]);
-        conn.release();
-
-        res.status(200).json(rows);
+        
+        try {
+            const query = `
+                SELECT f.faculty_id, f.faculty_name_en, f.faculty_name_th 
+                FROM university_faculty uf
+                JOIN faculty f ON uf.faculty_id = f.faculty_id
+                WHERE uf.university_id = ? 
+                ORDER BY f.faculty_name_en;
+            `;
+            
+            const rows = await conn.query(query, [university_id]);
+            
+            // แปลงให้เป็น array เสมอก่อนส่งกลับ
+            const facultyData = Array.isArray(rows) ? rows : [rows].filter(Boolean);
+            
+            res.status(200).json(facultyData);
+        } finally {
+            // ตรวจสอบให้แน่ใจว่ามีการ release connection เสมอ
+            conn.release();
+        }
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Error fetching facultys", error: err });
+        console.error("Error fetching faculties:", err);
+        // ส่งกลับข้อผิดพลาดเป็น JSON เสมอ
+        res.status(500).json({ message: "Error fetching faculties", error: err.message });
     }
 });
 
-//อ้อเพิ่ม
 app.post('/program_faculty', async (req, res) => {
     let conn;
     try {
