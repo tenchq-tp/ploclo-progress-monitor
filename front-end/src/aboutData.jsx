@@ -59,7 +59,7 @@ function AboutData() {
                 setActiveSection(newActiveSection);
                 
                 // ส่งข้อมูลการเปลี่ยนแปลงส่วนไปยัง console เพื่อดีบัก
-                console.log("Active section changed to:", newActiveSection);
+                // console.log("Active section changed to:", newActiveSection);
             }
         };
 
