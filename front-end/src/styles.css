@@ -208,6 +208,24 @@ select {
   overflow-y: auto;
 }
 
+/* Add white background for top sections */
+.course-info-container {
+  background-color: #FFFFFF;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Create a container for both selection rows */
+.selection-rows-container {
+  background-color: #FFFFFF;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
 .nav-left, .nav-right {
   width: 100%;
   display: flex;
@@ -646,7 +664,7 @@ li.nav-item .dropdown-menu a:not(.active) {
 .plo-table-container {
   overflow-x: auto;
   margin: 20px 0;
-  max-height: 600px;
+  /* max-height: 1000px; */
   overflow-y: auto;
 }
 
@@ -815,6 +833,70 @@ li.nav-item .dropdown-menu a:not(.active) {
   
  
 }
+
+
+/* เพิ่มสไตล์สำหรับ select ที่ถูก disable */
+.form-select:disabled {
+  background-color: #e9ecef !important; /* สีพื้นหลังเทา */
+  opacity: 0.65 !important; /* ความโปร่งใส */
+  cursor: not-allowed !important; /* เคอร์เซอร์แสดงว่าไม่สามารถคลิกได้ */
+  color: #6c757d !important; /* สีข้อความเทา */
+  border-color: #ced4da !important; /* สีขอบเทา */
+}
+
+/* แก้ไขสีพื้นหลังและสีตัวอักษรของ option ในรายการที่ถูก disable */
+.form-select:disabled option {
+  background-color: #e9ecef !important;
+  color: #6c757d !important;
+}
+
+/* แก้ไขสีของไอคอนลูกศร dropdown เมื่อ disable */
+.form-select:disabled {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+/* แก้ไขสไตล์สำหรับ select ที่ถูก disable รวมถึงที่มี custom class */
+
+/* สำหรับ select ที่มีคลาส form-select เท่านั้น */
+.form-select:disabled {
+  background-color: #e9ecef !important;
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+  color: #6c757d !important;
+  border-color: #ced4da !important;
+}
+
+/* สำหรับ select ที่มีคลาส form-container-* เพิ่มเติม */
+.form-select.form-container-uni:disabled,
+.form-select.form-container-faculty:disabled,
+.form-select.form-container-program:disabled,
+.form-select.form-container-year:disabled {
+  background-color: #e9ecef !important;
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+  color: #6c757d !important;
+  border-color: #ced4da !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+/* แก้ไขสีพื้นหลังเป็นสีเทาแทนสีเดิม (#6b7280) เมื่อถูก disable */
+select:disabled,
+.form-select:disabled,
+.form-container-uni:disabled,
+.form-container-faculty:disabled,
+.form-container-program:disabled,
+.form-container-year:disabled {
+  background-color: #e9ecef !important;
+  color: #6c757d !important;
+}
+
+/* แก้ไขสีของไอคอนลูกศร dropdown เมื่อ disable */
+select:disabled,
+.form-select:disabled {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+
 
 /* Login Page Specific Styles */
 .login-container {

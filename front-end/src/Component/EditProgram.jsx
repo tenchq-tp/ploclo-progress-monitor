@@ -1004,33 +1004,33 @@ export default function Program() {
       alert("กรุณาเลือกโปรแกรมและปีการศึกษาก่อนบันทึกข้อมูล");
       return;
     }
-  
+
     if (Object.keys(scores).length === 0) {
       alert("ไม่มีข้อมูลคะแนนที่จะบันทึก กรุณาป้อนข้อมูลก่อน");
       return;
     }
-  
+
     // เพิ่มการยืนยันก่อนบันทึกข้อมูลใหม่
     const confirmMessage = "คุณต้องการบันทึกข้อมูลคะแนนใหม่ใช่หรือไม่? การดำเนินการนี้อาจส่งผลกระทบต่อข้อมูลเดิม";
     if (!window.confirm(confirmMessage)) {
       return; // ยกเลิกการดำเนินการหากผู้ใช้เลือก Cancel
     }
-  
+
     // ตรวจสอบว่ามีค่า 0 ใน scores หรือไม่
     for (const key in scores) {
       if (scores[key] === 0 || scores[key] === "0") {
         console.log(`พบค่า 0 ที่ key: ${key}`);
       }
     }
-  
+
     // แปลง scores object ให้เป็น array ตามรูปแบบที่ต้องการ
     const scoresArray = Object.keys(scores).map((key) => {
       const [course_id, plo_id] = key.split("-");
       // ตรวจสอบค่าและแปลงเป็นตัวเลข - ถ้าเป็น 0 ให้ส่งเป็น 0 ไม่ใช่ null
-      const weightValue = scores[key] !== undefined && scores[key] !== "" 
-        ? parseFloat(scores[key]) 
+      const weightValue = scores[key] !== undefined && scores[key] !== ""
+        ? parseFloat(scores[key])
         : 0;
-      
+
       return {
         course_id: parseInt(course_id, 10),
         plo_id: parseInt(plo_id, 10),
@@ -1038,14 +1038,14 @@ export default function Program() {
         year: parseInt(selectedYear, 10)
       };
     });
-  
+
     // แสดง log เพื่อดู data ที่จะส่ง
     console.log("Data to submit:", {
       program_id: parseInt(selectedProgram, 10),
       scores: scoresArray,
       year: parseInt(selectedYear, 10)
     });
-  
+
     try {
       // เรียก API POST เพื่อส่งข้อมูล
       const response = await fetch("http://localhost:8000/course_plo", {
@@ -1057,20 +1057,20 @@ export default function Program() {
           year: parseInt(selectedYear, 10)
         }),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to submit scores.");
       }
-  
+
       const data = await response.json();
-  
+
       if (data.success) {
         alert("บันทึกข้อมูลสำเร็จ!");
-  
+
         // รอให้การรีเฟรชข้อมูลทำงานเสร็จสิ้น
         const refreshSuccess = await refreshDataFromServer();
-  
+
         if (refreshSuccess) {
           console.log("Data refreshed successfully after post");
         } else {
@@ -1986,7 +1986,8 @@ export default function Program() {
             <div className="mb-3 me-2" style={{ width: '380px' }}>
               <label className="form-label">Choose a university</label>
               <select
-                className="form-select form-container-uni"
+                className="form-select" // ตัดคลาสเพิ่มเติมออก
+                style={{ width: '320px' }} // ใช้ style inline แทน
                 value={selectedUniversity}
                 onChange={handleUniversityChange}
               >
@@ -2005,11 +2006,11 @@ export default function Program() {
             <div className="mb-3 me-2" style={{ width: '380px' }}>
               <label className="form-label text-start">Choose a Faculty</label>
               <select
-                className="form-select form-container-faculty"
+                className="form-select" // ตัดคลาสเพิ่มเติมออก
+                style={{ width: '350px' }} // ใช้ style inline แทน
                 value={selectedFaculty}
                 onChange={handleFacultyChange}
                 disabled={!selectedUniversity}
-
               >
                 <option value="all">All Facultys</option>
                 {facultys.map((faculty) => (
@@ -2023,15 +2024,14 @@ export default function Program() {
             <div className="mb-3 me-2" style={{ width: '380px' }}>
               <label className="form-label text-start">Choose a Program</label>
               <select
-                className="form-select form-container-program"
+                className="form-select" // ตัดคลาสเพิ่มเติมออก
+                style={{ width: '380px' }} // ใช้ style inline แทน
                 value={selectedProgram || "all"}
                 onChange={handleProgramChange}
                 disabled={!selectedFaculty}
-
               >
                 <option value="all">All Programs</option>
                 {
-                  // กรองโปรแกรมที่ชื่อซ้ำกันออก โดยเก็บไว้เพียงรายการแรกสุด
                   program.filter((item, index, self) =>
                     index === self.findIndex((p) =>
                       p.program_name === item.program_name &&
@@ -2049,20 +2049,17 @@ export default function Program() {
             <div className="mb-3" style={{ width: '120px' }}>
               <label className="form-label text-start">Year</label>
               <select
-                className="form-select form-container-year"
+                className="form-select" // ตัดคลาสเพิ่มเติมออก
+                style={{ width: '120px' }} // ใช้ style inline แทน
                 value={selectedYear}
                 onChange={handleYearChange}
                 disabled={!selectedProgram}
-
               >
                 <option value="all">All Years</option>
                 {years.map((year) => (
                   <option key={year} value={year}>
                     {year}
                   </option>
-
-
-
                 ))}
               </select>
             </div>
@@ -2080,7 +2077,7 @@ export default function Program() {
         <div
           className={`tab-content ${activeTab === 0 ? 'active' : ''}`}
           style={{ marginTop: 10, marginBottom: 50 }}>
-          <h3>Add Edit Delete Program</h3>
+          <h3>Program Management</h3>
           <hr className="my-4" />
 
           {/* Alert notification */}
@@ -2317,151 +2314,141 @@ export default function Program() {
           style={{ marginTop: 10, marginBottom: 100 }}>
           <div style={{ backgroundColor: "#F0F0F0", minHeight: "100vh", paddingTop: '0px' }}>
             <div className="plo-management-container">
-              <h3>Course-PLO Management</h3>
+              <h3>PLO Management</h3>
 
 
               <hr className="my-4" />
 
               {/* PLO List Section */}
-              <h5>PLO List</h5>
+<h5>PLO List</h5>
 
-              <div className="action-buttons">
-                <div className="button-group">
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="btn"
-                    style={{ backgroundColor: "#FF8C00", color: "white" }}
-                    disabled={!allFiltersSelected}
-                  >
-                    Add PLO
-                  </button>
+<div className="action-buttons">
+  <div className="button-group">
+    <button
+      onClick={() => setShowAddModal(true)}
+      className="btn"
+      style={{ backgroundColor: "#FF8C00", color: "white" }}
+      disabled={!allFiltersSelected}
+    >
+      Add PLO
+    </button>
 
-                  <button
-                    onClick={handleLoadPreviousPLO}
-                    className="btn btn-secondary"
-                    disabled={!allFiltersSelected}
-                  >
-                    Load Previous Year PLOs
-                  </button>
+    <button
+      onClick={handleLoadPreviousPLO}
+      className="btn btn-secondary"
+      disabled={!allFiltersSelected}
+    >
+      Load Previous Year PLOs
+    </button>
+  </div>
 
-                  {/* โมดัลแสดง Previous Year PLOs ยังคงเหมือนเดิม */}
-                </div>
+  <div className="button-group ms-auto">
+    <button
+      onClick={() => document.getElementById('uploadFile').click()}
+      className="btn btn-secondary"
+      disabled={!allFiltersSelected}
+    >
+      Upload Excel
+    </button>
+    <input
+      type="file"
+      id="uploadFile"
+      style={{ display: 'none' }}
+      accept=".xlsx, .xls"
+      onChange={handleFileUpload}
+    />
 
-                <div className="button-group ms-auto">
-                  <button
-                    onClick={() => document.getElementById('uploadFile').click()}
-                    className="btn btn-secondary"
-                    disabled={!allFiltersSelected}
-                  >
-                    Upload Excel
-                  </button>
-                  <input
-                    type="file"
-                    id="uploadFile"
-                    style={{ display: 'none' }}
-                    accept=".xlsx, .xls"
-                    onChange={handleFileUpload}
-                  />
+    <button
+      onClick={handleUploadButtonClick}
+      className="btn btn-success"
+      disabled={!excelData || !allFiltersSelected}
+    >
+      Submit Excel Data
+    </button>
+  </div>
+</div>
 
-                  <button
-                    onClick={handlePasteButtonClick}
-                    className="btn"
-                    style={{ backgroundColor: "#00BFFF", color: "white" }}
-                    disabled={!allFiltersSelected}
-                  >
-                    Paste Data
-                  </button>
+{typeError && (
+  <div className="alert alert-danger mb-3">{typeError}</div>
+)}
 
-                  {/* ส่วนพื้นที่วางข้อมูล ยังคงเหมือนเดิม */}
+{/* แสดงข้อความแบบเดียวกับ Course-CLO Mapping เมื่อเลือกฟิลเตอร์ไม่ครบ */}
+{!allFiltersSelected ? (
+  <div style={{ marginTop: "20px", textAlign: "center" }}>
+    <p style={{ fontSize: "16px", color: "#666" }}>
+    Please select all options to display PLO data.
+    </p>
+    <p style={{ fontSize: "16px", color: "#666" }}>
+      กรุณาเลือกตัวเลือกให้ครบเพื่อแสดงข้อมูล PLO
+    </p>
+  </div>
+) : (
+  <>
+    {/* แสดงข้อความเมื่อเลือกฟิลเตอร์ครบแล้ว แต่ไม่มีข้อมูล */}
+    {selectedYear !== "all" && (!plos.length || !courses.length) && (
+      <div className="alert alert-info mt-4">
+        {!plos.length ? "ไม่พบข้อมูล PLO " : ""}
+        {!courses.length ? "ไม่พบข้อมูลรายวิชา " : ""}
+        สำหรับปีการศึกษา {selectedYear}
+      </div>
+    )}
 
-                  <button
-                    onClick={handleUploadButtonClick}
-                    className="btn btn-success"
-                    disabled={!excelData || !allFiltersSelected}
-                  >
-                    Submit Excel Data
-                  </button>
-                </div>
-
-                {/* ส่วนแสดงข้อมูล Preview ยังคงเหมือนเดิม */}
-              </div>
-
-              {typeError && (
-                <div className="alert alert-danger mb-3">{typeError}</div>
-              )}
-
-              {/* แสดงข้อความเมื่อยังไม่ได้เลือก filters ครบ */}
-              {!allFiltersSelected && (
-                <div className="alert alert-info mt-4">
-                  Please select all filters (University, Faculty, Program, and Year) to view PLO data.
-                </div>
-              )}
-
-              {/* แสดงข้อความเมื่อเลือกฟิลเตอร์ครบแล้ว แต่ไม่มีข้อมูล */}
-              {allFiltersSelected && selectedYear !== "all" && (!plos.length || !courses.length) && (
-                <div className="alert alert-info mt-4">
-                  {!plos.length ? "ไม่พบข้อมูล PLO " : ""}
-                  {!courses.length ? "ไม่พบข้อมูลรายวิชา " : ""}
-                  สำหรับปีการศึกษา {selectedYear}
-                </div>
-              )}
-
-              {/* PLO Table - แสดงเฉพาะเมื่อเลือก filters ครบแล้ว และมีข้อมูล */}
-              {allFiltersSelected && selectedYear !== "all" && plos.length > 0 && courses.length >= 0 && (
-                <div className="plo-table-container">
-                  <table className="plo-table">
-                    <thead>
-                      <tr>
-                        <th className="plo-code-col">PLO Code</th>
-                        <th className="plo-name-col">PLO Name</th>
-                        <th className="plo-actions-col">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {plos.length > 0 ? (
-                        plos.map((plo) => (
-                          <tr key={plo.plo_id}>
-                            <td>
-                              <div className="plo-cell-content text-center">{plo.PLO_code}</div>
-                            </td>
-                            <td>
-                              <div className="plo-cell-content">{plo.PLO_name}</div>
-                              {plo.PLO_engname && (
-                                <>
-                                  <div className="my-1 border-t border-gray-300"></div>
-                                  <div className="plo-cell-secondary">{plo.PLO_engname}</div>
-                                </>
-                              )}
-                            </td>
-                            <td>
-                              <button
-                                className="plo-table-btn plo-edit-btn"
-                                onClick={() => handleEditPlo(plo)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="plo-table-btn plo-delete-btn"
-                                onClick={() => handleDeletePlo(plo.plo_id)}
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="3" className="text-center">
-                            No PLO data found for the selected filters.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-
-
-                </div>
-              )}
+    {/* PLO Table - แสดงเฉพาะเมื่อเลือก filters ครบแล้ว และมีข้อมูล */}
+    {selectedYear !== "all" && plos.length > 0 && courses.length >= 0 && (
+      <div className="plo-table-container">
+        <table className="plo-table">
+          <thead>
+            <tr>
+              <th className="plo-code-col">PLO Code</th>
+              <th className="plo-name-col">PLO Name</th>
+              <th className="plo-actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {plos.length > 0 ? (
+              plos.map((plo) => (
+                <tr key={plo.plo_id}>
+                  <td>
+                    <div className="plo-cell-content text-center">{plo.PLO_code}</div>
+                  </td>
+                  <td>
+                    <div className="plo-cell-content">{plo.PLO_name}</div>
+                    {plo.PLO_engname && (
+                      <>
+                        <div className="my-1 border-t border-gray-300"></div>
+                        <div className="plo-cell-secondary">{plo.PLO_engname}</div>
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      className="plo-table-btn plo-edit-btn"
+                      onClick={() => handleEditPlo(plo)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="plo-table-btn plo-delete-btn"
+                      onClick={() => handleDeletePlo(plo.plo_id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3" className="text-center">
+                  No PLO data found for the selected filters.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </>
+)}
 
             </div>
           </div>
@@ -2709,7 +2696,7 @@ export default function Program() {
 
 
 
-      
+
         {/* <div className={`tab-content ${activeTab === 2 ? 'active' : 'hidden'}`}
           style={{ marginTop: 10, marginBottom: 50 }}>
           <div style={{ backgroundColor: "#F0F0F0", minHeight: "100vh", paddingTop: '0px' }}>

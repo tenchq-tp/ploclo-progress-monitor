@@ -11,7 +11,7 @@ const pool = mariadb.createPool({
     user: 'root',            // Database username
     database: 'react_ploclo',// Database name
     password: '123456',            // Database password
-    port: '3306',            // Database port
+    port: '3306',   // Database port
     connectionLimit: 50,       // Limit the number of connections in the pool
 });
 
@@ -152,6 +152,25 @@ app.get('/clo', async (req, res) => {
     } finally {
       if (conn) conn.release();
     }
+});
+  
+app.get('/course-clo', async (req, res) => {
+    let conn;
+    
+    try {
+      conn = await pool.getConnection();
+      const query = `select course.course_id, c.CLO_code, course.clo_id
+        from clo AS c
+        LEFT JOIN course_clo AS course
+        ON c.CLO_id = course.clo_id WHERE course.course_id IS NOT NULL;`;
+      const clos = await conn.query(query);
+      res.json(clos);
+    } catch (err) {
+      console.error("Error fetching CLOs:", err);
+      res.status(500).json({ success: false, message: "Database error" });
+    } finally {
+      if (conn) conn.release();
+    }
   });
 
 app.get('/course_clo/weight', async (req, res) => {
@@ -213,7 +232,7 @@ app.get('/course_clo/weight', async (req, res) => {
 });
 
 app.post('/course_clo/weight', async (req, res) => {
-    console.log('Received Course-CLO weight data:', JSON.stringify(req.body, null, 2));
+    // console.log('Received Course-CLO weight data:', JSON.stringify(req.body, null, 2));
     
     const { program_id, semester_id, section_id, year, scores } = req.body;
 
@@ -273,7 +292,7 @@ app.post('/course_clo/weight', async (req, res) => {
                         weight: weightValue 
                     });
                     
-                    console.log(`Updated weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
+                    // console.log(`Updated weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
                 } else {
                     // เพิ่มข้อมูลใหม่
                     await conn.query(
@@ -289,7 +308,7 @@ app.post('/course_clo/weight', async (req, res) => {
                         weight: weightValue 
                     });
                     
-                    console.log(`Inserted new record with weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
+                    // console.log(`Inserted new record with weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
                 }
             } catch (err) {
                 results.errors++;
@@ -3670,6 +3689,7 @@ app.get('/program_courses_detail', async (req, res) => {
 
 
 app.get('/plo_clo', async (req, res) => {
+    console.log("\n\nReq -----> ", req);
     const { course_id, section_id, semester_id, year, program_id, clo_ids } = req.query;
 
     console.log("Received Query Params for GET /plo_clo:", req.query);
