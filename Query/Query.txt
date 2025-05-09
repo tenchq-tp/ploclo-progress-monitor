@@ -155,16 +155,6 @@ CREATE TABLE `assignments` (
   PRIMARY KEY (`assignment_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `assignments_students` (
-  `student_id` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
-  `assignment_id` int NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`student_id`,`assignment_id`),
-  KEY `FK_assignments_students_assignment` (`assignment_id`),
-  CONSTRAINT `FK_assignments_students_assignment` FOREIGN KEY (`assignment_id`) REFERENCES `assignments` (`assignment_id`),
-  CONSTRAINT `FK_assignments_students_student` FOREIGN KEY (`student_id`) REFERENCES `studentdata` (`student_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 CREATE TABLE `assignment_clo_selection` (
   `id` int NOT NULL AUTO_INCREMENT,
   `clo_id` int NOT NULL,

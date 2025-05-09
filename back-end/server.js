@@ -141,21 +141,41 @@ app.delete("/students/:_", async (req, res) => {
   }
 });
 
-app.get("/clo", async (req, res) => {
-  let conn;
-
-  try {
-    conn = await pool.getConnection();
-    const query = "SELECT * FROM clo";
-    const clos = await conn.query(query);
-    res.json(Array.isArray(clos) ? clos : [clos]);
-  } catch (err) {
-    console.error("Error fetching CLOs:", err);
-    res.status(500).json({ success: false, message: "Database error" });
-  } finally {
-    if (conn) conn.release();
-  }
+app.get('/clo', async (req, res) => {
+    let conn;
+    
+    try {
+      conn = await pool.getConnection();
+      const query = "SELECT * FROM clo";
+      const clos = await conn.query(query);
+      res.json(Array.isArray(clos) ? clos : [clos]);
+    } catch (err) {
+      console.error("Error fetching CLOs:", err);
+      res.status(500).json({ success: false, message: "Database error" });
+    } finally {
+      if (conn) conn.release();
+    }
 });
+  
+app.get('/course-clo', async (req, res) => {
+    let conn;
+    
+    try {
+      conn = await pool.getConnection();
+      const query = `select course.course_id, c.CLO_code, course.clo_id
+        from clo AS c
+        LEFT JOIN course_clo AS course
+        ON c.CLO_id = course.clo_id WHERE course.course_id IS NOT NULL;`;
+      const clos = await conn.query(query);
+      res.json(clos);
+    } catch (err) {
+      console.error("Error fetching CLOs:", err);
+      res.status(500).json({ success: false, message: "Database error" });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+
 
 app.get("/course-clo", async (req, res) => {
   let conn;
@@ -239,131 +259,124 @@ app.get("/course_clo/weight", async (req, res) => {
   }
 });
 
-app.post("/course_clo/weight", async (req, res) => {
-  // console.log('Received Course-CLO weight data:', JSON.stringify(req.body, null, 2));
+app.post('/course_clo/weight', async (req, res) => {
+    // console.log('Received Course-CLO weight data:', JSON.stringify(req.body, null, 2));
+    
+    const { program_id, semester_id, section_id, year, scores } = req.body;
 
-  const { program_id, semester_id, section_id, year, scores } = req.body;
-
-  // ตรวจสอบข้อมูลที่จำเป็น
-  if (
-    !semester_id ||
-    !section_id ||
-    !year ||
-    !Array.isArray(scores) ||
-    scores.length === 0
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Missing required data or invalid scores array",
-    });
-  }
-
-  try {
-    const conn = await pool.getConnection();
-    await conn.beginTransaction();
-
-    const results = {
-      success: 0,
-      errors: 0,
-      details: [],
-    };
-
-    // ประมวลผลข้อมูลทีละรายการ
-    for (const score of scores) {
-      try {
-        const { course_id, clo_id, weight } = score;
-
-        if (!course_id || !clo_id || weight === undefined) {
-          results.errors++;
-          results.details.push({
-            error: "Missing required fields",
-            data: score,
-          });
-          continue;
-        }
-
-        // แปลงค่า weight เป็น integer
-        const weightValue = parseInt(weight);
-
-        // ตรวจสอบว่าข้อมูลมีอยู่แล้วหรือไม่
-        const exists = await conn.query(
-          "SELECT course_clo_id FROM course_clo WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?",
-          [course_id, clo_id, semester_id, section_id, year]
-        );
-
-        if (exists && exists.length > 0) {
-          // อัพเดตข้อมูลที่มีอยู่
-          await conn.query(
-            "UPDATE course_clo SET weight = ? WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?",
-            [weightValue, course_id, clo_id, semester_id, section_id, year]
-          );
-
-          results.success++;
-          results.details.push({
-            status: "updated",
-            course_id,
-            clo_id,
-            weight: weightValue,
-          });
-
-          // console.log(`Updated weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
-        } else {
-          // เพิ่มข้อมูลใหม่
-          await conn.query(
-            "INSERT INTO course_clo (course_id, clo_id, semester_id, section_id, year, weight) VALUES (?, ?, ?, ?, ?, ?)",
-            [course_id, clo_id, semester_id, section_id, year, weightValue]
-          );
-
-          results.success++;
-          results.details.push({
-            status: "inserted",
-            course_id,
-            clo_id,
-            weight: weightValue,
-          });
-
-          // console.log(`Inserted new record with weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
-        }
-      } catch (err) {
-        results.errors++;
-        results.details.push({
-          error: err.message,
-          data: score,
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!semester_id || !section_id || !year || !Array.isArray(scores) || scores.length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Missing required data or invalid scores array'
         });
-        console.error("Error processing individual score:", err);
-      }
     }
-
-    await conn.commit();
-    conn.release();
-
-    console.log(
-      `Processed ${scores.length} records. Success: ${results.success}, Errors: ${results.errors}`
-    );
-
-    res.json({
-      success: true,
-      message: `Successfully processed ${results.success} out of ${scores.length} scores`,
-      results,
-    });
-  } catch (error) {
-    console.error("Error processing scores:", error);
-
+    
     try {
-      const conn = await pool.getConnection();
-      await conn.rollback();
-      conn.release();
-    } catch (rollbackError) {
-      console.error("Error during rollback:", rollbackError);
+        const conn = await pool.getConnection();
+        await conn.beginTransaction();
+        
+        const results = {
+            success: 0,
+            errors: 0,
+            details: []
+        };
+        
+        // ประมวลผลข้อมูลทีละรายการ
+        for (const score of scores) {
+            try {
+                const { course_id, clo_id, weight } = score;
+                
+                if (!course_id || !clo_id || weight === undefined) {
+                    results.errors++;
+                    results.details.push({ 
+                        error: 'Missing required fields', 
+                        data: score 
+                    });
+                    continue;
+                }
+                
+                // แปลงค่า weight เป็น integer
+                const weightValue = parseInt(weight);
+                
+                // ตรวจสอบว่าข้อมูลมีอยู่แล้วหรือไม่
+                const exists = await conn.query(
+                    'SELECT course_clo_id FROM course_clo WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?',
+                    [course_id, clo_id, semester_id, section_id, year]
+                );
+                
+                if (exists && exists.length > 0) {
+                    // อัพเดตข้อมูลที่มีอยู่
+                    await conn.query(
+                        'UPDATE course_clo SET weight = ? WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?',
+                        [weightValue, course_id, clo_id, semester_id, section_id, year]
+                    );
+                    
+                    results.success++;
+                    results.details.push({ 
+                        status: 'updated', 
+                        course_id, 
+                        clo_id, 
+                        weight: weightValue 
+                    });
+                    
+                    // console.log(`Updated weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
+                } else {
+                    // เพิ่มข้อมูลใหม่
+                    await conn.query(
+                        'INSERT INTO course_clo (course_id, clo_id, semester_id, section_id, year, weight) VALUES (?, ?, ?, ?, ?, ?)',
+                        [course_id, clo_id, semester_id, section_id, year, weightValue]
+                    );
+                    
+                    results.success++;
+                    results.details.push({ 
+                        status: 'inserted', 
+                        course_id, 
+                        clo_id, 
+                        weight: weightValue 
+                    });
+                    
+                    // console.log(`Inserted new record with weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
+                }
+            } catch (err) {
+                results.errors++;
+                results.details.push({ 
+                    error: err.message, 
+                    data: score 
+                });
+                console.error('Error processing individual score:', err);
+            }
+        }
+        
+        await conn.commit();
+        conn.release();
+        
+        console.log(`Processed ${scores.length} records. Success: ${results.success}, Errors: ${results.errors}`);
+        
+        res.json({
+            success: true,
+            message: `Successfully processed ${results.success} out of ${scores.length} scores`,
+            results
+        });
+    } catch (error) {
+        console.error('Error processing scores:', error);
+        
+        try {
+            const conn = await pool.getConnection();
+            await conn.rollback();
+            conn.release();
+        } catch (rollbackError) {
+            console.error('Error during rollback:', rollbackError);
+        }
+        
+        res.status(500).json({
+            success: false,
+            message: 'Database error',
+            error: error.message
+        });
     }
-
-    res.status(500).json({
-      success: false,
-      message: "Database error",
-      error: error.message,
-    });
-  }
 });
+
 
 app.patch("/course_clo/weight", async (req, res) => {
   console.log(
@@ -4038,12 +4051,10 @@ app.get("/program_courses_detail", async (req, res) => {
   }
 });
 
-app.get("/plo_clo", async (req, res) => {
-  console.log("\n\nReq -----> ", req);
-  const { course_id, section_id, semester_id, year, program_id, clo_ids } =
-    req.query;
 
-  console.log("Received Query Params for GET /plo_clo:", req.query);
+app.get('/plo_clo', async (req, res) => {
+    console.log("\n\nReq -----> ", req);
+    const { course_id, section_id, semester_id, year, program_id, clo_ids } = req.query;
 
   if (!course_id || !section_id || !semester_id || !year || !program_id) {
     return res.status(400).json({

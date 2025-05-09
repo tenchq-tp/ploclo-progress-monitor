@@ -80,6 +80,8 @@ export default function Course() {
   const [error, setError] = useState(null)
   const navigate = useNavigate()
   const [assignmentName, setAssignmentName] = useState("")
+  const [isEditing, setIsEditing] = useState(false); // เพิ่มตรงนี้
+
 
   // Step 2: CLO Scoring System state
   const [homeworks, setHomeworks] = useState([])
@@ -106,6 +108,18 @@ export default function Course() {
   const [weightDisplay, setWeightDisplay] = useState([]);
   const [courseClo, setCourseClo] = useState({});
   const [weightEachCourse, setWeightEachCourse] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [assignment, setAssignment] = useState({});
+  const [editData, setEditData] = useState({
+    assignment_name: "",
+    course_name: "",
+    section_id: "",
+    semester_id: "",
+    year: "",
+    program_id: "",
+    faculty_id: "",
+    university_id: ""
+  });
 
 
   // แก้ไขการเรียกใช้ API เพื่อดึงข้อมูลมหาวิทยาลัย
@@ -552,16 +566,16 @@ export default function Course() {
         // console.log("ไม่มีพารามิเตอร์ที่จำเป็นสำหรับการดึงข้อมูล weights");
         return;
       }
-
-      // console.log("กำลังดึงข้อมูล course_clo weights ด้วยพารามิเตอร์:", {
-      //   program_id: programId,
-      //   course_id: selectedCourseId,
-      //   section_id: selectedSectionId,
-      //   semester_id: selectedSemesterId,
-      //   year: selectedYear
-      // });
-
-      // เปลี่ยนจาก '/course_clo' เป็น '/course_clo_with_weight'
+  
+      console.log("กำลังดึงข้อมูล course_clo weights ด้วยพารามิเตอร์:", {
+        program_id: programId,
+        course_id: selectedCourseId,
+        section_id: selectedSectionId,
+        semester_id: selectedSemesterId,
+        year: selectedYear
+      });
+  
+      // เปลี่ยนจาก '/course_clo' เป็น '/course_clo_with_weight' เพื่อดึงข้อมูล weight
       const response = await axios.get("/course_clo_with_weight", {
         params: {
           program_id: programId,
@@ -571,17 +585,17 @@ export default function Course() {
           year: selectedYear
         }
       });
-
-      // console.log("ข้อมูลจาก API course_clo_with_weight:", response.data);
-
+  
+      console.log("ข้อมูลจาก API course_clo_with_weight:", response.data);
+  
       if (Array.isArray(response.data) && response.data.length > 0) {
         setWeightEachCourse(prev => {
           const newWeights = { ...prev };
-
+  
           response.data.forEach(item => {
             const cloId = item.CLO_id;
             const weight = item.weight || 0;
-
+  
             if (cloId !== undefined) {
               const key = `a${selectedCourseId}_${cloId}`;
               newWeights[key] = {
@@ -591,15 +605,10 @@ export default function Course() {
               };
             }
           });
-
+  
           return newWeights;
         });
-
-        // // แสดงข้อมูล weight ที่ได้
-        // console.log("น้ำหนักที่ดึงมาจากฐานข้อมูล:", weightObject);
-        // setWeightDisplay(weightObject);
-        // setWeights(weightObject);
-
+  
         // เพิ่มการเก็บค่า weight ในอีกตัวแปรสำหรับใช้ในการคำนวณคะแนน
         const cloWeightsObj = {};
         response.data.forEach(item => {
@@ -1047,100 +1056,100 @@ export default function Course() {
   //     });
   // };
   const handlePostCourseCloScores = () => {
-  console.log("กำลังบันทึกข้อมูลลงตาราง course_clo");
+    console.log("กำลังบันทึกข้อมูลลงตาราง course_clo");
 
-  // ตรวจสอบว่าตอนนี้อยู่ที่แท็บ Course-CLO Mapping จริงๆ
-  if (activeTab !== 2) {
-    console.error("ฟังก์ชันนี้ควรถูกเรียกจากแท็บ Course-CLO Mapping เท่านั้น");
-    return;
-  }
-  
-  // ตรวจสอบข้อมูลที่จำเป็น
-  if (!selectedProgram || !selectedSemesterId || !selectedYear || !selectedCourseId || !selectedSectionId) {
-    alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-    return;
-  }
-
-  // ตรวจสอบว่ามีข้อมูล weightEachCourse หรือไม่
-  if (!weightEachCourse || Object.keys(weightEachCourse).length === 0) {
-    alert("ไม่พบข้อมูลน้ำหนัก CLO กรุณาตรวจสอบข้อมูลหรือโหลดข้อมูลใหม่");
-    return;
-  }
-
-  // สร้าง array courseCloData สำหรับเก็บข้อมูลที่จะส่งไปยัง API
-  const courseCloData = [];
-
-  // สร้างข้อมูล course_clo จาก weightEachCourse
-  // ค้นหา key ที่เริ่มต้นด้วย "a" + selectedCourseId
-  const keyPrefix = `a${selectedCourseId}_`;
-  
-  Object.entries(weightEachCourse).forEach(([key, value]) => {
-    // ตรวจสอบว่า key เป็นของ course ที่เลือกหรือไม่
-    if (key.startsWith(keyPrefix)) {
-      // ดึง clo_id จาก key หรือจากค่า value โดยตรง
-      const cloId = value.clo_id;
-      
-      if (cloId) {
-        // เพิ่มข้อมูลเฉพาะที่จำเป็น - เน้นเรื่องการอัพเดทค่า weight
-        courseCloData.push({
-          course_id: parseInt(selectedCourseId, 10),
-          clo_id: parseInt(cloId, 10),
-          section_id: parseInt(selectedSectionId, 10),
-          semester_id: parseInt(selectedSemesterId, 10),
-          year: parseInt(selectedYear, 10),
-          weight: parseInt(value.weight, 10) || 0
-        });
-      }
+    // ตรวจสอบว่าตอนนี้อยู่ที่แท็บ Course-CLO Mapping จริงๆ
+    if (activeTab !== 2) {
+      console.error("ฟังก์ชันนี้ควรถูกเรียกจากแท็บ Course-CLO Mapping เท่านั้น");
+      return;
     }
-  });
 
-  // ตรวจสอบว่ามีข้อมูลที่จะส่งหรือไม่
-  if (courseCloData.length === 0) {
-    alert("ไม่มีน้ำหนัก CLO ที่จะส่ง กรุณาตรวจสอบข้อมูล");
-    return;
-  }
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!selectedProgram || !selectedSemesterId || !selectedYear || !selectedCourseId || !selectedSectionId) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
 
-  // แสดง loading spinner
-  setLoading(true);
+    // ตรวจสอบว่ามีข้อมูล weightEachCourse หรือไม่
+    if (!weightEachCourse || Object.keys(weightEachCourse).length === 0) {
+      alert("ไม่พบข้อมูลน้ำหนัก CLO กรุณาตรวจสอบข้อมูลหรือโหลดข้อมูลใหม่");
+      return;
+    }
 
-  // สร้าง payload ในรูปแบบที่ server ต้องการ - เน้นการอัพเดทเท่านั้น
-  const payload = {
-    program_id: parseInt(selectedProgram, 10),
-    semester_id: parseInt(selectedSemesterId, 10),
-    section_id: parseInt(selectedSectionId, 10),
-    year: parseInt(selectedYear, 10),
-    scores: courseCloData
-  };
+    // สร้าง array courseCloData สำหรับเก็บข้อมูลที่จะส่งไปยัง API
+    const courseCloData = [];
 
-  console.log("Sending course_clo payload:", JSON.stringify(payload, null, 2));
+    // สร้างข้อมูล course_clo จาก weightEachCourse
+    // ค้นหา key ที่เริ่มต้นด้วย "a" + selectedCourseId
+    const keyPrefix = `a${selectedCourseId}_`;
 
-  // ใช้ PATCH method เพื่อทำการอัพเดทเท่านั้น
-  axios.patch("/course_clo/weight", payload)
-    .then((response) => {
-      console.log("API response for course_clo:", response.data);
+    Object.entries(weightEachCourse).forEach(([key, value]) => {
+      // ตรวจสอบว่า key เป็นของ course ที่เลือกหรือไม่
+      if (key.startsWith(keyPrefix)) {
+        // ดึง clo_id จาก key หรือจากค่า value โดยตรง
+        const cloId = value.clo_id;
 
-      if (response.data && response.data.success) {
-        // อัปเดตสถานะ
-        alert("บันทึกการเชื่อมโยง Course-CLO สำเร็จ!");
-        setEditingScores(false); // ออกจากโหมดแก้ไข
-        refreshDataFromServer();
-      } else {
-        alert(response.data?.message || "เกิดข้อผิดพลาด");
+        if (cloId) {
+          // เพิ่มข้อมูลเฉพาะที่จำเป็น - เน้นเรื่องการอัพเดทค่า weight
+          courseCloData.push({
+            course_id: parseInt(selectedCourseId, 10),
+            clo_id: parseInt(cloId, 10),
+            section_id: parseInt(selectedSectionId, 10),
+            semester_id: parseInt(selectedSemesterId, 10),
+            year: parseInt(selectedYear, 10),
+            weight: parseInt(value.weight, 10) || 0
+          });
+        }
       }
-      setLoading(false);
-    })
-    .catch((error) => {
-      console.error("เกิดข้อผิดพลาดในการส่งข้อมูล:", error);
-
-      // แสดงรายละเอียดข้อผิดพลาด
-      let errorMsg = `เกิดข้อผิดพลาด: ${error.message}`;
-      if (error.response && error.response.data) {
-        errorMsg += `\nรายละเอียด: ${JSON.stringify(error.response.data)}`;
-      }
-      alert(errorMsg);
-      setLoading(false);
     });
-};
+
+    // ตรวจสอบว่ามีข้อมูลที่จะส่งหรือไม่
+    if (courseCloData.length === 0) {
+      alert("ไม่มีน้ำหนัก CLO ที่จะส่ง กรุณาตรวจสอบข้อมูล");
+      return;
+    }
+
+    // แสดง loading spinner
+    setLoading(true);
+
+    // สร้าง payload ในรูปแบบที่ server ต้องการ - เน้นการอัพเดทเท่านั้น
+    const payload = {
+      program_id: parseInt(selectedProgram, 10),
+      semester_id: parseInt(selectedSemesterId, 10),
+      section_id: parseInt(selectedSectionId, 10),
+      year: parseInt(selectedYear, 10),
+      scores: courseCloData
+    };
+
+    console.log("Sending course_clo payload:", JSON.stringify(payload, null, 2));
+
+    // ใช้ PATCH method เพื่อทำการอัพเดทเท่านั้น
+    axios.patch("/course_clo/weight", payload)
+      .then((response) => {
+        console.log("API response for course_clo:", response.data);
+
+        if (response.data && response.data.success) {
+          // อัปเดตสถานะ
+          alert("บันทึกการเชื่อมโยง Course-CLO สำเร็จ!");
+          setEditingScores(false); // ออกจากโหมดแก้ไข
+          refreshDataFromServer();
+        } else {
+          alert(response.data?.message || "เกิดข้อผิดพลาด");
+        }
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("เกิดข้อผิดพลาดในการส่งข้อมูล:", error);
+
+        // แสดงรายละเอียดข้อผิดพลาด
+        let errorMsg = `เกิดข้อผิดพลาด: ${error.message}`;
+        if (error.response && error.response.data) {
+          errorMsg += `\nรายละเอียด: ${JSON.stringify(error.response.data)}`;
+        }
+        alert(errorMsg);
+        setLoading(false);
+      });
+  };
 
   const refreshDataAndMappings = async () => {
     // 1. ดึงข้อมูล CLO ใหม่
@@ -1497,7 +1506,6 @@ export default function Course() {
     });
   };
 
-  // ฟังก์ชันเปลี่ยนฟิลเตอร์
   const handleFilterChange = (filterName, value) => {
     console.log(`Filter changed: ${filterName} = ${value}`);
 
@@ -1554,7 +1562,7 @@ export default function Course() {
       case "program":
         setSelectedProgram(value);
 
-        // รีเซ็ตค่าปีและภาคเรียน
+        // รีเซ็ตค่าปีและภาคเรียน แต่ไม่ disable Year
         setSelectedYear("");
         setNewCourse(prev => ({
           ...prev,
@@ -1581,12 +1589,7 @@ export default function Course() {
         setNewCourse(prev => ({
           ...prev,
           year: value,
-        }));
-
-        // รีเซ็ตภาคเรียน
-        setNewCourse(prev => ({
-          ...prev,
-          semester_id: "",
+          semester_id: "", // รีเซ็ตภาคเรียน เมื่อเปลี่ยนปี
         }));
 
         // รีเซ็ตข้อมูลการแสดงผล
@@ -1656,6 +1659,85 @@ export default function Course() {
 
     // console.log(`  ผลรวม = ${total}`);
     return total || 0;
+  };
+
+  const saveEditAssignment = async () => {
+    try {
+      setSaving(true);
+      
+      // ตรวจสอบข้อมูลที่จำเป็น
+      const requiredFields = ['assignment_name', 'course_name', 'section_id', 'semester_id', 'year'];
+      const missingFields = requiredFields.filter(field => !editData[field]);
+      
+      if (missingFields.length > 0) {
+        showAlert(`กรุณากรอกข้อมูลให้ครบถ้วน: ${missingFields.join(', ')}`, 'error');
+        setSaving(false);
+        return;
+      }
+      
+      // เตรียมข้อมูลสำหรับส่งไป API
+      const updateData = {
+        program_id: parseInt(editData.program_id) || assignment.program_id,
+        course_name: editData.course_name,
+        section_id: parseInt(editData.section_id),
+        semester_id: parseInt(editData.semester_id),
+        year: parseInt(editData.year),
+        assignment_name: editData.assignment_name,
+        faculty_id: parseInt(editData.faculty_id) || assignment.faculty_id,
+        university_id: parseInt(editData.university_id) || assignment.university_id
+      };
+      
+      console.log('ข้อมูลที่จะส่งไปอัพเดต:', updateData);
+      
+      // เรียกใช้ API สำหรับอัปเดตข้อมูล
+      const response = await axios.put(`/api/update_assignment/${currentAssignmentId}`, updateData);
+      
+      console.log('ผลการอัปเดต Assignment:', response.data);
+      
+      if (response.data) {
+        // อัปเดตข้อมูลใน state
+        setAssignment(prev => ({
+          ...prev,
+          ...updateData
+        }));
+        
+        // ปิดโหมดแก้ไข
+        setIsEditing(false);
+        showAlert('บันทึกการแก้ไขข้อมูล Assignment เรียบร้อยแล้ว', 'success');
+      }
+    } catch (error) {
+      console.error('เกิดข้อผิดพลาดในการบันทึกการแก้ไข:', error);
+      const errorDetail = error.response?.data?.error || error.message;
+      console.error('รายละเอียดข้อผิดพลาด:', errorDetail);
+      showAlert('เกิดข้อผิดพลาดในการบันทึกการแก้ไข: ' + errorDetail, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    // รีเซ็ตข้อมูลการแก้ไขเป็นค่าเดิม
+    setEditData({
+      assignment_name: assignment.assignment_name || '',
+      course_name: assignment.course_name || '',
+      section_id: assignment.section_id || '',
+      semester_id: assignment.semester_id || '',
+      year: assignment.year || '',
+      program_id: assignment.program_id || '',
+      faculty_id: assignment.faculty_id || '',
+      university_id: assignment.university_id || ''
+    });
+    
+    // ปิดโหมดแก้ไข
+    setIsEditing(false);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const fetchPLOCLOMappings = async () => {
@@ -1818,6 +1900,97 @@ export default function Course() {
           years: [],
         });
       });
+  };
+
+  const handleSaveEditAssignment = async () => {
+    if (
+      !selectedProgram ||
+      !selectedCourseId ||
+      !selectedSectionId ||
+      !selectedSemesterId ||
+      !selectedYear ||
+      !assignmentName ||
+      !currentAssignmentId
+    ) {
+      setTypeError("กรุณากรอกข้อมูลทั้งหมดก่อนบันทึก");
+      return;
+    }
+  
+    // Get the course name from the selected course ID
+    const selectedCourseObj = programCourseData.courses.find(
+      (c) => c.course_id.toString() === selectedCourseId.toString()
+    );
+  
+    // If no course is found, show error
+    if (!selectedCourseObj) {
+      setTypeError("ไม่พบข้อมูลรายวิชาที่เลือก");
+      return;
+    }
+  
+    // แสดงสถานะกำลังบันทึก
+    setLoading(true);
+  
+    try {
+      // Construct the payload for updating assignment
+      const updateData = {
+        program_id: parseInt(selectedProgram, 10),
+        course_name: selectedCourseObj.course_name,
+        section_id: parseInt(selectedSectionId, 10),
+        semester_id: parseInt(selectedSemesterId, 10),
+        year: parseInt(selectedYear, 10),
+        assignment_name: assignmentName,
+        faculty_id: parseInt(selectedFaculty, 10),
+        university_id: parseInt(selectedUniversity, 10)
+      };
+  
+      console.log("ข้อมูลที่จะส่งไปอัพเดต:", updateData);
+  
+      // Call the API to update the assignment
+      const response = await axios.put(`/api/update_assignment/${currentAssignmentId}`, updateData);
+  
+      console.log("ผลการอัพเดต Assignment:", response.data);
+  
+      if (response.data) {
+        // แสดงข้อความสำเร็จ
+        alert("บันทึกการแก้ไขข้อมูล Assignment สำเร็จ!");
+        
+        // ปิดโหมดแก้ไข
+        setIsEditing(false);
+        
+        // เมื่อแก้ไขสำเร็จ ให้ไปยังขั้นตอนที่ 2
+        setCurrentStep(2);
+        
+        // เตรียมข้อมูล homeworks
+        if (currentAssignmentId) {
+          // ใช้ข้อมูล Assignment ที่แก้ไขแล้ว
+          const newHomework = {
+            id: currentAssignmentId,
+            name: assignmentName,
+            scores: {}
+          };
+          
+          // ถ้ามีข้อมูล CLO ให้เตรียมข้อมูลคะแนน
+          if (CLOs && CLOs.length > 0) {
+            CLOs.forEach((clo) => {
+              newHomework.scores[clo.CLO_id || clo.clo_id] = 0;
+            });
+          }
+          
+          setHomeworks([newHomework]);
+        }
+      } else {
+        // แสดงข้อความผิดพลาด
+        alert(response.data?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      }
+    } catch (error) {
+      console.error("Error updating Assignment:", error);
+      
+      // แสดงข้อความผิดพลาด
+      alert(`เกิดข้อผิดพลาด: ${error.message || "ไม่สามารถบันทึกข้อมูลได้"}`);
+    } finally {
+      // ปิดสถานะกำลังบันทึก
+      setLoading(false);
+    }
   };
 
   // ฟังก์ชันจัดการวางข้อมูลโดยตรง
@@ -2063,6 +2236,135 @@ export default function Course() {
       setShowEditModal(true); // Show the modal
     }
   };
+
+  const saveScores = async () => {
+    // เช็คว่ามีนักเรียนที่จะบันทึกคะแนนหรือไม่
+    if (!importedStudents || importedStudents.length === 0) {
+      alert("ไม่พบรายชื่อนักเรียนที่จะบันทึกคะแนน");
+      return;
+    }
+  
+    try {
+      // แสดงสถานะกำลังบันทึก
+      setSaving(true);
+  
+      // สร้างข้อมูลสำหรับส่งไป API
+      const scoreData = [];
+  
+      // สร้างข้อมูลคะแนนสำหรับแต่ละนักเรียน
+      importedStudents.forEach((student) => {
+        // ดูว่ามีคะแนนของนักเรียนคนนี้หรือไม่
+        const studentScores = scores[student.student_id] || {};
+  
+        // สำหรับแต่ละ CLO ในงานนี้
+        CLOs.forEach((clo) => {
+          // ดึงค่า assignment_clo_id จาก CLO
+          const assignmentCloId = clo.assignment_clo_id;
+          if (assignmentCloId) {
+            // เพิ่มข้อมูลคะแนน
+            scoreData.push({
+              student_id: student.student_id,
+              assignment_clo_id: assignmentCloId,
+              score: studentScores[assignmentCloId] || 0
+            });
+          }
+        });
+      });
+  
+      // ส่งข้อมูลไป API
+      const response = await axios.post("/api/save_scores", {
+        scores: scoreData
+      });
+  
+      console.log("ผลการบันทึกคะแนน:", response.data);
+  
+      if (response.data && response.data.success) {
+        alert("บันทึกคะแนนเรียบร้อยแล้ว");
+      } else {
+        alert(response.data?.message || "เกิดข้อผิดพลาดในการบันทึกคะแนน");
+      }
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการบันทึกคะแนน:", error);
+      alert(`เกิดข้อผิดพลาด: ${error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const handleFileImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+  
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+  
+        // ดึงข้อมูลจาก sheet แรก
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+  
+        console.log("ข้อมูลที่นำเข้าจาก Excel:", jsonData);
+  
+        // ตรวจสอบรูปแบบข้อมูล
+        if (jsonData.length === 0) {
+          alert("ไม่พบข้อมูลในไฟล์ Excel");
+          return;
+        }
+  
+        // ตรวจสอบว่ามีคอลัมน์ที่จำเป็นครบหรือไม่
+        const requiredColumns = ["student_id", "name"];
+        const firstRow = jsonData[0];
+        const missingColumns = requiredColumns.filter(col => !(col in firstRow));
+  
+        if (missingColumns.length > 0) {
+          alert(`ไฟล์ Excel ไม่มีคอลัมน์ที่จำเป็น: ${missingColumns.join(", ")}`);
+          return;
+        }
+  
+        // แปลงข้อมูลและอัปเดต state
+        const processedData = jsonData.map(row => ({
+          student_id: String(row.student_id),
+          name: row.name
+        }));
+  
+        setImportedStudents(processedData);
+        alert(`นำเข้าข้อมูลนักเรียน ${processedData.length} คนสำเร็จ`);
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดในการอ่านไฟล์ Excel:", error);
+        alert(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${error.message}`);
+      }
+    };
+  
+    reader.onerror = (error) => {
+      console.error("เกิดข้อผิดพลาดในการอ่านไฟล์:", error);
+      alert(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${error.message}`);
+    };
+  
+    reader.readAsArrayBuffer(file);
+  };
+  
+  // เพิ่มฟังก์ชันสำหรับดาวน์โหลดเทมเพลต Excel
+  const downloadExcelTemplate = () => {
+    // สร้างเทมเพลตสำหรับใช้นำเข้าข้อมูลนักเรียน
+    const template = [
+      {
+        student_id: "รหัสนักศึกษา",
+        name: "ชื่อ-นามสกุล",
+      }
+    ];
+  
+    // สร้าง workbook และ worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(template);
+  
+    // เพิ่ม worksheet ลงใน workbook
+    XLSX.utils.book_append_sheet(wb, ws, "นำเข้านักเรียน");
+  
+    // บันทึกไฟล์
+    XLSX.writeFile(wb, "template_import_students.xlsx");
+  };  
 
   // ฟังก์ชันบันทึกการแก้ไข CLO
   const handleSaveClo = async () => {
@@ -2320,7 +2622,97 @@ export default function Course() {
       alert("An error occurred while adding the CLO");
     }
   };
-
+  const styles = {
+    heading: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      marginBottom: '16px'
+    },
+    assignmentInfo: {
+      backgroundColor: '#f5f5f5',
+      padding: '12px',
+      borderRadius: '4px',
+      marginBottom: '20px'
+    },
+    buttonContainer: {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '20px'
+    },
+    editButton: {
+      backgroundColor: '#ffc107',
+      color: 'white',
+      border: 'none',
+      padding: '8px 16px',
+      borderRadius: '4px',
+      cursor: 'pointer'
+    },
+    primaryButton: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      padding: '8px 16px',
+      borderRadius: '4px',
+      cursor: 'pointer'
+    },
+    primaryButtonDisabled: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      padding: '8px 16px',
+      borderRadius: '4px',
+      opacity: '0.65',
+      cursor: 'not-allowed'
+    },
+    secondaryButton: {
+      backgroundColor: '#6c757d',
+      color: 'white',
+      border: 'none',
+      padding: '8px 16px',
+      borderRadius: '4px',
+      cursor: 'pointer'
+    },
+    outlineButton: {
+      backgroundColor: 'transparent',
+      color: '#007bff',
+      border: '1px solid #007bff',
+      padding: '8px 16px',
+      borderRadius: '4px',
+      cursor: 'pointer'
+    },
+    cancelButton: {
+      backgroundColor: '#6c757d',
+      color: 'white',
+      border: 'none',
+      padding: '8px 16px',
+      borderRadius: '4px',
+      cursor: 'pointer'
+    },
+    hidden: {
+      display: 'none'
+    },
+    editForm: {
+      padding: '20px',
+      backgroundColor: '#f8f9fa',
+      borderRadius: '8px',
+      marginBottom: '24px'
+    },
+    formGroup: {
+      marginBottom: '16px'
+    },
+    label: {
+      display: 'block',
+      marginBottom: '8px',
+      fontWeight: 'bold'
+    },
+    input: {
+      width: '100%',
+      padding: '8px 12px',
+      borderRadius: '4px',
+      border: '1px solid #ced4da',
+      fontSize: '16px'
+    }
+  };
   // ฟังก์ชันดึงข้อมูล CLO ปีก่อนหน้า
   const fetchPreviousYearCLOs = async () => {
     if (
@@ -2382,30 +2774,68 @@ export default function Course() {
     setHomeworks(updatedHomeworks)
     setValidationErrors({})
   }
+  const fetchAssignmentCLOs = async (assignmentId) => {
+    try {
+      const response = await axios.get(`/api/get_assignment_detail/${assignmentId}`);
+      
+      if (response.data && response.data.success) {
+        // ตั้งค่า CLOs จากข้อมูลที่ได้รับ
+        setCLOs(response.data.clos || []);
+        
+        // ตั้งค่า weights สำหรับแต่ละ CLO
+        const weights = {};
+        if (response.data.clos && Array.isArray(response.data.clos)) {
+          response.data.clos.forEach(clo => {
+            weights[clo.clo_id] = clo.weight || 0;
+          });
+        }
+        setCloWeights(weights);
+        
+        return response.data.clos || [];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการดึงข้อมูล CLO ของ Assignment:", error);
+      return [];
+    }
+  };
 
   const validateCloScores = () => {
     const errors = {};
-
-    // สำหรับแต่ละ CLO
+  
+    // ถ้าไม่มีข้อมูล CLO ให้ผ่านการตรวจสอบไปเลย
+    if (!CLOs || CLOs.length === 0) {
+      return true;
+    }
+  
+    // ตรวจสอบแต่ละ CLO
     CLOs.forEach((clo) => {
-      const cloId = clo.CLO_id;
-      // ใช้ weight จาก state cloWeights
+      // CLO ID อาจเป็น CLO_id หรือ clo_id ขึ้นอยู่กับรูปแบบข้อมูล
+      const cloId = clo.CLO_id || clo.clo_id;
+      if (!cloId) return; // ข้ามถ้าไม่มี ID
+      
+      // ดึงน้ำหนักจาก state cloWeights
       const maxWeight = cloWeights[cloId] || 0;
-
-      // คำนวณคะแนนรวมสำหรับ CLO นี้
+  
+      // คำนวณคะแนนรวมสำหรับ CLO นี้จากทุก homework
       const total = homeworks.reduce((sum, hw) => {
         return sum + (Number(hw.scores[cloId]) || 0);
       }, 0);
-
-      // ถ้าคะแนนรวมเกินค่า weight สูงสุด ให้แสดงข้อผิดพลาด
+  
+      // ตรวจสอบว่าคะแนนรวมไม่เกินค่า weight สูงสุด
       if (total > maxWeight) {
+        // ดึงรหัส CLO (CLO_code) สำหรับการแสดงข้อความ
         const cloCode = clo.CLO_code || `CLO${cloId}`;
         errors[cloId] = `คะแนนรวม (${total}) เกินกว่าน้ำหนักที่กำหนด (${maxWeight}) สำหรับ ${cloCode}`;
       }
     });
-
+  
+    // ตั้งค่าข้อความแสดงข้อผิดพลาด
     setValidationErrors(errors);
-    return Object.keys(errors).length === 0; // ส่งกลับ true ถ้าไม่มีข้อผิดพลาด
+    
+    // ถ้าไม่มีข้อผิดพลาด (errors เป็น object ว่าง) จะคืนค่า true
+    return Object.keys(errors).length === 0;
   };
 
   const handleSaveStep1 = () => {
@@ -2497,16 +2927,22 @@ export default function Course() {
   }
 
   const handleSaveAssignment = () => {
-    // ตรวจสอบว่ามีข้อมูลที่จำเป็นครบถ้วน
-    if (!selectedProgram || !selectedCourseId || !selectedSectionId || !selectedSemesterId || !selectedYear) {
-      setTypeError("กรุณากรอกข้อมูลทั้งหมดก่อนบันทึก");
+    // ตรวจสอบว่ามีรหัส Assignment หรือไม่
+    if (!currentAssignmentId) {
+      setTypeError("กรุณาเลือก Assignment ก่อนบันทึก");
       return;
     }
-
-    // ตรวจสอบความถูกต้องของคะแนน
-    const isValid = validateCloScores();
-    if (!isValid) {
-      return; // ถ้ามีข้อผิดพลาด ไม่ต้องทำต่อ
+  
+    // ตรวจสอบความถูกต้องของคะแนน (ข้ามได้ถ้าไม่มี CLO)
+    if (CLOs.length > 0) {
+      const isValid = validateCloScores();
+      if (!isValid) {
+        return; // ถ้ามีข้อผิดพลาด ไม่ต้องทำต่อ
+      }
+    } else {
+      // ถ้าไม่มี CLO ให้แจ้งเตือนผู้ใช้
+      alert("ไม่พบข้อมูล CLO สำหรับ Assignment นี้ กรุณาเพิ่ม CLO ก่อนบันทึกคะแนน");
+      return;
     }
 
     // ตรวจสอบว่ามี homeworks หรือไม่
@@ -2520,20 +2956,19 @@ export default function Course() {
       const apiData = [];
 
       homeworks.forEach((hw) => {
+        // สำหรับแต่ละ CLO ใน homework
         for (const cloId in hw.scores) {
           if (Object.prototype.hasOwnProperty.call(hw.scores, cloId)) {
             const score = Number(hw.scores[cloId]) || 0;
-
-            // ใช้ค่า weight จาก cloWeights
             const weight = cloWeights[cloId] || 0;
 
             apiData.push({
               assignment_id: hw.id,
               item: {
-                clo_id: cloId,
+                clo_id: cloId  // ตรงนี้สำคัญ ต้องส่ง clo_id ในรูปแบบนี้ตามที่ API ต้องการ
               },
               score: score,
-              weight: weight, // ใช้ weight ที่ถูกต้อง
+              weight: weight
             });
           }
         }
@@ -2546,21 +2981,32 @@ export default function Course() {
     const saveData = async () => {
       try {
         const dataToSend = prepareDataForApi();
-
-        console.log("Data being sent to API:", {
-          data: dataToSend,
+  
+        console.log("ข้อมูลที่จะส่งไป API:", {
+          data: dataToSend
         });
-
+  
+        // แสดงสถานะกำลังบันทึก
+        setLoading(true);
+  
         const response = await axios.post("/api/save_assignment_clo", {
-          data: dataToSend,
+          data: dataToSend
         });
-
-        console.log("Save result:", response.data);
+  
+        console.log("ผลการบันทึก:", response.data);
+        
+        // แสดงข้อความสำเร็จ
         alert("บันทึกคะแนน CLO สำเร็จ!");
-        setCurrentStep(3); // ไปยัง Step 3
+        
+        // ไปยัง Step 3 หลังจากบันทึกสำเร็จ
+        setCurrentStep(3);
+        
+        // ปิดสถานะกำลังบันทึก
+        setLoading(false);
       } catch (error) {
         console.error("Error saving assignment CLO scores:", error);
-        alert(`เกิดข้อผิดพลาด: ${error.message}`);
+        alert(`เกิดข้อผิดพลาด: ${error.message || "บันทึกข้อมูลไม่สำเร็จ"}`);
+        setLoading(false);
       }
     };
 
@@ -2943,51 +3389,76 @@ export default function Course() {
     // บันทึกข้อมูล assignment ที่เลือกในตัวแปร state
     setSelectedAssignment(assignment);
     console.log("เลือก Assignment:", assignment);
-
-    // ดึงข้อมูล CLO จากข้อมูลที่มีอยู่แล้ว (ถ้ามี)
-    if (selectedCourseId && selectedSectionId && selectedSemesterId && selectedYear) {
-      // ใช้ CLOs ที่มีอยู่แล้ว (ถ้ามี)
-      console.log("ใช้ข้อมูล CLO ที่มีอยู่:", CLOs);
-    } else {
-      // ถ้ายังไม่มีข้อมูล CLO พยายามเลือกตัวกรองให้ตรงกับข้อมูล Assignment
-      setSelectedCourseId(assignment.course_id?.toString() || "");
-      setSelectedSectionId(assignment.section_id?.toString() || "");
-      setSelectedSemesterId(assignment.semester_id?.toString() || "");
-      setSelectedYear(assignment.year?.toString() || "");
-
-      // เตรียมข้อมูลสำหรับดึง CLO ถ้าจำเป็น
-      if (assignment.course_id && assignment.section_id && assignment.semester_id && assignment.year) {
-        console.log("เตรียมดึงข้อมูล CLO สำหรับรายวิชา:", assignment.course_name);
-
-        // ถ้าจำเป็น ให้ดึงข้อมูล CLO จาก API ที่มีอยู่
-        fetchSelectedCourseCLOs();
-      }
-    }
-
-    // สร้างข้อมูล homework จากข้อมูล Assignment
-    const homeworkData = {
-      id: assignment.assignment_id,
-      name: assignment.assignment_name,
-      scores: {}
-    };
-
-    // ใส่คะแนน CLO เริ่มต้นเป็น 0 สำหรับทุก CLO
-    if (CLOs.length > 0) {
-      CLOs.forEach(clo => {
-        homeworkData.scores[clo.CLO_id] = 0;
-      });
-    }
-
-    // อัปเดต homeworks
-    setHomeworks([homeworkData]);
-
-    // ตั้งค่าอื่นๆ ที่จำเป็น
-    setAssignmentName(assignment.assignment_name || "");
+  
+    // ตั้งค่าข้อมูลตามข้อมูลใน assignment
+    setSelectedCourseId(assignment.course_id?.toString() || "");
+    setSelectedSectionId(assignment.section_id?.toString() || "");
+    setSelectedSemesterId(assignment.semester_id?.toString() || "");
+    setSelectedYear(assignment.year?.toString() || "");
     setCurrentAssignmentId(assignment.assignment_id);
-
-    // ทำการค้นหานักเรียนที่ลงทะเบียนใน Assignment นี้ (ถ้าทำได้)
-    // แต่ถ้าไม่มี API นี้ ให้แสดงเป็นรายการว่าง
-    setImportedStudents([]);
+    setAssignmentName(assignment.assignment_name || "");
+  
+    // ดึงข้อมูล CLO และนักศึกษาสำหรับ Assignment นี้
+    const fetchData = async () => {
+      try {
+        // ดึงข้อมูล Assignment, CLOs และนักศึกษา
+        const response = await axios.get(`/api/get_assignment_detail/${assignment.assignment_id}`);
+        
+        if (response.data && response.data.success) {
+          console.log("ข้อมูล Assignment ที่ได้รับ:", response.data);
+          
+          // นำข้อมูล CLO มาใช้
+          setCLOs(response.data.clos || []);
+          
+          // นำข้อมูลนักศึกษามาใช้ (นักศึกษาที่มีคะแนนใน Assignment นี้)
+          setImportedStudents(response.data.students || []);
+          
+          // นำข้อมูลคะแนนมาใช้
+          setScores(response.data.scores || {});
+          
+          // สร้าง homeworks สำหรับการแก้ไขคะแนน
+          if (response.data.clos && response.data.clos.length > 0) {
+            const homeworkData = {
+              id: assignment.assignment_id,
+              name: assignment.assignment_name,
+              scores: {}
+            };
+            
+            // ตั้งค่าคะแนนและน้ำหนัก CLO
+            const cloWeightsObj = {};
+            response.data.clos.forEach(clo => {
+              homeworkData.scores[clo.clo_id] = 0; // ค่าเริ่มต้น
+              cloWeightsObj[clo.clo_id] = clo.weight || 0;
+            });
+            
+            // นำคะแนนที่มีอยู่มาตั้งค่า (ถ้ามีข้อมูลนักเรียนและคะแนน)
+            if (response.data.students.length > 0) {
+              const firstStudent = response.data.students[0];
+              const firstStudentScores = response.data.scores[firstStudent.student_id] || {};
+              
+              response.data.clos.forEach(clo => {
+                if (firstStudentScores[clo.assignment_clo_id] !== undefined) {
+                  homeworkData.scores[clo.clo_id] = firstStudentScores[clo.assignment_clo_id];
+                }
+              });
+            }
+            
+            // ตั้งค่า homeworks และ cloWeights
+            setHomeworks([homeworkData]);
+            setCloWeights(cloWeightsObj);
+          }
+        } else {
+          console.error("ไม่สามารถดึงข้อมูล Assignment ได้:", response.data?.message);
+          setImportedStudents([]);
+        }
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดในการดึงข้อมูล Assignment:", error);
+        setImportedStudents([]);
+      }
+    };
+    
+    // เรียกใช้ฟังก์ชันดึงข้อมูล
+    fetchData();
   };
 
 
@@ -3026,7 +3497,7 @@ export default function Course() {
           marginLeft: '15px',
           padding: '0 15px'
         }}>
-          <h3 className="mb-0" style={{ fontSize: '1.4rem', padding: '10px 0', marginTop: 15 }}>{t('Course Management')}</h3>
+          <h3 className="mb-0" style={{ fontSize: '1.4rem', padding: '10px 0', marginTop: 15 }}>{t('Course Information')}</h3>
 
           {/* แถบเมนู */}
           <ul className="tab-bar" style={{ margin: 0, padding: '5px 0 10px 5px', borderBottom: 'none' }}>
@@ -3131,20 +3602,21 @@ export default function Course() {
               </select>
             </div>
           </div>
+
         </div>
       </div>
 
       {/* เพิ่ม padding ด้านบนของเนื้อหาเพื่อไม่ให้โดนแถบเมนูทับ */}
       <div style={{
         paddingTop: '10px', // ต้องเพิ่ม padding ให้มากพอสำหรับความสูงของแถบเมนู 
-        padding: '120px 15px 0 15px'
+        padding: '120px 0px 0 0px'
       }}>
 
 
         {/* Tab content - Course Information */}
         <div className={`tab-content ${activeTab === 0 ? 'active' : 'hidden'}`}
-          style={{ marginTop: "120px" }}>
-          <h3>Add, Edit, Delete Course</h3>
+          style={{ marginTop: "10px" }}>
+          <h3>Course Management</h3>
           <hr className="my-4" />
 
 
@@ -3297,447 +3769,9 @@ export default function Course() {
         <div className={`tab-content ${activeTab === 1 ? 'active' : 'hidden'}`}
           style={{ marginTop: "0px" }}>
 
-          <div
-            className="container-fluid"
-          >
-            <div className="row mt-3">
-              <div className="col-md-3">
-                <label className="form-label text-start">Choose a Course</label>
-
-                <select
-                  className="form-select"
-                  value={selectedCourseId || ""}
-                  onChange={(e) => {
-                    console.log("Selected Course:", e.target.value);
-                    setSelectedCourseId(e.target.value);
-                  }}
-                  disabled={programCourseData.courses.length === 0}
-                >
-                  <option value="" disabled>
-                    Select Course
-                  </option>
-                  {programCourseData.courses.map((course) => (
-                    <option key={course.course_id} value={course.course_id}>
-                      {`${course.course_id} - ${course.course_name} (${course.course_engname})`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-3">
-                <label className="form-label text-start">Choose a Section</label>
-                <select
-                  className="form-select"
-                  value={selectedSectionId || ""}
-                  onChange={(e) => {
-                    console.log("Selected Section:", e.target.value);
-                    setSelectedSectionId(e.target.value);
-                  }}
-                  disabled={programCourseData.sections.length === 0}
-                >
-                  <option value="" disabled>
-                    Select Section
-                  </option>
-                  {programCourseData.sections.map((section) => (
-                    <option key={section} value={section}>
-                      {section}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-3">
-
-              <button
-                onClick={() => setShowAddModal(true)} // แสดง modal เมื่อคลิกปุ่ม
-                className="btn btn-success"
-              >
-                Add CLO
-              </button>
-
-              <label htmlFor="uploadExcel" className="btn btn-primary ms-3">
-                Upload from Excel
-              </label>
-              <input
-                type="file"
-                id="uploadExcel"
-                className="form-control d-none"
-                accept=".xlsx, .xls"
-                onChange={handleFileUpload}
-              />
-
-              {/* ปุ่มใหม่สำหรับ Paste และ Upload */}
-              <div className="mt-3 d-flex flex-column align-items-start">
-                <button
-                  onClick={handlePasteButtonClick}
-                  className="btn btn-secondary mb-2"
-                >
-                  Paste from Clipboard
-                </button>
-
-                {/* พื้นที่วางข้อมูล */}
-                <div className="paste-area mt-3" style={{ display: showPasteArea ? 'block' : 'none' }}>
-                  <div className="card">
-                    <div className="card-header">
-                      <h5>วางข้อมูล CLO</h5>
-                      <p className="text-muted mb-0">คัดลอกข้อมูลจาก Excel แล้ววางที่นี่ (รองรับทั้งคอลัมน์ที่คั่นด้วย Tab และ Comma)</p>
-                    </div>
-                    <div className="card-body">
-                      <textarea
-                        className="form-control"
-                        rows="5"
-                        placeholder="วางข้อมูล CLO ที่นี่... (CLO Code, CLO Name, CLO English Name)"
-                        onPaste={handleDirectPaste}
-                      ></textarea>
-                      <div className="mt-2">
-                        <button
-                          className="btn btn-sm btn-secondary"
-                          onClick={() => setShowPasteArea(false)}
-                        >
-                          ปิด
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {excelData && excelData.length > 0 && (
-                  <div className="mt-3">
-                    <h5>Preview Data</h5>
-                    <table className="table table-bordered">
-                      <thead>
-                        <tr>
-                          <th>CLO Code</th>
-                          <th>CLO Name</th>
-                          <th>CLO English Name</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {excelData.map((row, index) => (
-                          <tr key={index}>
-                            <td>{row.CLO_code}</td>
-                            <td>{row.CLO_name}</td>
-                            <td>{row.CLO_engname}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* ปุ่ม Upload Data */}
-                <button
-                  onClick={handleUploadButtonClick}
-                  className="btn btn-primary"
-                  disabled={!excelData || excelData.length === 0} // ปิดปุ่มหากไม่มีข้อมูลใน excelData
-                >
-                  Upload Data
-                </button>
-              </div>
-
-              {/* ใช้ modal จาก Bootstrap */}
-              {showAddModal && (
-                <div
-                  className="modal fade show"
-                  style={{ display: "block" }}
-                  aria-labelledby="exampleModalLabel"
-                  aria-hidden="true"
-                >
-                  <div className="modal-dialog">
-                    <div className="modal-content">
-                      <div className="modal-header">
-                        <h5 className="modal-title" id="exampleModalLabel">
-                          Add New CLO
-                        </h5>
-                        <button
-                          type="button"
-                          className="btn-close"
-                          onClick={() => setShowAddModal(false)} // ปิด modal
-                          aria-label="Close"
-                        ></button>
-                      </div>
-                      <div className="modal-body">
-                        <label>CLO Code:</label>
-                        <input
-                          type="text"
-                          value={editCloCode}
-                          onChange={(e) => setEditCloCode(e.target.value)}
-                          style={{ width: "100%" }}
-                          className="form-control mb-2"
-                        />
-                        <label>CLO Name:</label>
-                        <input
-                          type="text"
-                          value={editCloName}
-                          onChange={(e) => setEditCloName(e.target.value)}
-                          style={{ width: "100%" }}
-                          className="form-control mb-2"
-                        />
-                        <label>CLO English Name:</label>
-                        <input
-                          type="text"
-                          value={editCloEngName}
-                          onChange={(e) => setEditCloEngName(e.target.value)}
-                          style={{ width: "100%" }}
-                          className="form-control mb-2"
-                        />
-                      </div>
-                      <div className="modal-footer">
-                        <button
-                          onClick={handleAddClo}
-                          className="btn btn-primary"
-                        >
-                          Add CLO
-                        </button>
-                        <button
-                          onClick={() => setShowAddModal(false)} // ปิด modal
-                          className="btn btn-secondary"
-                        >
-                          Close
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={fetchPreviousYearCLOs}
-              className="btn btn-info me-2 mt-3"
-              disabled={
-                !selectedProgram ||
-                !selectedCourseId ||
-                !selectedSemesterId ||
-                !selectedSectionId ||
-                !selectedYear
-              }
-            >
-              Previous Year CLOs
-            </button>
-
-            {/* Modal for Previous Year CLOs */}
-            {showPreviousYearCLOsModal && (
-              <div className="modal show" style={{ display: "block" }}>
-                <div className="modal-dialog modal-lg">
-                  <div className="modal-content">
-                    <div className="modal-header">
-                      <h5 className="modal-title">CLOs from Previous Year</h5>
-                      <button
-                        type="button"
-                        className="btn-close"
-                        onClick={() => setShowPreviousYearCLOsModal(false)}
-                      ></button>
-                    </div>
-                    <div className="modal-body">
-                      {previousYearCLOs.length > 0 ? (
-                        <div className="card">
-                          <div className="card-header bg-primary text-white">
-                            Course Learning Outcomes (CLOs)
-                          </div>
-                          <div className="card-body">
-                            <table className="table table-striped">
-                              <thead>
-                                <tr>
-                                  <th>CLO Code</th>
-                                  <th>CLO Name (Thai)</th>
-                                  <th>CLO Name (English)</th>
-                                  <th>Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {previousYearCLOs.map((clo) => (
-                                  <tr key={clo.CLO_id}>
-                                    <td className="fw-bold">{clo.CLO_code}</td>
-                                    <td>{clo.CLO_name}</td>
-                                    <td>{clo.CLO_engname}</td>
-                                    <td>
-                                      <button
-                                        className="btn btn-info btn-sm"
-                                        onClick={() => {
-                                          // console.log("Selected CLO for Copy:", clo);
-                                          setEditCloCode(clo.CLO_code);
-                                          setEditCloName(clo.CLO_name);
-                                          setEditCloEngName(clo.CLO_engname);
-                                          setShowAddModal(true);
-                                          setShowPreviousYearCLOsModal(false);
-                                        }}
-                                      >
-                                        Copy
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="alert alert-warning text-center">
-                          No Course Learning Outcomes (CLOs) found for the selected
-                          year
-                        </div>
-                      )}
-                    </div>
-                    <div className="modal-footer">
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => setShowPreviousYearCLOsModal(false)}
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="card mt-3">
-              <div className="card-header">
-                <h5>CLOs</h5>
-              </div>
-              <div className="card-body">
-                {!(
-                  selectedCourseId &&
-                  selectedSectionId &&
-                  selectedSemesterId &&
-                  selectedYear
-                ) ? (
-                  <p className="text-warning">
-                    กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนแสดง CLO
-                  </p>
-                ) : CLOs.length > 0 ? (
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>CLO </th>
-                        <th>Detail</th>
-                        <th>Detail Eng</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {CLOs.map((clo) => (
-                        <tr key={clo.CLO_id}>
-                          <td>{clo.CLO_code}</td>
-                          <td>{clo.CLO_name}</td>
-                          <td>{clo.CLO_engname}</td>
-                          <td>
-                            <button
-                              className="btn btn-warning me-2"
-                              onClick={() => handleEditClo(clo.CLO_id)}
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              className="btn btn-danger"
-                              onClick={() => {
-                                // console.log("programId:", selectedProgram);
-                                handleDeleteClo(
-                                  clo.CLO_id,
-                                  selectedCourseId,
-                                  selectedSemesterId,
-                                  selectedSectionId,
-                                  selectedYear,
-                                  selectedProgram
-                                );
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p>No CLO data available</p>
-                )}
-              </div>
-            </div>
-
-            {showEditModal && (
-              <div className="modal show" style={{ display: "block" }}>
-                <div className="modal-dialog">
-                  <div className="modal-content">
-                    <div className="modal-header">
-                      <h5 className="modal-title">Edit CLO</h5>
-                      <button
-                        type="button"
-                        className="btn-close"
-                        onClick={() => setShowEditModal(false)}
-                      ></button>
-                    </div>
-                    <div className="modal-body">
-
-                      <div className="mb-3">
-                        <label htmlFor="clo-code" className="form-label">
-                          CLO Code
-                        </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="clo-code"
-                          value={editCloCode}
-                          onChange={(e) => setEditCloCode(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="mb-3">
-                        <label htmlFor="clo-name" className="form-label">
-                          CLO Name
-                        </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="clo-name"
-                          value={editCloName}
-                          onChange={(e) => setEditCloName(e.target.value)}
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label htmlFor="clo-engname" className="form-label">
-                          CLO English Name
-                        </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="clo-engname"
-                          value={editCloEngName}
-                          onChange={(e) => setEditCloEngName(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="modal-footer">
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => setShowEditModal(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={handleSaveClo}
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className={`tab-content ${activeTab === 3 ? 'active' : 'hidden'}`}>
-          <div className="row mt-3">
+<div className="row" style={{ padding: '0px 10px 0 10px' }}>
             <div className="col-md-3">
               <label className="form-label text-start">Choose a Course</label>
-
               <select
                 className="form-select"
                 value={selectedCourseId || ""}
@@ -3745,7 +3779,7 @@ export default function Course() {
                   // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
-                disabled={programCourseData.courses.length === 0}
+                disabled={!newCourse.semester_id}
               >
                 <option value="" disabled>
                   Select Course
@@ -3766,7 +3800,446 @@ export default function Course() {
                   // console.log("Selected Section:", e.target.value);
                   setSelectedSectionId(e.target.value);
                 }}
-                disabled={programCourseData.sections.length === 0}
+                disabled={!selectedCourseId}
+              >
+                <option value="" disabled>
+                  Select Section
+                </option>
+                {programCourseData.sections.map((section) => (
+                  <option key={section} value={section}>
+                    {section}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <h3>CLO Management</h3>
+            <hr className="my-4" />
+
+            {/* CLO List Section */}
+            <h5>CLO List</h5>
+
+            <div className="action-buttons">
+              <div className="button-group">
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="btn"
+                  style={{ backgroundColor: "#FF8C00", color: "white" }}
+                  disabled={!selectedProgram || !selectedCourseId || !selectedSectionId || !selectedSemesterId || !selectedYear}
+                >
+                  Add CLO
+                </button>
+
+                <button
+                  onClick={fetchPreviousYearCLOs}
+                  className="btn btn-secondary"
+                  disabled={
+                    !selectedProgram ||
+                    !selectedCourseId ||
+                    !selectedSemesterId ||
+                    !selectedSectionId ||
+                    !selectedYear
+                  }
+                >
+                  Load Previous Year CLOs
+                </button>
+              </div>
+
+              <div className="button-group ms-auto">
+                <button
+                  onClick={() => document.getElementById('uploadExcel').click()}
+                  className="btn btn-secondary"
+                  disabled={!selectedProgram || !selectedCourseId || !selectedSectionId || !selectedSemesterId || !selectedYear}
+                >
+                  Upload Excel
+                </button>
+                <input
+                  type="file"
+                  id="uploadExcel"
+                  style={{ display: 'none' }}
+                  accept=".xlsx, .xls"
+                  onChange={handleFileUpload}
+                />
+
+                <button
+                  onClick={handleUploadButtonClick}
+                  className="btn btn-success"
+                  disabled={!excelData || excelData.length === 0}
+                >
+                  Submit Excel Data
+                </button>
+              </div>
+            </div>
+
+            {/* พื้นที่วางข้อมูล */}
+            <div className="paste-area mt-3" style={{ display: showPasteArea ? 'block' : 'none' }}>
+              <div className="card">
+                <div className="card-header">
+                  <h5>วางข้อมูล CLO</h5>
+                  <p className="text-muted mb-0">คัดลอกข้อมูลจาก Excel แล้ววางที่นี่ (รองรับทั้งคอลัมน์ที่คั่นด้วย Tab และ Comma)</p>
+                </div>
+                <div className="card-body">
+                  <textarea
+                    className="form-control"
+                    rows="5"
+                    placeholder="วางข้อมูล CLO ที่นี่... (CLO Code, CLO Name, CLO English Name)"
+                    onPaste={handleDirectPaste}
+                  ></textarea>
+                  <div className="mt-2">
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => setShowPasteArea(false)}
+                    >
+                      ปิด
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Preview Data */}
+            {excelData && excelData.length > 0 && (
+              <div className="mt-3">
+                <h5>Preview Data</h5>
+                <table className="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>CLO Code</th>
+                      <th>CLO Name</th>
+                      <th>CLO English Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {excelData.map((row, index) => (
+                      <tr key={index}>
+                        <td>{row.CLO_code}</td>
+                        <td>{row.CLO_name}</td>
+                        <td>{row.CLO_engname}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Modal for Add CLO */}
+          {showAddModal && (
+            <div
+              className="modal fade show"
+              style={{ display: "block" }}
+              aria-labelledby="exampleModalLabel"
+              aria-hidden="true"
+            >
+              <div className="modal-dialog">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title" id="exampleModalLabel">
+                      Add New CLO
+                    </h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={() => setShowAddModal(false)}
+                      aria-label="Close"
+                    ></button>
+                  </div>
+                  <div className="modal-body">
+                    <label>CLO Code:</label>
+                    <input
+                      type="text"
+                      value={editCloCode}
+                      onChange={(e) => setEditCloCode(e.target.value)}
+                      style={{ width: "100%" }}
+                      className="form-control mb-2"
+                    />
+                    <label>CLO Name:</label>
+                    <input
+                      type="text"
+                      value={editCloName}
+                      onChange={(e) => setEditCloName(e.target.value)}
+                      style={{ width: "100%" }}
+                      className="form-control mb-2"
+                    />
+                    <label>CLO English Name:</label>
+                    <input
+                      type="text"
+                      value={editCloEngName}
+                      onChange={(e) => setEditCloEngName(e.target.value)}
+                      style={{ width: "100%" }}
+                      className="form-control mb-2"
+                    />
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      onClick={handleAddClo}
+                      className="btn btn-primary"
+                    >
+                      Add CLO
+                    </button>
+                    <button
+                      onClick={() => setShowAddModal(false)}
+                      className="btn btn-secondary"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal for Previous Year CLOs */}
+          {showPreviousYearCLOsModal && (
+            <div className="modal show" style={{ display: "block" }}>
+              <div className="modal-dialog modal-lg">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">CLOs from Previous Year</h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={() => setShowPreviousYearCLOsModal(false)}
+                    ></button>
+                  </div>
+                  <div className="modal-body">
+                    {previousYearCLOs.length > 0 ? (
+                      <div className="card">
+                        <div className="card-header bg-primary text-white">
+                          Course Learning Outcomes (CLOs)
+                        </div>
+                        <div className="card-body">
+                          <table className="table table-striped">
+                            <thead>
+                              <tr>
+                                <th>CLO Code</th>
+                                <th>CLO Name (Thai)</th>
+                                <th>CLO Name (English)</th>
+                                <th>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {previousYearCLOs.map((clo) => (
+                                <tr key={clo.CLO_id}>
+                                  <td className="fw-bold">{clo.CLO_code}</td>
+                                  <td>{clo.CLO_name}</td>
+                                  <td>{clo.CLO_engname}</td>
+                                  <td>
+                                    <button
+                                      className="btn btn-info btn-sm"
+                                      onClick={() => {
+                                        setEditCloCode(clo.CLO_code);
+                                        setEditCloName(clo.CLO_name);
+                                        setEditCloEngName(clo.CLO_engname);
+                                        setShowAddModal(true);
+                                        setShowPreviousYearCLOsModal(false);
+                                      }}
+                                    >
+                                      Copy
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="alert alert-warning text-center">
+                        No Course Learning Outcomes (CLOs) found for the selected year
+                      </div>
+                    )}
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowPreviousYearCLOsModal(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="card mt-3">
+            <div className="card-header">
+              <h5>CLOs</h5>
+            </div>
+            <div className="card-body">
+              {!(
+                selectedCourseId &&
+                selectedSectionId &&
+                selectedSemesterId &&
+                selectedYear
+              ) ? (
+                <p className="text-warning">
+                  กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนแสดง CLO
+                </p>
+              ) : CLOs.length > 0 ? (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>CLO </th>
+                      <th>Detail</th>
+                      <th>Detail Eng</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CLOs.map((clo) => (
+                      <tr key={clo.CLO_id}>
+                        <td>{clo.CLO_code}</td>
+                        <td>{clo.CLO_name}</td>
+                        <td>{clo.CLO_engname}</td>
+                        <td>
+                          <button
+                            className="btn btn-warning me-2"
+                            onClick={() => handleEditClo(clo.CLO_id)}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="btn btn-danger"
+                            onClick={() => {
+                              // console.log("programId:", selectedProgram);
+                              handleDeleteClo(
+                                clo.CLO_id,
+                                selectedCourseId,
+                                selectedSemesterId,
+                                selectedSectionId,
+                                selectedYear,
+                                selectedProgram
+                              );
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No CLO data available</p>
+              )}
+            </div>
+          </div>
+
+          {showEditModal && (
+            <div className="modal show" style={{ display: "block" }}>
+              <div className="modal-dialog">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">Edit CLO</h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={() => setShowEditModal(false)}
+                    ></button>
+                  </div>
+                  <div className="modal-body">
+
+                    <div className="mb-3">
+                      <label htmlFor="clo-code" className="form-label">
+                        CLO Code
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="clo-code"
+                        value={editCloCode}
+                        onChange={(e) => setEditCloCode(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <label htmlFor="clo-name" className="form-label">
+                        CLO Name
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="clo-name"
+                        value={editCloName}
+                        onChange={(e) => setEditCloName(e.target.value)}
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label htmlFor="clo-engname" className="form-label">
+                        CLO English Name
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="clo-engname"
+                        value={editCloEngName}
+                        onChange={(e) => setEditCloEngName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowEditModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleSaveClo}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        <div className={`tab-content ${activeTab === 3 ? 'active' : 'hidden'}`}>
+        <div className="row" style={{ padding: '0px 10px 0 10px' }}>
+            <div className="col-md-3">
+              <label className="form-label text-start">Choose a Course</label>
+
+              <select
+                className="form-select"
+                value={selectedCourseId || ""}
+                onChange={(e) => {
+                  // console.log("Selected Course:", e.target.value);
+                  setSelectedCourseId(e.target.value);
+                }}
+                disabled={!newCourse.semester_id}
+              >
+                <option value="" disabled>
+                  Select Course
+                </option>
+                {programCourseData.courses.map((course) => (
+                  <option key={course.course_id} value={course.course_id}>
+                    {`${course.course_id} - ${course.course_name} (${course.course_engname})`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label text-start">Choose a Section</label>
+              <select
+                className="form-select"
+                value={selectedSectionId || ""}
+                onChange={(e) => {
+                  // console.log("Selected Section:", e.target.value);
+                  setSelectedSectionId(e.target.value);
+                }}
+                disabled={!selectedCourseId}
               >
                 <option value="" disabled>
                   Select Section
@@ -3959,12 +4432,13 @@ export default function Course() {
           </div>
         </div>
 
-        {/* Tab content - Course-CLO Mapping */}
-        <div className={`tab-content ${activeTab === 2 ? 'active' : 'hidden'}`}>
-          <div className="row mt-3">
+        <div className={`tab-content ${activeTab === 2 ? 'active' : 'hidden'}`}
+          style={{ marginTop: "0px" }}>
+
+
+<div className="row" style={{ padding: '0px 10px 0 10px' }}>
             <div className="col-md-3">
               <label className="form-label text-start">Choose a Course</label>
-
               <select
                 className="form-select"
                 value={selectedCourseId || ""}
@@ -3972,7 +4446,7 @@ export default function Course() {
                   // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
-                disabled={programCourseData.courses.length === 0}
+                disabled={!newCourse.semester_id}
               >
                 <option value="" disabled>
                   Select Course
@@ -3993,7 +4467,7 @@ export default function Course() {
                   // console.log("Selected Section:", e.target.value);
                   setSelectedSectionId(e.target.value);
                 }}
-                disabled={programCourseData.sections.length === 0}
+                disabled={!selectedCourseId}
               >
                 <option value="" disabled>
                   Select Section
@@ -4073,18 +4547,21 @@ export default function Course() {
                     </th>
                   </tr>
                   <tr>
-                    {courseClo.map((clo) => (selectedCourseId == clo.course_id &&
-                      <th
-                        key={`header-${clo.CLO_id}`}
-                        style={{
-                          border: "1px solid black",
-                          padding: "10px",
-                          textAlign: "center",
-                        }}
-                      >
-                        {clo.CLO_code}
-                      </th>
-                    ))}
+                  {courseClo
+  .filter(clo => selectedCourseId == clo.course_id)
+  .map((clo) => (
+    <th
+      key={`header-${clo.CLO_id}`}
+      style={{
+        border: "1px solid black",
+        padding: "10px",
+        textAlign: "center",
+      }}
+    >
+      {clo.CLO_code}
+    </th>
+))}
+
                   </tr>
                 </thead>
                 <tbody>
@@ -4151,14 +4628,15 @@ export default function Course() {
           ) : (
             <div style={{ marginTop: "20px", textAlign: "center" }}>
               <p style={{ fontSize: "16px", color: "#666" }}>
-                กรุณาเลือกให้ครบเพื่อแสดงตาราง Course-CLO Mapping
+                กรุณาเลือกตัวเลือกให้ครบเพื่อแสดงตาราง Course-CLO Mapping
               </p>
             </div>
           )}
+
         </div>
 
         <div className={`tab-content ${activeTab === 4 ? 'active' : 'hidden'}`}>
-          <div className="row mt-3">
+        <div className="row" style={{ padding: '0px 10px 0 10px' }}>
             <div className="col-md-3">
               <label className="form-label text-start">Choose a Course</label>
 
@@ -4169,7 +4647,7 @@ export default function Course() {
                   // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
-                disabled={programCourseData.courses.length === 0}
+                disabled={!newCourse.semester_id}
               >
                 <option value="" disabled>
                   Select Course
@@ -4190,7 +4668,7 @@ export default function Course() {
                   // console.log("Selected Section:", e.target.value);
                   setSelectedSectionId(e.target.value);
                 }}
-                disabled={programCourseData.sections.length === 0}
+                disabled={!selectedCourseId}
               >
                 <option value="" disabled>
                   Select Section
@@ -4206,95 +4684,101 @@ export default function Course() {
           <div>
             <div className="container mb-4">
               {/* Step indicator */}
-              <div className="mb-4">
-                <div className="progress" style={{ height: "25px" }}>
-                  <div
-                    className="progress-bar"
-                    role="progressbar"
-                    style={{
-                      width: currentStep === 1 ? "33%" : currentStep === 2 ? "66%" : "100%",
-                      fontSize: "14px",
-                    }}
-                    aria-valuenow={currentStep === 1 ? 33 : currentStep === 2 ? 66 : 100}
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                  >
-                    {currentStep === 1
-                      ? "Step 1: Assignment Information"
-                      : currentStep === 2
-                        ? "Step 2: CLO Scoring System"
-                        : "Step 3: Import Students"}
-                  </div>
-                </div>
-              </div>
+
 
               {/* Step 1: Assignment Information */}
               {currentStep === 1 && (
-                <div className="row">
-                  <div className="col-md-10 mx-auto">
-                    {/* University Selection */}
-                    <div className="card mb-3 shadow-sm">
-                      <div className="card-header bg-primary text-white">
-                        <h6 className="mb-0">Assignment Information</h6>
-                      </div>
-                      <div className="card-body">
-                        {/* แสดงข้อมูลที่เลือกจากฟิลเตอร์หลัก */}
-                        {/* แสดงข้อมูลที่เลือกจากฟิลเตอร์หลัก */}
-                        <div className="alert alert-info mb-4">
-                          <h6 className="alert-heading mb-2">Selected Course Information</h6>
-                          <p className="mb-1"><strong>University:</strong> {universities.find(u => u.university_id.toString() === selectedUniversity?.toString())?.university_name_en || "Not selected"}</p>
-                          <p className="mb-1"><strong>Faculty:</strong> {facultys.find(f => f.faculty_id.toString() === selectedFaculty?.toString())?.faculty_name_en || "Not selected"}</p>
-                          <p className="mb-1"><strong>Program:</strong> {programs.find(p => p.program_id.toString() === selectedProgram?.toString())?.program_name || "Not selected"}</p>
-                          <p className="mb-1"><strong>Course:</strong> {programCourseData.courses.find(c => c.course_id?.toString() === selectedCourseId?.toString())?.course_name || "Not selected"}</p>
-                          <p className="mb-1"><strong>Section:</strong> {selectedSectionId || "Not selected"}</p>
-                          <p className="mb-1"><strong>Semester:</strong> {semesters.find(s => s.semester_id?.toString() === selectedSemesterId?.toString())?.semester_name || "Not selected"}</p>
-                          <p className="mb-0"><strong>Year:</strong> {selectedYear || "Not selected"}</p>
-                        </div>
+  <div className="row">
+    <div className="col-md-10 mx-auto">
+      {/* University Selection */}
+      <div className="card mb-3 shadow-sm">
+        <div className="card-body">
+          {/* ไม่มีฟิลเตอร์ซ้ำ แต่แสดงชื่อ Assignment แทน */}
+          <div className="mb-3">
+            <label htmlFor="assignment-name" className="form-label">
+              Assignment Name
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              id="assignment-name"
+              value={assignmentName}
+              onChange={(e) => setAssignmentName(e.target.value)}
+              placeholder="Enter Assignment Name"
+            />
+          </div>
 
-                        {/* ไม่มีฟิลเตอร์ซ้ำ แต่แสดงชื่อ Assignment แทน */}
-                        <div className="mb-3">
-                          <label htmlFor="assignment-name" className="form-label">
-                            Assignment Name
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="assignment-name"
-                            value={assignmentName}
-                            onChange={(e) => setAssignmentName(e.target.value)}
-                            placeholder="Enter Assignment Name"
-                          />
-                        </div>
-                      </div>
-                    </div>
+          {/* หากอยู่ในโหมดแก้ไข แสดงข้อความและปุ่มสำหรับบันทึกการแก้ไข */}
+          {isEditing && (
+            <div className="alert alert-info">
+              <i className="fas fa-info-circle me-2"></i>
+              คุณกำลังแก้ไขข้อมูล Assignment ID: {currentAssignmentId}
+            </div>
+          )}
+        </div>
+      </div>
 
-                    {/* Error Message */}
-                    {typeError && <div className="alert alert-danger mt-3">{typeError}</div>}
+      {/* Error Message */}
+      {typeError && <div className="alert alert-danger mt-3">{typeError}</div>}
 
-                    {/* Next Button */}
-                    <div className="d-flex justify-content-end mt-4">
-                      <button
-                        className="btn btn-primary px-4"
-                        onClick={() => {
-                          handleSaveStep1()
-                        }}
-                        disabled={
-                          !(
-                            selectedProgram &&
-                            selectedCourseId &&
-                            selectedSectionId &&
-                            selectedSemesterId &&
-                            selectedYear &&
-                            assignmentName
-                          )
-                        }
-                      >
-                        SAVE <i className="fas fa-arrow-right ms-2"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+      {/* Next/Save Button */}
+      <div className="d-flex justify-content-end mt-4">
+        {isEditing ? (
+          <>
+            <button
+              className="btn btn-secondary px-4 me-2"
+              onClick={() => {
+                setIsEditing(false);
+                setAssignmentName("");
+                setCurrentAssignmentId(null);
+              }}
+            >
+              ยกเลิก <i className="fas fa-times ms-2"></i>
+            </button>
+            <button
+              className="btn btn-primary px-4"
+              onClick={() => {
+                // ใช้ฟังก์ชันบันทึกการแก้ไขแทนฟังก์ชันเพิ่มข้อมูลใหม่
+                handleSaveEditAssignment();
+              }}
+              disabled={
+                !(
+                  selectedProgram &&
+                  selectedCourseId &&
+                  selectedSectionId &&
+                  selectedSemesterId &&
+                  selectedYear &&
+                  assignmentName
+                )
+              }
+            >
+              บันทึกการแก้ไข <i className="fas fa-save ms-2"></i>
+            </button>
+          </>
+        ) : (
+          <button
+            className="btn btn-primary px-4"
+            onClick={() => {
+              handleSaveStep1();
+            }}
+            disabled={
+              !(
+                selectedProgram &&
+                selectedCourseId &&
+                selectedSectionId &&
+                selectedSemesterId &&
+                selectedYear &&
+                assignmentName
+              )
+            }
+          >
+            ADD Assignment <i className="fas fa-arrow-right ms-2"></i>
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
               {/* Step 2: CLO Scoring System */}
               {currentStep === 2 && (
@@ -4440,13 +4924,7 @@ export default function Course() {
                         >
                           <i className="fas fa-save me-2"></i> Save Assignment
                         </button>
-                        <button
-                          className="btn btn-primary px-4"
-                          onClick={goToStep3}
-                          disabled={Object.keys(validationErrors).length > 0 || CLOs.length === 0}
-                        >
-                          <i className="fas fa-arrow-right me-2"></i> Next
-                        </button>
+                        
                       </div>
                     </div>
                   </div>
@@ -4717,7 +5195,6 @@ export default function Course() {
 
 
 
-              {/* Modal แสดงรายละเอียด Assignment */}
               {selectedAssignment && (
                 <div className="modal fade show" style={{ display: "block" }}>
                   <div className="modal-dialog modal-lg">
@@ -4740,7 +5217,8 @@ export default function Course() {
                               <div className="col-md-6">
                                 <p><strong>ชื่อ Assignment:</strong> {selectedAssignment.assignment_name}</p>
                                 {/* แก้ไขส่วนแสดงรายวิชา โดยใช้ค่า course_name โดยตรง */}
-                                <p><strong>รายวิชา:</strong> {selectedAssignment.course_name || "ไม่ระบุ"}</p>
+                                <p><strong>รายวิชา:</strong> {
+                                  programCourseData.courses.find(c => c.course_id?.toString() === selectedCourseId?.toString())?.course_name}</p>
                                 <p><strong>กลุ่มเรียน:</strong> {selectedAssignment.section_id}</p>
                               </div>
                               <div className="col-md-6">
@@ -4757,23 +5235,70 @@ export default function Course() {
                                 <table className="table table-bordered table-hover">
                                   <thead className="table-light">
                                     <tr>
-                                      <th className="text-center">CLO</th>
-                                      <th className="text-center">รายละเอียด</th>
-                                      <th className="text-center">คะแนน</th>
+                                      <th className="text-center" style={{ width: "50px" }}>
+                                        No.
+                                      </th>
+                                      <th className="text-center" style={{ width: "200px" }}>
+                                        HW
+                                      </th>
+                                      {CLOs.map((clo) => (
+                                        <th key={clo.CLO_id} className="text-center">
+                                          {clo.CLO_code || `CLO${clo.CLO_id}`}
+                                        </th>
+                                      ))}
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {CLOs.map((clo) => (
-                                      <tr key={clo.CLO_id}>
-                                        <td className="text-center">{clo.CLO_code || `CLO${clo.CLO_id}`}</td>
-                                        <td>{clo.CLO_name}</td>
-                                        <td className="text-center">
-                                          {homeworks.length > 0 && homeworks[0].scores && homeworks[0].scores[clo.CLO_id]
-                                            ? homeworks[0].scores[clo.CLO_id]
-                                            : (clo.weight || "0")}
-                                        </td>
+                                    {/* แถว weight */}
+                                    <tr className="table-warning">
+                                      <td className="font-weight-bold"></td>
+                                      <td className="font-weight-bold text-center">น้ำหนักคะแนน</td>
+                                      {CLOs.map((clo) => {
+                                        // ดึงค่า weight จาก cloWeights 
+                                        const weightValue = cloWeights[clo.CLO_id] || 0;
+                                        return (
+                                          <td key={clo.CLO_id} className="text-center font-weight-bold">
+                                            {weightValue}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+
+                                    {/* Homework rows */}
+                                    {homeworks.map((hw, index) => (
+                                      <tr key={hw.id}>
+                                        <td className="text-center">{index + 1}</td>
+                                        <td>{hw.name}</td>
+                                        {CLOs.map((clo) => {
+                                          const currentScore = hw.scores[clo.CLO_id] !== undefined ? hw.scores[clo.CLO_id] : 0
+                                          return (
+                                            <td key={clo.CLO_id} className={getScoreColor(currentScore || 0)}>
+                                              <span className="form-control-plaintext text-center">
+                                                {currentScore}
+                                              </span>
+                                            </td>
+                                          )
+                                        })}
                                       </tr>
                                     ))}
+
+                                    {/* Totals row */}
+                                    <tr className="table-secondary font-weight-bold">
+                                      <td></td>
+                                      <td className="text-center">รวม</td>
+                                      {CLOs.map((clo) => {
+                                        const total = calculateCloTotal(clo.CLO_id)
+                                        // ใช้ weight จากฐานข้อมูลโดยตรง
+                                        const maxWeight = cloWeights[clo.CLO_id] || 0
+                                        const isValid = total <= maxWeight
+
+                                        return (
+                                          <td key={clo.CLO_id} className={`text-center ${!isValid ? "text-danger" : ""}`}>
+                                            {total} / {maxWeight}
+                                          </td>
+                                        )
+                                      })}
+                                    </tr>
                                   </tbody>
                                 </table>
                               </div>
@@ -4784,47 +5309,48 @@ export default function Course() {
                               </div>
                             )}
 
-                            {/* แสดงรายชื่อนักเรียน */}
-                            <h6 className="mt-4 mb-3">รายชื่อนักเรียน</h6>
-                            <div className="d-flex justify-content-end mb-3">
-                              <button
-                                className="btn btn-info text-white btn-sm"
-                                onClick={() => {
-                                  setCurrentStep(3); // ไปยังขั้นตอนนำเข้านักเรียน
-                                  setSelectedAssignment(null); // ปิด modal
-                                }}
-                              >
-                                <i className="fas fa-plus me-2"></i>
-                                เพิ่มรายชื่อนักเรียน
-                              </button>
-                            </div>
-                            {importedStudents.length > 0 ? (
-                              <div className="table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
-                                <table className="table table-sm table-striped">
-                                  <thead className="sticky-top bg-light">
-                                    <tr>
-                                      <th style={{ width: "60px" }}>ลำดับ</th>
-                                      <th style={{ width: "150px" }}>รหัสนักศึกษา</th>
-                                      <th>ชื่อ-นามสกุล</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {importedStudents.map((student, index) => (
-                                      <tr key={index}>
-                                        <td>{index + 1}</td>
-                                        <td>{student.student_id}</td>
-                                        <td>{student.name}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ) : (
-                              <div className="alert alert-warning">
-                                <i className="fas fa-exclamation-triangle me-2"></i>
-                                ยังไม่มีรายชื่อนักเรียนในงานนี้ คลิกปุ่ม "เพิ่มรายชื่อนักเรียน" เพื่อนำเข้ารายชื่อ
-                              </div>
-                            )}
+                          
+<h6 className="mt-4 mb-3">รายชื่อนักเรียน</h6>
+<div className="d-flex justify-content-end mb-3">
+  <button
+    className="btn btn-info text-white btn-sm"
+    onClick={() => {
+      setCurrentStep(3); // ไปยังขั้นตอนนำเข้านักเรียน
+      setSelectedAssignment(null); // ปิด modal
+    }}
+  >
+    <i className="fas fa-plus me-2"></i>
+    เพิ่มรายชื่อนักเรียน
+  </button>
+</div>
+{importedStudents.length > 0 ? (
+  <div className="table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
+    <table className="table table-sm table-striped">
+      <thead className="sticky-top bg-light">
+        <tr>
+          <th style={{ width: "60px" }}>ลำดับ</th>
+          <th style={{ width: "150px" }}>รหัสนักศึกษา</th>
+          <th>ชื่อ-นามสกุล</th>
+        </tr>
+      </thead>
+      <tbody>
+        {importedStudents.map((student, index) => (
+          <tr key={index}>
+            <td>{index + 1}</td>
+            <td>{student.student_id}</td>
+            <td>{student.name}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+) : (
+  <div className="alert alert-warning">
+    <i className="fas fa-exclamation-triangle me-2"></i>
+    ยังไม่มีรายชื่อนักเรียนในงานนี้ คลิกปุ่ม "เพิ่มรายชื่อนักเรียน" เพื่อนำเข้ารายชื่อ
+  </div>
+)}
+                           
                           </div>
                         )}
                       </div>
@@ -4833,39 +5359,284 @@ export default function Course() {
                           ปิด
                         </button>
                         <button
-                          type="button"
-                          className="btn btn-warning me-2"
-                          onClick={() => {
-                            // นำข้อมูลมาแสดงในฟอร์มเพื่อแก้ไข
-                            setAssignmentName(selectedAssignment.assignment_name || "");
-                            setSelectedCourseId(selectedAssignment.course_id?.toString() || "");
-                            setSelectedSectionId(selectedAssignment.section_id?.toString() || "");
-                            setSelectedSemesterId(selectedAssignment.semester_id?.toString() || "");
-                            setSelectedYear(selectedAssignment.year?.toString() || "");
-                            setCurrentAssignmentId(selectedAssignment.assignment_id);
-                            setCurrentStep(2);
-                            setSelectedAssignment(null);
-                          }}
-                        >
-                          <i className="fas fa-edit me-1"></i> แก้ไขคะแนน CLO
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={() => {
-                            // นำข้อมูลมาแสดงในฟอร์มเพื่อแก้ไข
-                            setAssignmentName(selectedAssignment.assignment_name || "");
-                            setSelectedCourseId(selectedAssignment.course_id?.toString() || "");
-                            setSelectedSectionId(selectedAssignment.section_id?.toString() || "");
-                            setSelectedSemesterId(selectedAssignment.semester_id?.toString() || "");
-                            setSelectedYear(selectedAssignment.year?.toString() || "");
-                            setCurrentAssignmentId(selectedAssignment.assignment_id);
-                            setCurrentStep(1);
-                            setSelectedAssignment(null);
-                          }}
-                        >
-                          <i className="fas fa-pen me-1"></i> แก้ไขข้อมูลทั่วไป
-                        </button>
+  type="button"
+  className="btn btn-warning me-2"
+  onClick={() => {
+    // ตั้งค่าข้อมูลที่จำเป็นสำหรับการแก้ไข CLO ในขั้นตอนที่ 2
+    setAssignmentName(selectedAssignment.assignment_name || "");
+    setSelectedCourseId(selectedAssignment.course_id?.toString() || "");
+    setSelectedSectionId(selectedAssignment.section_id?.toString() || "");
+    setSelectedSemesterId(selectedAssignment.semester_id?.toString() || "");
+    setSelectedYear(selectedAssignment.year?.toString() || "");
+    setCurrentAssignmentId(selectedAssignment.assignment_id);
+    
+    // ดึงข้อมูลคะแนน CLO สำหรับการแก้ไขใน Step 2
+    const prepareDataForEdit = async () => {
+      try {
+        // ดึงข้อมูล CLO สำหรับรายวิชานี้
+        const cloResponse = await axios.get("/course_clo", {
+          params: {
+            program_id: selectedAssignment.program_id,
+            course_id: selectedAssignment.course_id,
+            semester_id: selectedAssignment.semester_id,
+            section_id: selectedAssignment.section_id,
+            year: selectedAssignment.year
+          }
+        });
+        
+        if (cloResponse.data && Array.isArray(cloResponse.data)) {
+          setCLOs(cloResponse.data);
+          
+          // ดึงข้อมูลรายละเอียด Assignment เพื่อให้ได้คะแนน CLO
+          const assignmentResponse = await axios.get(`/api/get_assignment_detail/${selectedAssignment.assignment_id}`);
+          
+          if (assignmentResponse.data && assignmentResponse.data.success) {
+            // สร้าง homework สำหรับการแก้ไขคะแนน
+            const homeworkData = {
+              id: selectedAssignment.assignment_id,
+              name: selectedAssignment.assignment_name,
+              scores: {}
+            };
+            
+            // ใส่คะแนนจากข้อมูลที่ดึงมา
+            const scores = assignmentResponse.data.scores || {};
+            const students = assignmentResponse.data.students || [];
+            
+            if (students.length > 0 && Object.keys(scores).length > 0) {
+              // ถ้ามีข้อมูลนักศึกษาและคะแนน
+              const firstStudentId = students[0].student_id;
+              const studentScores = scores[firstStudentId] || {};
+              
+              // ใช้ CLO ที่พบในการเชื่อมโยงคะแนน
+              assignmentResponse.data.clos.forEach(clo => {
+                homeworkData.scores[clo.clo_id] = studentScores[clo.assignment_clo_id] || 0;
+              });
+              
+              // ตั้งค่า CLO weight
+              const cloWeightsObj = {};
+              assignmentResponse.data.clos.forEach(clo => {
+                cloWeightsObj[clo.clo_id] = clo.weight || 0;
+              });
+              setCloWeights(cloWeightsObj);
+            } else {
+              // ถ้าไม่มีข้อมูลคะแนน ให้ตั้งค่าเริ่มต้นเป็น 0 สำหรับทุก CLO
+              cloResponse.data.forEach(clo => {
+                homeworkData.scores[clo.CLO_id] = 0;
+              });
+              
+              // ตั้งค่า CLO weight จากข้อมูล CLO
+              const cloWeightsObj = {};
+              cloResponse.data.forEach(clo => {
+                cloWeightsObj[clo.CLO_id] = clo.weight || 0;
+              });
+              setCloWeights(cloWeightsObj);
+            }
+            
+            // ตั้งค่า homeworks สำหรับการแก้ไข
+            setHomeworks([homeworkData]);
+          }
+        }
+        
+        // เคลียร์ validation errors
+        setValidationErrors({});
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดในการเตรียมข้อมูล:", error);
+      }
+    };
+    
+    // เรียกใช้ฟังก์ชันเตรียมข้อมูล
+    prepareDataForEdit();
+    
+    // เปลี่ยนไปยังขั้นตอนที่ 2
+    setCurrentStep(2);
+    
+    // ปิด modal
+    setSelectedAssignment(null);
+  }}
+>
+  <i className="fas fa-edit me-1"></i> แก้ไขคะแนน CLO
+</button>
+<button
+  type="button"
+  className="btn btn-primary"
+  onClick={() => {
+    // นำข้อมูลมาแสดงในฟอร์มเพื่อแก้ไข
+    setAssignmentName(selectedAssignment.assignment_name || "");
+    
+    // ตั้งค่าข้อมูลฟิลเตอร์ให้ตรงกับ Assignment ที่เลือก
+    setSelectedUniversity(selectedAssignment.university_id?.toString() || "");
+    setSelectedFaculty(selectedAssignment.faculty_id?.toString() || "");
+    setSelectedProgram(selectedAssignment.program_id?.toString() || "");
+    setSelectedCourseId(selectedAssignment.course_id?.toString() || "");
+    setSelectedSectionId(selectedAssignment.section_id?.toString() || "");
+    setSelectedSemesterId(selectedAssignment.semester_id?.toString() || "");
+    setSelectedYear(selectedAssignment.year?.toString() || "");
+    
+    // ตั้งค่าข้อมูลสำหรับฟอร์มแก้ไข
+    setEditData({
+      assignment_name: selectedAssignment.assignment_name || "",
+      course_name: selectedAssignment.course_name || "",
+      section_id: selectedAssignment.section_id || "",
+      semester_id: selectedAssignment.semester_id || "",
+      year: selectedAssignment.year || "",
+      program_id: selectedAssignment.program_id || "",
+      faculty_id: selectedAssignment.faculty_id || "",
+      university_id: selectedAssignment.university_id || ""
+    });
+    
+    // ตั้งค่า assignment ID สำหรับอัพเดต
+    setCurrentAssignmentId(selectedAssignment.assignment_id);
+    
+    // เปลี่ยนไปยังขั้นตอนที่ 1 (แก้ไขข้อมูลทั่วไป)
+    setCurrentStep(1);
+    
+    // เปิดโหมดแก้ไข
+    setIsEditing(true);
+    
+    // ปิด modal
+    setSelectedAssignment(null);
+  }}
+>
+  <i className="fas fa-pen me-1"></i> แก้ไขข้อมูลทั่วไป
+</button>
+{isEditing ? (
+  // แสดงฟอร์มแก้ไขเมื่ออยู่ในโหมดการแก้ไข
+  <div style={styles.editForm}>
+    <h1 className="btn btn-warning">แก้ไขข้อมูล Assignment</h1>
+    
+    <div style={styles.formGroup}>
+      <label style={styles.label}>ชื่อ Assignment:</label>
+      <input
+        type="text"
+        name="assignment_name"
+        value={editData.assignment_name}
+        onChange={handleEditChange}
+        style={styles.input}
+      />
+    </div>
+    
+    <div style={styles.formGroup}>
+      <label style={styles.label}>ชื่อวิชา:</label>
+      <input
+        type="text"
+        name="course_name"
+        value={editData.course_name}
+        onChange={handleEditChange}
+        style={styles.input}
+      />
+    </div>
+    
+    <div style={styles.formGroup}>
+      <label style={styles.label}>เซคชัน:</label>
+      <input
+        type="text"
+        name="section_id"
+        value={editData.section_id}
+        onChange={handleEditChange}
+        style={styles.input}
+      />
+    </div>
+    
+    <div style={styles.formGroup}>
+      <label style={styles.label}>ภาคการศึกษา:</label>
+      <input
+        type="text"
+        name="semester_id"
+        value={editData.semester_id}
+        onChange={handleEditChange}
+        style={styles.input}
+      />
+    </div>
+    
+    <div style={styles.formGroup}>
+      <label style={styles.label}>ปีการศึกษา:</label>
+      <input
+        type="text"
+        name="year"
+        value={editData.year}
+        onChange={handleEditChange}
+        style={styles.input}
+      />
+    </div>
+    
+    <div style={styles.buttonContainer}>
+      <button
+        style={saving ? styles.primaryButtonDisabled : styles.primaryButton}
+        onClick={saveEditAssignment}
+        disabled={saving}
+      >
+        {saving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+      </button>
+      
+      <button
+        style={styles.cancelButton}
+        onClick={cancelEdit}
+        disabled={saving}
+      >
+        ยกเลิก
+      </button>
+    </div>
+  </div>
+) : (
+  // แสดงข้อมูล Assignment ปกติ
+  <>
+    <h1 style={styles.heading}>
+      {assignment.assignment_name} - คะแนนนักเรียน
+    </h1>
+    
+    <div style={styles.assignmentInfo}>
+      <p>
+        <strong>วิชา:</strong> {assignment.course_name}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>เซคชัน:</strong> {assignment.section_id}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>ภาคการศึกษา:</strong> {assignment.semester_id}/{assignment.year}
+      </p>
+    </div>
+    
+    <div style={styles.buttonContainer}>
+      {/* เพิ่มปุ่มแก้ไข Assignment */}
+      <button 
+        style={styles.editButton} 
+        onClick={() => setIsEditing(true)}
+      >
+        แก้ไขข้อมูล Assignment
+      </button>
+      
+      <button 
+        style={saving ? styles.primaryButtonDisabled : styles.primaryButton} 
+        onClick={saveScores}
+        disabled={saving}
+      >
+        {saving ? 'กำลังบันทึก...' : 'บันทึกคะแนน'}
+      </button>
+      
+      <label htmlFor="excel-file-input">
+        <button 
+          style={styles.secondaryButton} 
+          onClick={() => document.getElementById('excel-file-input').click()}
+        >
+          นำเข้าจาก Excel
+        </button>
+      </label>
+      <input
+        id="excel-file-input"
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={handleFileImport}
+        style={styles.hidden}
+      />
+      
+      <button 
+        style={styles.outlineButton} 
+        onClick={downloadExcelTemplate}
+      >
+        ดาวน์โหลดเทมเพลต Excel
+      </button>
+    </div>
+  </>
+)}
+
                       </div>
                     </div>
                   </div>
@@ -4881,4 +5652,3 @@ export default function Course() {
     </div>
   );
 }
-
