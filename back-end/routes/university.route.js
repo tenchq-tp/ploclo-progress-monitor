@@ -1,8 +1,15 @@
 import express from "express";
-import { getAll, insertOne } from "../controllers/university.controller.js";
+import {
+  getAll,
+  insertOne,
+  getFaculty,
+  addProgramFaculty,
+} from "../controllers/university.controller.js";
 const router = express.Router();
 
 router.get("/", getAll);
 router.post("/", insertOne);
+router.get("/faculty", getFaculty);
+router.post("/program-faculty", addProgramFaculty);
 
 export default router;

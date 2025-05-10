@@ -9,23 +9,23 @@ function Login({ setRole }) {
   const [profile, setProfile] = useState(null);
   const { t } = useTranslation();
 
-  const fetchUserRole = async (email) => {
-    try {
-      const response = await axios.get("/getUserRole", { params: { email } });
-      const role = response.data.role;
-      setProfile((prevProfile) => ({ ...prevProfile, role }));
-      setRole(role);
-    } catch (error) {
-      console.error("Error fetching role:", error);
-    }
-  };
+  // const fetchUserRole = async (email) => {
+  //   try {
+  //     const response = await axios.get("/getUserRole", { params: { email } });
+  //     const role = response.data.role;
+  //     setProfile((prevProfile) => ({ ...prevProfile, role }));
+  //     setRole(role);
+  //   } catch (error) {
+  //     console.error("Error fetching role:", error);
+  //   }
+  // };
 
 // แก้ไขฟังก์ชัน onGoogleSuccess
 const onGoogleSuccess = async (credentialResponse) => {
   const decoded = jwtDecode(credentialResponse.credential);
   
   try {
-    const response = await axios.post("/login", {
+    const response = await axios.post("/api/auth/login", {
       id: decoded.sub,
       email: decoded.email,
       name: decoded.name,
@@ -55,7 +55,7 @@ useEffect(() => {
     if (token) {
       try {
         // ตรวจสอบ token กับ backend
-        const response = await axios.get('/verify-token', {
+        const response = await axios.get('/api/auth/verify-token', {
           headers: {
             Authorization: `Bearer ${token}`
           }

@@ -8,7 +8,7 @@ const pool = mariadb.createPool({
   database: process.env.DB_NAME,
   port: process.env.DB_PORT,
   connectionLimit: 50,
-  initSql: "SET NAMES utf8mb4", // ✅ ต้องมีบรรทัดนี้
+  initSql: "SET NAMES utf8mb4",
 });
 
 pool

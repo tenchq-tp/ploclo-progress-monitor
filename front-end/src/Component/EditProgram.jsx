@@ -58,15 +58,33 @@ export default function Program() {
   const [showPasteArea, setShowPasteArea] = useState(false);
 
 
+  // ------* Functions *-------
+  async function fetchUniversity() {
+    try {
+      const response = await axios.get('/api/university');
+      setUniversities(response.data);
+    } catch {
+      showAlert("ไม่สามารถโหลดรายชื่อมหาวิทยาลัยได้", "danger");
+    }
+  }
+
+  async function fetchFaculty() {
+    try {
+      const res = axios.get(`/api/university/faculty?university_id=${selectedUniversity}`);
+      const facultyData = Array.isArray(response.data)
+          ? response.data
+          : [response.data];
+        setFacultys(facultyData);
+    } catch {
+      showAlert("ไม่สามารถโหลดคณะได้", "danger");
+      setFacultys([]);
+      setSelectedFaculty("all");
+    }
+  }
+
   // Fetch universities when the component loads
   useEffect(() => {
-    axios
-      .get("/university")
-      .then((response) => setUniversities(response.data))
-      .catch((error) => {
-        console.error("Error fetching universities:", error);
-        showAlert("ไม่สามารถโหลดรายชื่อมหาวิทยาลัยได้", "danger");
-      });
+    fetchUniversity();
   }, []);
 
   // Fetch facultys when university changes
@@ -78,7 +96,7 @@ export default function Program() {
     }
 
     axios
-      .get(`/faculty?university_id=${selectedUniversity}`)
+      .get(`/api/university/faculty?university_id=${selectedUniversity}`)
       .then((response) => {
         const facultyData = Array.isArray(response.data)
           ? response.data
@@ -112,7 +130,7 @@ export default function Program() {
     }
 
     axios
-      .get(`/program?faculty_id=${selectedFaculty}`)
+      .get(`/api/program?faculty_id=${selectedFaculty}`)
       .then((response) => {
         const programData = Array.isArray(response.data)
           ? response.data
@@ -223,53 +241,38 @@ export default function Program() {
 
   // ลบ useEffect ที่ซ้ำซ้อนออก และเหลือเพียงตัวเดียวที่ทำหน้าที่จัดการการกรองทั้งตาม program และ year
   useEffect(() => {
-    // กรณีที่ไม่ได้เลือกปี (all years)
-    if (selectedYear === "all") {
-      if (selectedProgram !== "all") {
-        // ถ้าเลือกโปรแกรมแต่ไม่เลือกปี
-        const selectedProgramObject = program.find(p => p.program_id === parseInt(selectedProgram));
+    const year = selectedYear;
+    const programId = parseInt(selectedProgram);
 
-        if (selectedProgramObject) {
-          // กรองทุกโปรแกรมที่มีชื่อเดียวกันในทุกปี
-          const programFiltered = program.filter(
-            (p) => p.program_name === selectedProgramObject.program_name &&
-              p.program_name_th === selectedProgramObject.program_name_th
-          );
-          setFilteredProgram(programFiltered);
-        } else {
-          setFilteredProgram([]);
-        }
-      } else {
-        // ไม่เลือกทั้งโปรแกรมและปี แสดงทั้งหมด
-        setFilteredProgram(program);
-      }
-      return;
+    // เริ่มจากข้อมูลทั้งหมด
+    let filtered = [...program];
+
+    // ถ้ามีการเลือกปี (ไม่ใช่ all)
+    if (year !== "all") {
+      filtered = filtered.filter(p => p.year === parseInt(year));
     }
 
-    // กรณีที่เลือกปี
-    let filteredData = program;
-
-    // กรองตาม year ก่อน (ทำก่อนเพราะส่วนใหญ่ year จะกรองได้เยอะกว่า)
-    filteredData = filteredData.filter(p => p.year === parseInt(selectedYear));
-
-    // ถ้ามีการเลือกโปรแกรม
+    // ถ้ามีการเลือกโปรแกรม (ไม่ใช่ all)
     if (selectedProgram !== "all") {
-      const selectedProgramObject = program.find(p => p.program_id === parseInt(selectedProgram));
+      const selectedProgramObj = program.find(p => p.program_id === programId);
 
-      if (selectedProgramObject) {
-        // กรองตามชื่อโปรแกรมเพื่อแสดงโปรแกรมที่มีชื่อเหมือนกันในปีที่เลือก
-        filteredData = filteredData.filter(
-          (p) => p.program_name === selectedProgramObject.program_name &&
-            p.program_name_th === selectedProgramObject.program_name_th
+      if (selectedProgramObj) {
+        // กรองเฉพาะโปรแกรมที่ชื่อเหมือนกัน (ทั้ง EN และ TH)
+        filtered = filtered.filter(p =>
+          p.program_name === selectedProgramObj.program_name &&
+          p.program_name_th === selectedProgramObj.program_name_th
         );
       } else {
-        // กรณีหาโปรแกรมที่เลือกไม่เจอ
-        filteredData = [];
+        // ถ้าไม่พบโปรแกรมที่เลือกไว้ ให้เคลียร์ผลลัพธ์
+        filtered = [];
       }
     }
 
-    setFilteredProgram(filteredData);
-  }, [selectedYear, program, selectedProgram]);
+    // อัปเดต state
+    console.log("selectedProgram --->", filtered);
+    setFilteredProgram(filtered);
+  }, [selectedYear, selectedProgram, program]);
+
 
 
 
@@ -308,7 +311,7 @@ export default function Program() {
     console.log("Payload being sent:", programPayload);
 
     axios
-      .post("/program", programPayload)
+      .post("/api/program", programPayload)
       .then((response) => {
         console.log("✅ Program added successfully!", response.data);
 
@@ -529,7 +532,7 @@ export default function Program() {
     setSelectedYear(newYear);
     setShowLoadPreviousPLOModal(false);
 
-    console.log(`Year changed to: ${newYear}, current program ID: ${currentProgramId}`);
+    // console.log(`Year changed to: ${newYear}, current program ID: ${currentProgramId}`);
 
     // เมื่อเลือกปีแล้ว และมีการเลือกโปรแกรมไว้แล้ว (ไม่ใช่ "all")
     if (newYear !== "all" && currentProgramId !== "all" && currentProgramObj) {

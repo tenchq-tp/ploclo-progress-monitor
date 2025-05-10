@@ -8,8 +8,21 @@ import dotenv from "dotenv";
 
 import studentRoutes from "./routes/student.route.js";
 import universityRoutes from "./routes/university.route.js";
+import cloRoutes from "./routes/clo.route.js";
+import courseCloRoutes from "./routes/course_clo.route.js";
+import assignmentRoutes from "./routes/assignment.route.js";
+import programCourseRoutes from "./routes/program_course.route.js";
+import authRoutes from "./routes/auth.route.js";
+import programRoutes from "./routes/program.route.js";
+import ploRoutes from "./routes/plo.route.js";
+import courseRoutes from "./routes/course.route.js";
+import metaDataRoutes from "./routes/metadata.route.js";
+import cloMappingRoutes from "./routes/clo_mapping.route.js";
+import coursePloRoutes from "./routes/course_plo.route.js";
+import ploCloRoutes from "./routes/plo_clo.route.js";
 
 dotenv.config();
+import pool from "./utils/db.js";
 
 const port = process.env.PORT || 8000;
 const app = express();
@@ -19,15 +32,27 @@ app.use(setCharset);
 
 app.use("/api/students", studentRoutes);
 app.use("/api/university", universityRoutes);
+app.use("/api/clo", cloRoutes);
+app.use("/api/course-clo", courseCloRoutes);
+app.use("/api/assignment", assignmentRoutes);
+app.use("/api/program-course", programCourseRoutes);
+app.use("/api/auth/", authRoutes);
+app.use("/api/program", programRoutes);
+app.use("/api/plo", ploRoutes);
+app.use("/api/course", courseRoutes);
+app.use("/api/metadata", metaDataRoutes);
+app.use("/api/clo-mapping", cloMappingRoutes);
+app.use("/api/course-plo", coursePloRoutes);
+app.use("/api/plo-clo", ploCloRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
 
 // API root route
-app.get("/", (req, res) => {
-  res.send("Server is working");
-});
+// app.get("/", (req, res) => {
+//   res.send("Server is working");
+// });
 
 // API route to get data from database
 app.get("/getdata", async (req, res) => {
@@ -41,7 +66,7 @@ app.get("/getdata", async (req, res) => {
   }
 });
 
-// API route to insert Studentdata into database ของ นินิว
+// // API route to insert Studentdata into database ของ นินิว
 app.post("/insert", async (req, res) => {
   const data_list = req.body;
 
@@ -88,18 +113,13 @@ app.post("/insert", async (req, res) => {
   }
 });
 
-// API root route
-app.get("/", (req, res) => {
-  res.send("Server is working");
-});
-
 // API route to get data from database
 // API route to get all students
 // ขึ้นแสดงข้อมูลทุกข้อมูลที่มีอยู่เลย
 app.get("/students", async (req, res) => {
   try {
     const conn = await pool.getConnection();
-    const result = await conn.query(`SELECT * FROM StudentData`);
+    const result = await conn.query(`SELECT * FROM studentdata`);
     res.json(result);
     conn.release();
   } catch (err) {
@@ -109,20 +129,19 @@ app.get("/students", async (req, res) => {
 
 // เพิ่ม API สำหรับการลบโปรแกรมตาม student_Id
 // API สำหรับการลบข้อมูลนักเรียน
-//
 
 // API สำหรับการลบข้อมูลนักเรียน
-app.delete("/students/:_", async (req, res) => {
-  const { _ } = req.params; // รับค่า _ จาก URL params
+app.delete("/students/:id", async (req, res) => {
+  const { id } = req.params; // รับค่า id จาก URL params
 
-  if (!_) {
-    return res.status(400).json({ message: "Missing _ parameter" });
+  if (!id) {
+    return res.status(400).json({ message: "Missing id parameter" });
   }
 
   try {
     const conn = await pool.getConnection();
     const result = await conn.query(
-      "DELETE FROM StudentData WHERE student_id = ?",
+      "DELETE FROM studentdata WHERE student_id = ?",
       [student_id]
     );
 
@@ -141,41 +160,40 @@ app.delete("/students/:_", async (req, res) => {
   }
 });
 
-app.get('/clo', async (req, res) => {
-    let conn;
-    
-    try {
-      conn = await pool.getConnection();
-      const query = "SELECT * FROM clo";
-      const clos = await conn.query(query);
-      res.json(Array.isArray(clos) ? clos : [clos]);
-    } catch (err) {
-      console.error("Error fetching CLOs:", err);
-      res.status(500).json({ success: false, message: "Database error" });
-    } finally {
-      if (conn) conn.release();
-    }
+app.get("/clo", async (req, res) => {
+  let conn;
+
+  try {
+    conn = await pool.getConnection();
+    const query = "SELECT * FROM clo";
+    const clos = await conn.query(query);
+    res.json(Array.isArray(clos) ? clos : [clos]);
+  } catch (err) {
+    console.error("Error fetching CLOs:", err);
+    res.status(500).json({ success: false, message: "Database error" });
+  } finally {
+    if (conn) conn.release();
+  }
 });
-  
-app.get('/course-clo', async (req, res) => {
-    let conn;
-    
-    try {
-      conn = await pool.getConnection();
-      const query = `select course.course_id, c.CLO_code, course.clo_id
+
+app.get("/course-clo", async (req, res) => {
+  let conn;
+
+  try {
+    conn = await pool.getConnection();
+    const query = `select course.course_id, c.CLO_code, course.clo_id
         from clo AS c
         LEFT JOIN course_clo AS course
         ON c.CLO_id = course.clo_id WHERE course.course_id IS NOT NULL;`;
-      const clos = await conn.query(query);
-      res.json(clos);
-    } catch (err) {
-      console.error("Error fetching CLOs:", err);
-      res.status(500).json({ success: false, message: "Database error" });
-    } finally {
-      if (conn) conn.release();
-    }
-  });
-
+    const clos = await conn.query(query);
+    res.json(clos);
+  } catch (err) {
+    console.error("Error fetching CLOs:", err);
+    res.status(500).json({ success: false, message: "Database error" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 
 app.get("/course-clo", async (req, res) => {
   let conn;
@@ -209,7 +227,7 @@ app.get("/course_clo/weight", async (req, res) => {
     conn = await pool.getConnection();
 
     const query = `
-            SELECT 
+            SELECT
                 course_clo.course_clo_id,
                 course_clo.course_id,
                 course_clo.semester_id,
@@ -223,17 +241,17 @@ app.get("/course_clo/weight", async (req, res) => {
                 clo.timestamp,
                 course.course_name,
                 course.course_engname
-            FROM 
+            FROM
                 program_course pc
-            JOIN 
+            JOIN
                 course_clo ON pc.course_id = course_clo.course_id
                 AND pc.semester_id = course_clo.semester_id
                 AND pc.year = course_clo.year
-            JOIN 
+            JOIN
                 clo ON course_clo.clo_id = clo.CLO_id
-            JOIN 
+            JOIN
                 course ON course_clo.course_id = course.course_id
-            WHERE 
+            WHERE
                 pc.program_id = ?
                 AND course_clo.course_id = ?
                 AND course_clo.semester_id = ?
@@ -259,136 +277,13 @@ app.get("/course_clo/weight", async (req, res) => {
   }
 });
 
-app.post('/course_clo/weight', async (req, res) => {
-    // console.log('Received Course-CLO weight data:', JSON.stringify(req.body, null, 2));
-    
-    const { program_id, semester_id, section_id, year, scores } = req.body;
-
-    // ตรวจสอบข้อมูลที่จำเป็น
-    if (!semester_id || !section_id || !year || !Array.isArray(scores) || scores.length === 0) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Missing required data or invalid scores array'
-        });
-    }
-    
-    try {
-        const conn = await pool.getConnection();
-        await conn.beginTransaction();
-        
-        const results = {
-            success: 0,
-            errors: 0,
-            details: []
-        };
-        
-        // ประมวลผลข้อมูลทีละรายการ
-        for (const score of scores) {
-            try {
-                const { course_id, clo_id, weight } = score;
-                
-                if (!course_id || !clo_id || weight === undefined) {
-                    results.errors++;
-                    results.details.push({ 
-                        error: 'Missing required fields', 
-                        data: score 
-                    });
-                    continue;
-                }
-                
-                // แปลงค่า weight เป็น integer
-                const weightValue = parseInt(weight);
-                
-                // ตรวจสอบว่าข้อมูลมีอยู่แล้วหรือไม่
-                const exists = await conn.query(
-                    'SELECT course_clo_id FROM course_clo WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?',
-                    [course_id, clo_id, semester_id, section_id, year]
-                );
-                
-                if (exists && exists.length > 0) {
-                    // อัพเดตข้อมูลที่มีอยู่
-                    await conn.query(
-                        'UPDATE course_clo SET weight = ? WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?',
-                        [weightValue, course_id, clo_id, semester_id, section_id, year]
-                    );
-                    
-                    results.success++;
-                    results.details.push({ 
-                        status: 'updated', 
-                        course_id, 
-                        clo_id, 
-                        weight: weightValue 
-                    });
-                    
-                    // console.log(`Updated weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
-                } else {
-                    // เพิ่มข้อมูลใหม่
-                    await conn.query(
-                        'INSERT INTO course_clo (course_id, clo_id, semester_id, section_id, year, weight) VALUES (?, ?, ?, ?, ?, ?)',
-                        [course_id, clo_id, semester_id, section_id, year, weightValue]
-                    );
-                    
-                    results.success++;
-                    results.details.push({ 
-                        status: 'inserted', 
-                        course_id, 
-                        clo_id, 
-                        weight: weightValue 
-                    });
-                    
-                    // console.log(`Inserted new record with weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
-                }
-            } catch (err) {
-                results.errors++;
-                results.details.push({ 
-                    error: err.message, 
-                    data: score 
-                });
-                console.error('Error processing individual score:', err);
-            }
-        }
-        
-        await conn.commit();
-        conn.release();
-        
-        console.log(`Processed ${scores.length} records. Success: ${results.success}, Errors: ${results.errors}`);
-        
-        res.json({
-            success: true,
-            message: `Successfully processed ${results.success} out of ${scores.length} scores`,
-            results
-        });
-    } catch (error) {
-        console.error('Error processing scores:', error);
-        
-        try {
-            const conn = await pool.getConnection();
-            await conn.rollback();
-            conn.release();
-        } catch (rollbackError) {
-            console.error('Error during rollback:', rollbackError);
-        }
-        
-        res.status(500).json({
-            success: false,
-            message: 'Database error',
-            error: error.message
-        });
-    }
-});
-
-
-app.patch("/course_clo/weight", async (req, res) => {
-  console.log(
-    "Received Course-CLO weight update request:",
-    JSON.stringify(req.body, null, 2)
-  );
+app.post("/course_clo/weight", async (req, res) => {
+  // console.log('Received Course-CLO weight data:', JSON.stringify(req.body, null, 2));
 
   const { program_id, semester_id, section_id, year, scores } = req.body;
 
   // ตรวจสอบข้อมูลที่จำเป็น
   if (
-    !program_id ||
     !semester_id ||
     !section_id ||
     !year ||
@@ -397,8 +292,7 @@ app.patch("/course_clo/weight", async (req, res) => {
   ) {
     return res.status(400).json({
       success: false,
-      message:
-        "Missing required fields: program_id, semester_id, section_id, year, or scores array.",
+      message: "Missing required data or invalid scores array",
     });
   }
 
@@ -406,125 +300,93 @@ app.patch("/course_clo/weight", async (req, res) => {
     const conn = await pool.getConnection();
     await conn.beginTransaction();
 
-    // ตรวจสอบและอัพเดตแต่ละรายการใน scores
-    const results = [];
-    let successCount = 0;
-    let errorCount = 0;
+    const results = {
+      success: 0,
+      errors: 0,
+      details: [],
+    };
 
-    for (const item of scores) {
-      const { course_id, clo_id, weight } = item;
-
-      // ตรวจสอบว่ามีข้อมูลครบหรือไม่
-      if (!course_id || !clo_id || weight === undefined) {
-        errorCount++;
-        continue;
-      }
-
+    // ประมวลผลข้อมูลทีละรายการ
+    for (const score of scores) {
       try {
-        // ตรวจสอบว่ามีข้อมูลอยู่ในฐานข้อมูลหรือไม่
-        const checkQuery = `
-            SELECT course_clo_id FROM course_clo 
-            WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?
-          `;
+        const { course_id, clo_id, weight } = score;
 
-        const existingRecords = await conn.query(checkQuery, [
-          course_id,
-          clo_id,
-          semester_id,
-          section_id,
-          year,
-        ]);
-
-        // แปลงผลลัพธ์ให้เป็น array
-        const existingRecord = Array.isArray(existingRecords)
-          ? existingRecords
-          : [existingRecords];
-
-        if (existingRecord && existingRecord.length > 0) {
-          // อัพเดตข้อมูลที่มีอยู่
-          const updateQuery = `
-              UPDATE course_clo 
-              SET weight = ? 
-              WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?
-            `;
-
-          // ใช้ weight ที่รับเข้ามาโดยตรง (ไม่ต้องแปลงอีก)
-          const updateResult = await conn.query(updateQuery, [
-            weight,
-            course_id,
-            clo_id,
-            semester_id,
-            section_id,
-            year,
-          ]);
-
-          console.log(
-            `Updated weight for Course=${course_id}, CLO=${clo_id} to ${weight}`
-          );
-          results.push({
-            course_id,
-            clo_id,
-            weight,
-            action: "updated",
-            success: true,
+        if (!course_id || !clo_id || weight === undefined) {
+          results.errors++;
+          results.details.push({
+            error: "Missing required fields",
+            data: score,
           });
-          successCount++;
+          continue;
+        }
+
+        // แปลงค่า weight เป็น integer
+        const weightValue = parseInt(weight);
+
+        // ตรวจสอบว่าข้อมูลมีอยู่แล้วหรือไม่
+        const exists = await conn.query(
+          "SELECT course_clo_id FROM course_clo WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?",
+          [course_id, clo_id, semester_id, section_id, year]
+        );
+
+        if (exists && exists.length > 0) {
+          // อัพเดตข้อมูลที่มีอยู่
+          await conn.query(
+            "UPDATE course_clo SET weight = ? WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?",
+            [weightValue, course_id, clo_id, semester_id, section_id, year]
+          );
+
+          results.success++;
+          results.details.push({
+            status: "updated",
+            course_id,
+            clo_id,
+            weight: weightValue,
+          });
+
+          // console.log(`Updated weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
         } else {
           // เพิ่มข้อมูลใหม่
-          const insertQuery = `
-              INSERT INTO course_clo (course_id, clo_id, semester_id, section_id, year, weight)
-              VALUES (?, ?, ?, ?, ?, ?)
-            `;
-
-          const insertResult = await conn.query(insertQuery, [
-            course_id,
-            clo_id,
-            semester_id,
-            section_id,
-            year,
-            weight,
-          ]);
-
-          console.log(
-            `Inserted new record with weight ${weight} for Course=${course_id}, CLO=${clo_id}`
+          await conn.query(
+            "INSERT INTO course_clo (course_id, clo_id, semester_id, section_id, year, weight) VALUES (?, ?, ?, ?, ?, ?)",
+            [course_id, clo_id, semester_id, section_id, year, weightValue]
           );
-          results.push({
+
+          results.success++;
+          results.details.push({
+            status: "inserted",
             course_id,
             clo_id,
-            weight,
-            action: "inserted",
-            success: true,
+            weight: weightValue,
           });
-          successCount++;
+
+          // console.log(`Inserted new record with weight for course_id=${course_id}, clo_id=${clo_id}: ${weightValue}`);
         }
-      } catch (error) {
-        console.error(
-          `Error processing Course=${course_id}, CLO=${clo_id}:`,
-          error
-        );
-        results.push({
-          course_id,
-          clo_id,
-          error: error.message,
-          success: false,
+      } catch (err) {
+        results.errors++;
+        results.details.push({
+          error: err.message,
+          data: score,
         });
-        errorCount++;
+        console.error("Error processing individual score:", err);
       }
     }
 
-    // บันทึกการเปลี่ยนแปลง
     await conn.commit();
+    conn.release();
 
-    // ส่งผลลัพธ์กลับไปยัง client
+    console.log(
+      `Processed ${scores.length} records. Success: ${results.success}, Errors: ${results.errors}`
+    );
+
     res.json({
       success: true,
-      message: `Course-CLO weights updated successfully. Success: ${successCount}, Errors: ${errorCount}`,
-      results: results,
+      message: `Successfully processed ${results.success} out of ${scores.length} scores`,
+      results,
     });
-
-    conn.release();
   } catch (error) {
-    // กรณีเกิดข้อผิดพลาด ให้ rollback
+    console.error("Error processing scores:", error);
+
     try {
       const conn = await pool.getConnection();
       await conn.rollback();
@@ -533,10 +395,9 @@ app.patch("/course_clo/weight", async (req, res) => {
       console.error("Error during rollback:", rollbackError);
     }
 
-    console.error("Error updating Course-CLO weights:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: "Database error",
       error: error.message,
     });
   }
@@ -568,18 +429,18 @@ app.get("/api/get_assignment_detail/:assignment_id", async (req, res) => {
 
     // SQL ดึงข้อมูล Assignment
     const assignmentQuery = `
-            SELECT 
-                a.assignment_id, 
+            SELECT
+                a.assignment_id,
                 a.assignment_name,
-                a.course_name, 
-                a.section_id, 
-                a.semester_id, 
-                a.year, 
+                a.course_name,
+                a.section_id,
+                a.semester_id,
+                a.year,
                 a.program_id,
                 a.created_at
-            FROM 
+            FROM
                 assignments a
-            WHERE 
+            WHERE
                 a.assignment_id = ?
         `;
 
@@ -597,20 +458,20 @@ app.get("/api/get_assignment_detail/:assignment_id", async (req, res) => {
 
     // SQL ดึงข้อมูล CLO พร้อมข้อมูลจากตาราง clo
     const cloQuery = `
-            SELECT 
+            SELECT
                 acs.id as assignment_clo_id,
                 acs.clo_id,
                 acs.score as max_score,
                 acs.weight,
                 c.CLO_code,
                 c.CLO_name
-            FROM 
+            FROM
                 assignment_clo_selection acs
-            JOIN 
+            JOIN
                 clo c ON acs.clo_id = c.CLO_id
-            WHERE 
+            WHERE
                 acs.assignment_id = ?
-            ORDER BY 
+            ORDER BY
                 c.CLO_code
         `;
 
@@ -624,13 +485,13 @@ app.get("/api/get_assignment_detail/:assignment_id", async (req, res) => {
             SELECT DISTINCT
                 astd.student_id,
                 sd.name as student_name
-            FROM 
+            FROM
                 assignments_students astd
-            LEFT JOIN 
+            LEFT JOIN
                 studentdata sd ON astd.student_id = sd.student_id
-            WHERE 
+            WHERE
                 astd.assignment_id = ?
-            ORDER BY 
+            ORDER BY
                 astd.student_id
         `;
 
@@ -647,13 +508,13 @@ app.get("/api/get_assignment_detail/:assignment_id", async (req, res) => {
 
     // ดึงข้อมูลคะแนนที่บันทึกไว้
     const scoresQuery = `
-            SELECT 
-                student_id, 
-                assignment_clo_id, 
+            SELECT
+                student_id,
+                assignment_clo_id,
                 score
-            FROM 
+            FROM
                 student_assignment_scores
-            WHERE 
+            WHERE
                 assignment_id = ?
         `;
 
@@ -697,76 +558,6 @@ app.get("/api/get_assignment_detail/:assignment_id", async (req, res) => {
   }
 });
 
-// API บันทึกคะแนนนักเรียน
-// app.post('/api/save_student_scores', async (req, res) => {
-//     const { assignment_id, scores } = req.body;
-
-//     if (!assignment_id || !scores || typeof scores !== 'object') {
-//         return res.status(400).json({
-//             success: false,
-//             message: 'กรุณาระบุรหัส Assignment และข้อมูลคะแนน'
-//         });
-//     }
-
-//     let conn;
-//     try {
-//         conn = await pool.getConnection();
-//         await conn.beginTransaction();
-
-//         // ประมวลผลคะแนนของนักเรียนแต่ละคน
-//         const operations = [];
-
-//         // รูปแบบข้อมูล scores: { student_id: { assignment_clo_id: score, ... }, ... }
-//         for (const student_id in scores) {
-//             for (const assignment_clo_id in scores[student_id]) {
-//                 const score = parseFloat(scores[student_id][assignment_clo_id]) || 0;
-
-//                 // ตรวจสอบให้คะแนนอยู่ในช่วง 0-100
-//                 const validScore = Math.min(Math.max(score, 0), 100);
-
-//                 // ใช้ INSERT ... ON DUPLICATE KEY UPDATE สำหรับการ upsert
-//                 const query = `
-//                     INSERT INTO student_assignment_scores
-//                     (student_id, assignment_id, assignment_clo_id, score)
-//                     VALUES (?, ?, ?, ?)
-//                     ON DUPLICATE KEY UPDATE score = ?
-//                 `;
-
-//                 operations.push(
-//                     conn.query(query, [
-//                         student_id,
-//                         assignment_id,
-//                         assignment_clo_id,
-//                         validScore,
-//                         validScore
-//                     ])
-//                 );
-//             }
-//         }
-
-//         // ดำเนินการ queries ทั้งหมด
-//         await Promise.all(operations);
-
-//         await conn.commit();
-
-//         res.json({
-//             success: true,
-//             message: 'บันทึกคะแนนเรียบร้อยแล้ว'
-//         });
-
-//     } catch (error) {
-//         if (conn) await conn.rollback();
-
-//         console.error('Error saving student scores:', error);
-//         res.status(500).json({
-//             success: false,
-//             message: 'เกิดข้อผิดพลาดในการบันทึกคะแนน',
-//             error: error.message
-//         });
-//     } finally {
-//         if (conn) conn.release();
-//     }
-// });
 // API Endpoint สำหรับบันทึกคะแนนนักศึกษา
 // API Endpoint สำหรับบันทึกคะแนนนักศึกษา
 app.post("/api/save_student_scores", async (req, res) => {
@@ -820,7 +611,7 @@ app.post("/api/save_student_scores", async (req, res) => {
 
       // ตรวจสอบว่ามีข้อมูลคะแนนนี้อยู่แล้วหรือไม่
       const existingRecord = await conn.query(
-        `SELECT id FROM student_assignment_scores 
+        `SELECT id FROM student_assignment_scores
                  WHERE student_id = ? AND assignment_id = ? AND assignment_clo_id = ?`,
         [student_id, assignment_id, assignment_clo_id]
       );
@@ -829,16 +620,16 @@ app.post("/api/save_student_scores", async (req, res) => {
         if (existingRecord && existingRecord.length > 0) {
           // ถ้ามีข้อมูลอยู่แล้ว ให้อัพเดทคะแนน
           await conn.query(
-            `UPDATE student_assignment_scores 
-                         SET score = ?, updated_at = NOW() 
+            `UPDATE student_assignment_scores
+                         SET score = ?, updated_at = NOW()
                          WHERE id = ?`,
             [score, existingRecord[0].id]
           );
         } else {
           // ถ้ายังไม่มี ให้เพิ่มข้อมูลใหม่
           await conn.query(
-            `INSERT INTO student_assignment_scores 
-                         (student_id, assignment_id, assignment_clo_id, score, created_at) 
+            `INSERT INTO student_assignment_scores
+                         (student_id, assignment_id, assignment_clo_id, score, created_at)
                          VALUES (?, ?, ?, ?, NOW())`,
             [student_id, assignment_id, assignment_clo_id, score]
           );
@@ -962,7 +753,7 @@ app.post("/program_course/excel", async (req, res) => {
       // 4. ถ้าไม่มี section ให้เพิ่ม section ใหม่
       if (!existingSection || existingSection.length === 0) {
         const insertSectionQuery = `
-              INSERT INTO section (section_id) 
+              INSERT INTO section (section_id)
               VALUES (?)
             `;
 
@@ -971,8 +762,8 @@ app.post("/program_course/excel", async (req, res) => {
 
       // 5. ตรวจสอบว่ามีความสัมพันธ์ในตาราง 'program_course' หรือไม่
       const checkProgramCourseQuery = `
-          SELECT 1 
-          FROM program_course 
+          SELECT 1
+          FROM program_course
           WHERE program_id = ? AND course_id = ? AND semester_id = ?
         `;
 
@@ -1003,7 +794,7 @@ app.post("/program_course/excel", async (req, res) => {
       } else {
         // หากมีความสัมพันธ์อยู่แล้ว อัปเดตข้อมูล
         const updateProgramCourseQuery = `
-            UPDATE program_course 
+            UPDATE program_course
             SET year = ?, section_id = ?
             WHERE program_id = ? AND course_id = ? AND semester_id = ?
           `;
@@ -1052,12 +843,12 @@ app.post("/api/import_scores_excel", async (req, res) => {
 
     // 1. Get CLO mapping for validation
     const cloQuery = `
-            SELECT 
+            SELECT
                 id as assignment_clo_id,
                 clo_id
-            FROM 
+            FROM
                 assignment_clo_selection
-            WHERE 
+            WHERE
                 assignment_id = ?
         `;
 
@@ -1110,8 +901,8 @@ app.post("/api/import_scores_excel", async (req, res) => {
 
         // Use INSERT ... ON DUPLICATE KEY UPDATE for upsert operation
         const query = `
-                    INSERT INTO student_assignment_scores 
-                    (student_id, assignment_id, assignment_clo_id, score) 
+                    INSERT INTO student_assignment_scores
+                    (student_id, assignment_id, assignment_clo_id, score)
                     VALUES (?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE score = ?
                 `;
@@ -1189,7 +980,7 @@ app.post("/api/add_students_to_assignment", async (req, res) => {
 
         // ใช้ UPSERT เพื่อเพิ่มหรืออัพเดตข้อมูลนักศึกษา
         const upsertStudentQuery = `
-                    INSERT INTO studentdata (student_id, name) 
+                    INSERT INTO studentdata (student_id, name)
                     VALUES (?, ?)
                     ON DUPLICATE KEY UPDATE name = VALUES(name)
                 `;
@@ -1203,7 +994,7 @@ app.post("/api/add_students_to_assignment", async (req, res) => {
 
         // ขั้นตอนที่ 2: ดึง CLO IDs ทั้งหมดของ assignment นี้
         const getCloIdsQuery = `
-                    SELECT id FROM assignment_clo_selection 
+                    SELECT id FROM assignment_clo_selection
                     WHERE assignment_id = ?
                 `;
 
@@ -1405,36 +1196,36 @@ app.get("/clo_mapping", async (req, res) => {
     conn = await pool.getConnection();
 
     let query = `
-           SELECT 
-    pc.plo_clo_id,
-    pc.year,
-    pc.weight,  -- ดึง weight จากตาราง plo_clo
-    pc.semester_id,
-    pc.course_id,
-    pc.section_id,
-    pc.PLO_id,
-    pc.CLO_id,
-    p.PLO_code,
-    p.PLO_name,
-    p.PLO_engname,
-    c.CLO_code,
-    c.CLO_name,
-    c.CLO_engname
-FROM 
-    plo_clo pc  -- เปลี่ยนจาก course_plo เป็น plo_clo
-JOIN 
-    plo p ON pc.PLO_id = p.PLO_id
-JOIN 
-    clo c ON pc.CLO_id = c.CLO_id
-WHERE 
-    pc.course_id = ? 
-    AND pc.section_id = ? 
-    AND pc.semester_id = ? 
-    AND pc.year = ? 
-    AND pc.PLO_id IN (
-        SELECT plo_id FROM program_plo WHERE program_id = ?
-    )
-        `;
+            SELECT
+      pc.plo_clo_id,
+      pc.year,
+      pc.weight,  -- ดึง weight จากตาราง plo_clo
+      pc.semester_id,
+      pc.course_id,
+      pc.section_id,
+      pc.PLO_id,
+      pc.CLO_id,
+      p.PLO_code,
+      p.PLO_name,
+      p.PLO_engname,
+      c.CLO_code,
+      c.CLO_name,
+      c.CLO_engname
+  FROM
+      plo_clo pc  -- เปลี่ยนจาก course_plo เป็น plo_clo
+  JOIN
+      plo p ON pc.PLO_id = p.PLO_id
+  JOIN
+      clo c ON pc.CLO_id = c.CLO_id
+  WHERE
+      pc.course_id = ?
+      AND pc.section_id = ?
+      AND pc.semester_id = ?
+      AND pc.year = ?
+      AND pc.PLO_id IN (
+          SELECT plo_id FROM program_plo WHERE program_id = ?
+      )
+          `;
 
     // ถ้ามีการระบุ clo_ids (ตัวเลือก)
     const params = [course_id, section_id, semester_id, year, program_id];
@@ -1496,7 +1287,7 @@ app.patch("/clo_mapping_update", async (req, res) => {
 
     // 1. ค้นหาข้อมูลที่มีอยู่ใน course_plo ก่อน
     const checkQuery = `
-            SELECT course_plo_id, weight 
+            SELECT course_plo_id, weight
             FROM course_plo
             WHERE course_id = ? AND plo_id = ?
         `;
@@ -1641,7 +1432,7 @@ app.get("/assignment_clo", async (req, res) => {
     conn = await pool.getConnection();
 
     const query = `
-            SELECT 
+            SELECT
                 cc.course_clo_id,
                 cc.course_id,
                 cc.clo_id AS CLO_id,
@@ -1652,18 +1443,18 @@ app.get("/assignment_clo", async (req, res) => {
                 clo.CLO_name,
                 clo.CLO_engname,
                 IFNULL(cp.weight, 0) AS weight
-            FROM 
+            FROM
                 course_clo cc
-            JOIN 
+            JOIN
                 clo ON cc.clo_id = clo.CLO_id
             LEFT JOIN
                 course_plo cp ON cc.course_id = cp.course_id AND cp.plo_id = (
                     SELECT plo_id FROM program_plo WHERE program_id = ? LIMIT 1
                 )
-            WHERE 
-                cc.course_id = ? 
-                AND cc.semester_id = ? 
-                AND cc.section_id = ? 
+            WHERE
+                cc.course_id = ?
+                AND cc.semester_id = ?
+                AND cc.section_id = ?
                 AND cc.year = ?
             ORDER BY clo.CLO_code
         `;
@@ -1812,59 +1603,59 @@ app.put("/update", async (req, res) => {
 
 // API route to handle login
 // ในฟังก์ชัน /login
-app.post("/login", async (req, res) => {
-  const { email, token } = req.body;
+// app.post("/login", async (req, res) => {
+//   const { email, token } = req.body;
 
-  try {
-    const conn = await pool.getConnection();
+//   try {
+//     const conn = await pool.getConnection();
 
-    // ตรวจสอบว่าอีเมลมีอยู่ในฐานข้อมูลหรือไม่
-    const results = await conn.query("SELECT role FROM role WHERE email = ?", [
-      email,
-    ]);
+//     // ตรวจสอบว่าอีเมลมีอยู่ในฐานข้อมูลหรือไม่
+//     const results = await conn.query("SELECT role FROM role WHERE email = ?", [
+//       email,
+//     ]);
 
-    let role;
-    if (results.length > 0) {
-      // ถ้าอีเมลมีอยู่ ดึงบทบาท (role)
-      role = results[0].role;
-    } else {
-      // ถ้าอีเมลไม่มีอยู่ เพิ่มผู้ใช้ใหม่ด้วยบทบาทเริ่มต้น
-      const defaultRole = "Student";
-      await conn.query("INSERT INTO role (email, role) VALUES (?, ?)", [
-        email,
-        defaultRole,
-      ]);
-      role = defaultRole;
-    }
+//     let role;
+//     if (results.length > 0) {
+//       // ถ้าอีเมลมีอยู่ ดึงบทบาท (role)
+//       role = results[0].role;
+//     } else {
+//       // ถ้าอีเมลไม่มีอยู่ เพิ่มผู้ใช้ใหม่ด้วยบทบาทเริ่มต้น
+//       const defaultRole = "Student";
+//       await conn.query("INSERT INTO role (email, role) VALUES (?, ?)", [
+//         email,
+//         defaultRole,
+//       ]);
+//       role = defaultRole;
+//     }
 
-    // สร้าง JWT token ที่มีอายุยาวนาน
-    const jwtToken = jwt.sign(
-      { email, role },
-      "958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com",
-      { expiresIn: "1d" }
-    );
+//     // สร้าง JWT token ที่มีอายุยาวนาน
+//     const jwtToken = jwt.sign(
+//       { email, role },
+//       "958902418959-llvaof6d4td6cicvdd27fltshv63rudo.apps.googleusercontent.com",
+//       { expiresIn: "1d" }
+//     );
 
-    // เก็บ JWT ใน cookie ที่มีอายุยาวนาน
-    res.cookie("auth_token", jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000,
-      sameSite: "Strict",
-    });
+//     // เก็บ JWT ใน cookie ที่มีอายุยาวนาน
+//     res.cookie("auth_token", jwtToken, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === "production",
+//       maxAge: 24 * 60 * 60 * 1000,
+//       sameSite: "Strict",
+//     });
 
-    // ส่งข้อมูลกลับไปยัง frontend รวมถึง token สำหรับเก็บใน localStorage
-    res.json({
-      success: true,
-      role,
-      token: jwtToken,
-    });
+//     // ส่งข้อมูลกลับไปยัง frontend รวมถึง token สำหรับเก็บใน localStorage
+//     res.json({
+//       success: true,
+//       role,
+//       token: jwtToken,
+//     });
 
-    conn.release();
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Database error" });
-  }
-});
+//     conn.release();
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: "Database error" });
+//   }
+// });
 
 // เพิ่ม API endpoint สำหรับตรวจสอบสถานะการล็อกอิน
 app.get("/verify-token", async (req, res) => {
@@ -1905,7 +1696,7 @@ app.get("/program", async (req, res) => {
 
     if (faculty_id) {
       query = `
-                SELECT p.* 
+                SELECT p.*
                 FROM program p
                 JOIN program_faculty pf ON p.program_id = pf.program_id
                 WHERE pf.faculty_id = ?`;
@@ -1978,13 +1769,13 @@ app.post("/api/add_assignment", async (req, res) => {
     // บันทึกข้อมูล Assignment ตามโครงสร้างตาราง
     const assignmentQuery = `
             INSERT INTO assignments (
-                program_id, 
-                course_name, 
-                section_id, 
-                semester_id, 
-                year, 
-                assignment_name, 
-                faculty_id,           
+                program_id,
+                course_name,
+                section_id,
+                semester_id,
+                year,
+                assignment_name,
+                faculty_id,
                 university_id,
                 created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
@@ -2074,19 +1865,19 @@ app.get("/api/get_course_assignments", async (req, res) => {
 
     // Query to get all assignments for this course, section, semester, and year
     const query = `
-        SELECT 
-          assignment_id, 
-          assignment_name, 
-          course_name, 
-          section_id, 
-          semester_id, 
-          year, 
+        SELECT
+          assignment_id,
+          assignment_name,
+          course_name,
+          section_id,
+          semester_id,
+          year,
           created_at
-        FROM assignments 
-        WHERE course_name = ? 
-        AND section_id = ? 
-        AND semester_id = ? 
-        AND year = ? 
+        FROM assignments
+        WHERE course_name = ?
+        AND section_id = ?
+        AND semester_id = ?
+        AND year = ?
         AND program_id = ?
       `;
 
@@ -2113,7 +1904,7 @@ app.get("/api/get_assignments", async (req, res) => {
     conn = await pool.getConnection();
 
     const query = `
-            SELECT 
+            SELECT
                 a.assignment_id,
                 a.assignment_name,
                 a.section_id,
@@ -2122,9 +1913,9 @@ app.get("/api/get_assignments", async (req, res) => {
                 a.created_at,
                 a.faculty_id,
                 a.university_id
-            FROM 
+            FROM
                 assignments a
-            ORDER BY 
+            ORDER BY
                 a.created_at DESC
         `;
 
@@ -2155,17 +1946,17 @@ app.get("/api/get_assignment/:id", async (req, res) => {
 
     // ดึงข้อมูล assignment
     const assignmentQuery = `
-            SELECT 
+            SELECT
                 a.*,
                 c.course_name,
                 p.program_name
-            FROM 
+            FROM
                 assignments a
-            LEFT JOIN 
+            LEFT JOIN
                 course c ON a.course_id = c.course_id
-            LEFT JOIN 
+            LEFT JOIN
                 program p ON a.program_id = p.program_id
-            WHERE 
+            WHERE
                 a.assignment_id = ?
         `;
 
@@ -2182,7 +1973,7 @@ app.get("/api/get_assignment/:id", async (req, res) => {
 
     // ดึงข้อมูล homework
     const homeworksQuery = `
-            SELECT * FROM assignment_homeworks 
+            SELECT * FROM assignment_homeworks
             WHERE assignment_id = ?
         `;
 
@@ -2194,20 +1985,20 @@ app.get("/api/get_assignment/:id", async (req, res) => {
 
     for (const homework of homeworksList) {
       const scoresQuery = `
-                SELECT 
+                SELECT
                     hcs.*,
                     clo.CLO_code,
                     clo.CLO_name,
                     clo.CLO_engname,
                     cc.weight as clo_weight
-                FROM 
+                FROM
                     homework_clo_scores hcs
-                JOIN 
+                JOIN
                     clo ON hcs.clo_id = clo.CLO_id
-                JOIN 
+                JOIN
                     course_clo cc ON hcs.clo_id = cc.clo_id
-                WHERE 
-                    hcs.homework_id = ? 
+                WHERE
+                    hcs.homework_id = ?
                     AND cc.course_id = ?
                     AND cc.section_id = ?
                     AND cc.semester_id = ?
@@ -2302,14 +2093,14 @@ app.get("/api/get_course_assignments", async (req, res) => {
     } = req.query;
 
     const query = `
-        SELECT 
-          assignment_id, 
+        SELECT
+          assignment_id,
           assignment_name
-        FROM assignments 
-        WHERE course_name = ? 
-        AND section_id = ? 
-        AND semester_id = ? 
-        AND year = ? 
+        FROM assignments
+        WHERE course_name = ?
+        AND section_id = ?
+        AND semester_id = ?
+        AND year = ?
         AND program_id = ?
         AND assignment_name = ?
       `;
@@ -2374,8 +2165,8 @@ app.post("/program", async (req, res) => {
 
     // SQL query
     const query = `
-            INSERT INTO program 
-            (program_name, program_name_th, year, program_shortname_en, program_shortname_th) 
+            INSERT INTO program
+            (program_name, program_name_th, year, program_shortname_en, program_shortname_th)
             VALUES (?, ?, ?, ?, ?)
         `;
 
@@ -2602,8 +2393,8 @@ app.put("/program_plo", async (req, res) => {
 
     // อัปเดต PLO_name, PLO_engname และ PLO_code ในตาราง plo
     const result = await conn.query(
-      `UPDATE plo 
-             SET PLO_name = ?, PLO_engname = ?, PLO_code = ? 
+      `UPDATE plo
+             SET PLO_name = ?, PLO_engname = ?, PLO_code = ?
              WHERE PLO_id = ?`,
       [PLO_name, PLO_engname, PLO_code, plo_id]
     );
@@ -2853,17 +2644,17 @@ app.get("/program_course", async (req, res) => {
 
   // Query เพื่อดึงข้อมูลจากฐานข้อมูล
   const query = `
-        SELECT 
-            pc.course_id, 
-            c.course_name, 
-            cp.weight 
-        FROM 
+        SELECT
+            pc.course_id,
+            c.course_name,
+            cp.weight
+        FROM
             program_course pc
-        JOIN 
+        JOIN
             course c ON pc.course_id = c.course_id
-        LEFT JOIN 
+        LEFT JOIN
             course_plo cp ON pc.course_id = cp.course_id
-        WHERE 
+        WHERE
             pc.program_id = ?
     `;
 
@@ -3004,7 +2795,7 @@ app.delete("/program_course", async (req, res) => {
 
     // SQL Query สำหรับการลบข้อมูล
     const deleteQuery = `
-            DELETE FROM program_course 
+            DELETE FROM program_course
             WHERE program_id = ? AND semester_id = ? AND course_id = ?
         `;
 
@@ -3117,8 +2908,8 @@ app.put("/program_course/:course_id", async (req, res) => {
 
     // Perform update for course table
     if (updateOperations.length > 0) {
-      const updateQuery = `UPDATE course 
-                SET ${updateOperations.join(", ")} 
+      const updateQuery = `UPDATE course
+                SET ${updateOperations.join(", ")}
                 WHERE course_id = ?`;
 
       updateValues.push(updateFields.new_course_id || course_id);
@@ -3247,7 +3038,7 @@ app.get("/course_clo", async (req, res) => {
     conn = await pool.getConnection();
 
     const query = `
-            SELECT 
+            SELECT
                 course_clo.course_clo_id,
                 course_clo.course_id,
                 course_clo.semester_id,
@@ -3260,18 +3051,18 @@ app.get("/course_clo", async (req, res) => {
                 clo.timestamp,
                 course.course_name,
                 course.course_engname
-            FROM 
+            FROM
                 program_course pc
-            JOIN 
+            JOIN
                 course_clo ON pc.course_id = course_clo.course_id
                 AND pc.semester_id = course_clo.semester_id
                 AND pc.section_id = course_clo.section_id
                 AND pc.year = course_clo.year
-            JOIN 
+            JOIN
                 clo ON course_clo.clo_id = clo.CLO_id
-            JOIN 
+            JOIN
                 course ON course_clo.course_id = course.course_id
-            WHERE 
+            WHERE
                 pc.program_id = ?
                 AND course_clo.course_id = ?
                 AND course_clo.semester_id = ?
@@ -3383,8 +3174,8 @@ app.put("/course_clo", async (req, res) => {
     // Update the course_clo table with the new details
     await conn.query(
       `
-            UPDATE course_clo 
-            SET clo_id = ?, semester_id = ?, section_id = ?, year = ? 
+            UPDATE course_clo
+            SET clo_id = ?, semester_id = ?, section_id = ?, year = ?
             WHERE course_id = ? AND clo_id = ? AND semester_id = ? AND section_id = ? AND year = ?
         `,
       [
@@ -3403,7 +3194,7 @@ app.put("/course_clo", async (req, res) => {
     // Update CLO_name, CLO_engname, AND CLO_code in the clo table
     await conn.query(
       `
-            UPDATE clo 
+            UPDATE clo
             SET CLO_name = ?, CLO_engname = ?, CLO_code = ?
             WHERE CLO_id = ?
         `,
@@ -3549,13 +3340,13 @@ app.post("/program_course_clo", async (req, res) => {
 
     // ตรวจสอบว่าข้อมูล program, course, semester, section, และ year มีอยู่หรือไม่
     const checkQuery = `
-            SELECT 1 
+            SELECT 1
             FROM program_course
-            WHERE 
-                program_id = ? 
-                AND course_id = ? 
-                AND semester_id = ? 
-                AND section_id = ? 
+            WHERE
+                program_id = ?
+                AND course_id = ?
+                AND semester_id = ?
+                AND section_id = ?
                 AND year = ?
         `;
     const [existingProgramCourse] = await conn.query(checkQuery, [
@@ -3654,13 +3445,13 @@ app.post("/program_course_clo/excel", async (req, res) => {
 
       // ตรวจสอบว่ามี program, course, semester, section, year หรือไม่
       const checkQuery = `
-                SELECT 1 
+                SELECT 1
                 FROM program_course
-                WHERE 
-                    program_id = ? 
-                    AND course_id = ? 
-                    AND semester_id = ? 
-                    AND section_id = ? 
+                WHERE
+                    program_id = ?
+                    AND course_id = ?
+                    AND semester_id = ?
+                    AND section_id = ?
                     AND year = ?
             `;
       const [existingProgramCourse] = await conn.query(checkQuery, [
@@ -3876,7 +3667,7 @@ app.patch("/course_plo", async (req, res) => {
 
     // ตรวจสอบข้อมูลปัจจุบัน
     const queryCheck = `
-            SELECT weight 
+            SELECT weight
             FROM course_plo
             WHERE course_id = ? AND plo_id = ?
         `;
@@ -3994,23 +3785,23 @@ app.get("/program_courses_detail", async (req, res) => {
 
   try {
     const conn = await pool.getConnection();
-    let query = `SELECT 
-                pc.program_course_id, 
-                pc.year, 
-                pc.semester_id, 
-                pc.course_id, 
-                pc.section_id, 
-                p.program_name, 
+    let query = `SELECT
+                pc.program_course_id,
+                pc.year,
+                pc.semester_id,
+                pc.course_id,
+                pc.section_id,
+                p.program_name,
                 c.course_name,
-                c.course_engname, 
+                c.course_engname,
                 sm.semester_name
-            FROM 
+            FROM
                 program_course pc
             JOIN program p ON pc.program_id = p.program_id
             JOIN course c ON pc.course_id = c.course_id
             LEFT JOIN section s ON pc.section_id = s.section_id
             JOIN semester sm ON pc.semester_id = sm.semester_id
-            WHERE 
+            WHERE
                 pc.program_id = ?`;
 
     let params = [program_id];
@@ -4051,10 +3842,10 @@ app.get("/program_courses_detail", async (req, res) => {
   }
 });
 
-
-app.get('/plo_clo', async (req, res) => {
-    console.log("\n\nReq -----> ", req);
-    const { course_id, section_id, semester_id, year, program_id, clo_ids } = req.query;
+app.get("/plo_clo", async (req, res) => {
+  // console.log("\n\nReq -----> ", req);
+  const { course_id, section_id, semester_id, year, program_id, clo_ids } =
+    req.query;
 
   if (!course_id || !section_id || !semester_id || !year || !program_id) {
     return res.status(400).json({
@@ -4070,7 +3861,7 @@ app.get('/plo_clo', async (req, res) => {
 
     // แสดงคำสั่ง SQL ที่ใช้ในการดึงข้อมูล PLO-CLO mappings
     const query = `
-            SELECT 
+            SELECT
                 plo_clo.PLO_CLO_id,
                 plo_clo.year,
                 plo_clo.weight,
@@ -4085,19 +3876,19 @@ app.get('/plo_clo', async (req, res) => {
                 clo.CLO_code,
                 clo.CLO_name,
                 clo.CLO_engname
-            FROM 
+            FROM
                 plo_clo
-            JOIN 
+            JOIN
                 plo ON plo_clo.PLO_id = plo.PLO_id
-            JOIN 
+            JOIN
                 clo ON plo_clo.CLO_id = clo.CLO_id
             JOIN
-                program_plo pp ON plo.PLO_id = pp.plo_id 
-            WHERE 
-                plo_clo.course_id = ? 
-                AND plo_clo.section_id = ? 
-                AND plo_clo.semester_id = ? 
-                AND plo_clo.year = ? 
+                program_plo pp ON plo.PLO_id = pp.plo_id
+            WHERE
+                plo_clo.course_id = ?
+                AND plo_clo.section_id = ?
+                AND plo_clo.semester_id = ?
+                AND plo_clo.year = ?
                 AND pp.program_id = ?
         `;
 
@@ -4409,8 +4200,8 @@ app.post("/plo_clo", async (req, res) => {
       try {
         // ตรวจสอบว่ามีข้อมูลนี้อยู่แล้วหรือไม่
         const checkQuery = `
-                    SELECT * FROM plo_clo 
-                    WHERE course_id = ? AND section_id = ? AND semester_id = ? 
+                    SELECT * FROM plo_clo
+                    WHERE course_id = ? AND section_id = ? AND semester_id = ?
                     AND year = ? AND PLO_id = ? AND CLO_id = ?`;
 
         const existingMappings = await conn.query(checkQuery, [
@@ -4434,9 +4225,9 @@ app.post("/plo_clo", async (req, res) => {
         if (existingMapping.length > 0) {
           // ถ้ามีข้อมูลอยู่แล้ว ให้อัพเดต
           const updateQuery = `
-                        UPDATE plo_clo 
-                        SET weight = ? 
-                        WHERE course_id = ? AND section_id = ? AND semester_id = ? 
+                        UPDATE plo_clo
+                        SET weight = ?
+                        WHERE course_id = ? AND section_id = ? AND semester_id = ?
                         AND year = ? AND PLO_id = ? AND CLO_id = ?`;
 
           result = await conn.query(updateQuery, [
@@ -4574,7 +4365,7 @@ app.patch("/plo_clo", async (req, res) => {
 
     // ตรวจสอบข้อมูลปัจจุบัน
     const queryCheck = `
-            SELECT weight 
+            SELECT weight
             FROM plo_clo
             WHERE year = ? AND semester_id = ? AND course_id = ? AND section_id = ? AND PLO_id = ? AND CLO_id = ?
         `;
@@ -4649,7 +4440,7 @@ app.post("/api/save_assignment_clo", async (req, res) => {
     const queries = data.map((item) => {
       return conn.query(
         `
-                INSERT INTO Assignment_CLO_Selection (clo_id, assignment_id, score, weight) 
+                INSERT INTO Assignment_CLO_Selection (clo_id, assignment_id, score, weight)
                 VALUES (?, ?, ?, ?)`,
         [item.item.clo_id, item.assignment_id, item.score, item.weight] // เพิ่ม 'score'
       );
@@ -4700,7 +4491,7 @@ app.delete("/api/remove_student_from_assignment", async (req, res) => {
 
     // ตรวจสอบว่ามีนักเรียนนี้ใน Assignment หรือไม่
     const assignmentStudentsCheck = await conn.query(
-      `SELECT * FROM assignments_students 
+      `SELECT * FROM assignments_students
          WHERE assignment_id = ? AND student_id = ?`,
       [assignment_id, student_id]
     );
@@ -4717,14 +4508,14 @@ app.delete("/api/remove_student_from_assignment", async (req, res) => {
 
     // ลบข้อมูลคะแนนของนักเรียนในทุก CLO ของ Assignment นี้
     await conn.query(
-      `DELETE FROM student_assignment_scores 
+      `DELETE FROM student_assignment_scores
          WHERE assignment_id = ? AND student_id = ?`,
       [assignment_id, student_id]
     );
 
     // ลบข้อมูลนักเรียนออกจาก Assignment
     await conn.query(
-      `DELETE FROM assignments_students 
+      `DELETE FROM assignments_students
          WHERE assignment_id = ? AND student_id = ?`,
       [assignment_id, student_id]
     );
@@ -4867,12 +4658,12 @@ app.put("/api/update_assignment/:id", async (req, res) => {
 
     // Update the assignment
     const updateQuery = `
-        UPDATE assignments 
-        SET program_id = ?, 
-            course_name = ?, 
-            section_id = ?, 
-            semester_id = ?, 
-            year = ?, 
+        UPDATE assignments
+        SET program_id = ?,
+            course_name = ?,
+            section_id = ?,
+            semester_id = ?,
+            year = ?,
             assignment_name = ?,
             faculty_id = ?,
             university_id = ?
@@ -4923,8 +4714,8 @@ app.get("/university", async (req, res) => {
   try {
     const conn = await pool.getConnection();
     const query = `
-            SELECT university_id, university_name_en, university_name_th 
-            FROM university 
+            SELECT university_id, university_name_en, university_name_th
+            FROM university
             ORDER BY university_name_en;
         `;
     const rows = await conn.query(query);
@@ -4952,10 +4743,10 @@ app.get("/faculty", async (req, res) => {
 
     try {
       const query = `
-                SELECT f.faculty_id, f.faculty_name_en, f.faculty_name_th 
+                SELECT f.faculty_id, f.faculty_name_en, f.faculty_name_th
                 FROM university_faculty uf
                 JOIN faculty f ON uf.faculty_id = f.faculty_id
-                WHERE uf.university_id = ? 
+                WHERE uf.university_id = ?
                 ORDER BY f.faculty_name_en;
             `;
 
