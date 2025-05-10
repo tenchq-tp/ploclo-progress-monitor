@@ -6,17 +6,6 @@ import cookieParser from "cookie-parser";
 import setCharset from "./middleware/setCharset.js";
 import dotenv from "dotenv";
 
-<<<<<<< HEAD
-// Create a connection pool to MariaDB
-const pool = mariadb.createPool({
-    host: 'localhost',       // Database host
-    user: 'test',            // Database username
-    database: 'react_ploclo',// Database name
-    password: '123456',            // Database password
-    port: '3308',   // Database port
-    connectionLimit: 50,       // Limit the number of connections in the pool
-});
-=======
 import studentRoutes from "./routes/student.route.js";
 import universityRoutes from "./routes/university.route.js";
 import cloRoutes from "./routes/clo.route.js";
@@ -31,7 +20,6 @@ import metaDataRoutes from "./routes/metadata.route.js";
 import cloMappingRoutes from "./routes/clo_mapping.route.js";
 import coursePloRoutes from "./routes/course_plo.route.js";
 import ploCloRoutes from "./routes/plo_clo.route.js";
->>>>>>> origin/init-project
 
 dotenv.config();
 import pool from "./utils/db.js";
