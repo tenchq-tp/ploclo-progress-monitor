@@ -15,7 +15,8 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow-y: auto;
 }
@@ -26,7 +27,7 @@ body {
   min-height: 100vh;
   margin-left: 250px;
   padding: 0;
-  background-color: #F0F0F0;
+  background-color: #f0f0f0;
 }
 
 /* Typography */
@@ -42,12 +43,12 @@ h2 {
 
 a {
   font-size: 0.9rem;
-  color: #F0F0F0;
+  color: #f0f0f0;
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #F0F0F0;
+  color: #f0f0f0;
 }
 
 /* Buttons and Inputs */
@@ -64,7 +65,7 @@ button {
 }
 
 button:hover {
-  border-color: #FF8C00;
+  border-color: #ff8c00;
 }
 
 button:focus,
@@ -74,7 +75,7 @@ button:focus-visible {
 
 select {
   font-size: 0.9em;
-  color: #FFFFFF;
+  color: #ffffff;
   background-color: #6b7280;
   border-radius: 0.25rem;
   text-align: center;
@@ -97,7 +98,7 @@ select {
 }
 
 .btn-link:hover {
-  color: #FF8C00;
+  color: #ff8c00;
   text-decoration: none;
 }
 
@@ -191,13 +192,13 @@ select {
 
 /* Navigation */
 .nav {
-  font-family: 'Kanit', sans-serif;
+  font-family: "Kanit", sans-serif;
   position: fixed;
   top: 0;
   left: 0;
   width: 250px;
   height: 100vh;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   color: #000000;
   display: flex;
   flex-direction: column;
@@ -210,23 +211,24 @@ select {
 
 /* Add white background for top sections */
 .course-info-container {
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   padding: 20px;
   margin-bottom: 20px;
   border-radius: 5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Create a container for both selection rows */
 .selection-rows-container {
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   padding: 20px;
   margin-bottom: 20px;
   border-radius: 5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.nav-left, .nav-right {
+.nav-left,
+.nav-right {
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -250,7 +252,7 @@ select {
   width: 100%;
   display: flex;
   align-items: center;
-  padding: .5rem .25rem;
+  padding: 0.5rem 0.25rem;
   position: relative;
   z-index: 1;
   background-color: transparent;
@@ -272,13 +274,13 @@ select {
 }
 
 .nav-list li a:hover {
-  color: #FF8C00;
+  color: #ff8c00;
   padding-left: 15px;
 }
 
 .nav-list li.active a {
-  border-left: 3px solid #FF8C00;
-  color: #FF8C00;
+  border-left: 3px solid #ff8c00;
+  color: #ff8c00;
   padding-left: 15px;
 }
 
@@ -298,16 +300,16 @@ select {
 }
 
 .site-title.home-active {
-  color: #FF8C00;
+  color: #ff8c00;
   position: relative;
 }
 
 .site-title.home-active::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 3px;
   height: 100%;
-  background: #FF8C00;
+  background: #ff8c00;
   left: -5px;
   top: 0;
   border-radius: 8px;
@@ -324,7 +326,7 @@ select {
   display: block !important;
   position: absolute !important; /* เปลี่ยนจาก relative เป็น absolute */
   top: 100% !important; /* แสดงผลใต้ parent element */
-  left: 0 !important; 
+  left: 0 !important;
   width: 100%;
   padding: 0.5rem 0;
   margin: 0;
@@ -334,7 +336,7 @@ select {
   list-style: none;
   background-color: #f8f9fa;
   background-clip: padding-box;
-  border-left: 1px solid #FF8C00;
+  border-left: 1px solid #ff8c00;
   border-radius: 0.5rem;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
   z-index: 9999 !important; /* เพิ่มค่า z-index ให้สูงขึ้น */
@@ -358,8 +360,8 @@ select {
 }
 
 .dropdown-toggle:hover {
-  color: #FF8C00;
-  border-left: 3px solid #FF8C00 !important;
+  color: #ff8c00;
+  border-left: 3px solid #ff8c00 !important;
   padding-left: 15px !important;
 }
 
@@ -375,8 +377,8 @@ select {
 }
 
 .nav-item.active > .dropdown-toggle {
-  color: #FF8C00;
-  border-left: 3px solid #FF8C00 !important;
+  color: #ff8c00;
+  border-left: 3px solid #ff8c00 !important;
   padding-left: 15px !important;
 }
 
@@ -398,18 +400,18 @@ select {
 
 .dropdown-menu li a:hover {
   background-color: #e9ecef;
-  color: #FF8C00;
+  color: #ff8c00;
 }
 
 .dropdown-menu li.active a {
-  color: #FF8C00;
+  color: #ff8c00;
   background-color: #e9ecef;
-  border-left: 3px solid #FF8C00 !important;
+  border-left: 3px solid #ff8c00 !important;
   padding-left: 1.2rem !important;
 }
 
 li.nav-item .dropdown-menu a.active {
-  color: #FF8C00;
+  color: #ff8c00;
 }
 
 li.nav-item .dropdown-menu a:not(.active) {
@@ -417,8 +419,8 @@ li.nav-item .dropdown-menu a:not(.active) {
 }
 
 .nav-item.active .dropdown-toggle {
-  color: #FF8C00;
-  border-left: 3px solid #FF8C00;
+  color: #ff8c00;
+  border-left: 3px solid #ff8c00;
   padding-left: 15px;
 }
 
@@ -443,12 +445,12 @@ li.nav-item .dropdown-menu a:not(.active) {
   padding: 0.5rem 0;
   margin: 0 0 0 1rem;
   min-width: 10rem;
-  background-color: #F0F0F0;
+  background-color: #f0f0f0;
   border-radius: 0.25rem;
   box-shadow: 0.5rem 0 1rem rgba(0, 0, 0, 0.175);
   list-style: none;
   z-index: 1001;
-  border-left: 1px solid #FF8C00;
+  border-left: 1px solid #ff8c00;
 }
 
 .language-selector.show .language-menu {
@@ -469,7 +471,7 @@ li.nav-item .dropdown-menu a:not(.active) {
 
 .language-menu li:hover {
   background-color: #f8f9fa;
-  color: #FF8C00;
+  color: #ff8c00;
 }
 
 .language-label {
@@ -484,8 +486,8 @@ li.nav-item .dropdown-menu a:not(.active) {
 }
 
 .language-label:hover {
-  color: #FF8C00;
-  border-left: 3px solid #FF8C00;
+  color: #ff8c00;
+  border-left: 3px solid #ff8c00;
   padding-left: 15px;
 }
 
@@ -501,8 +503,8 @@ li.nav-item .dropdown-menu a:not(.active) {
 }
 
 .language-label.active {
-  color: #FF8C00;
-  border-left: 3px solid #FF8C00;
+  color: #ff8c00;
+  border-left: 3px solid #ff8c00;
   padding-left: 15px;
 }
 
@@ -517,13 +519,13 @@ li.nav-item .dropdown-menu a:not(.active) {
 }
 
 .language-menu li a:hover {
-  color: #FF8C00;
+  color: #ff8c00;
 }
 
 .language-menu li.active a {
-  color: #FF8C00;
+  color: #ff8c00;
   background-color: #e9ecef;
-  border-left: 3px solid #FF8C00 !important;
+  border-left: 3px solid #ff8c00 !important;
   padding-left: 1.2rem !important;
 }
 
@@ -538,7 +540,7 @@ li.nav-item .dropdown-menu a:not(.active) {
   padding: 0.375rem 2.25rem 0.375rem 0.75rem;
   font-size: 0.85rem;
   line-height: 1.5;
-  color: #FFFFFF;
+  color: #ffffff;
   background-color: #6b7280;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
@@ -602,20 +604,17 @@ li.nav-item .dropdown-menu a:not(.active) {
   color: inherit;
 }
 
-.program-item:hover, 
+.program-item:hover,
 .program-item:active {
-  color: #FF8C00;
+  color: #ff8c00;
 }
 
 /* PLO Management */
-
 
 .plo-header {
   text-align: center;
   margin-bottom: 20px;
 }
-
-
 
 .filter-section {
   display: flex;
@@ -674,7 +673,8 @@ li.nav-item .dropdown-menu a:not(.active) {
   table-layout: fixed;
 }
 
-.plo-table th, .plo-table td {
+.plo-table th,
+.plo-table td {
   border: 1px solid #dee2e6;
   padding: 10px;
   vertical-align: auto;
@@ -755,23 +755,23 @@ li.nav-item .dropdown-menu a:not(.active) {
 }
 
 .tab-item.active {
-  color: #FF8C00;
+  color: #ff8c00;
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .tab-item.active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -1px;
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: #FF8C00;
+  background-color: #ff8c00;
 }
 
 .tab-item:hover {
-  color: #FF8C00;
+  color: #ff8c00;
 }
 
 .tab-content {
@@ -789,11 +789,11 @@ li.nav-item .dropdown-menu a:not(.active) {
     color: #213547;
     background-color: #ffffff;
   }
-  
+
   a:hover {
-    color: #FF8C00;
+    color: #ff8c00;
   }
-  
+
   button {
     background-color: #f9f9f9;
   }
@@ -804,36 +804,31 @@ li.nav-item .dropdown-menu a:not(.active) {
     width: 0;
     overflow: hidden;
   }
-  
+
   .nav.show {
     width: 250px;
   }
-  
 
-  
   .filter-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
   }
-  
+
   .filter-label {
     min-width: auto;
   }
-  
+
   .action-buttons {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .button-group {
     flex-direction: column;
     width: 100%;
   }
-  
- 
 }
-
 
 /* เพิ่มสไตล์สำหรับ select ที่ถูก disable */
 .form-select:disabled {
@@ -896,8 +891,6 @@ select:disabled,
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
 }
 
-
-
 /* Login Page Specific Styles */
 .login-container {
   display: flex;
@@ -952,7 +945,7 @@ select:disabled,
 }
 
 .logout-button {
-  background-color: #FF8C00;
+  background-color: #ff8c00;
   color: white;
   border: none;
   border-radius: 6px;
@@ -972,20 +965,25 @@ select:disabled,
   .login-container {
     margin-left: 0;
   }
-  
+
   .login-card {
     padding: 1.5rem;
   }
 }
 
-tbody, td, tfoot, th, thead, tr {
+tbody,
+td,
+tfoot,
+th,
+thead,
+tr {
   border-color: inherit;
   border-style: solid;
   border-width: 0;
   font-size: 13px;
 }
 
-.table>tbody {
+.table > tbody {
   vertical-align: 0;
 }
 
@@ -997,7 +995,7 @@ tbody, td, tfoot, th, thead, tr {
 .form-control {
   display: block;
   width: 100%;
-  padding: .375rem .75rem;
+  padding: 0.375rem 0.75rem;
   font-size: 0.85rem;
   font-weight: 400;
   line-height: 1.5;

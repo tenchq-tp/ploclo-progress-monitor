@@ -8,10 +8,10 @@ const cookieParser = require('cookie-parser');
 // Create a connection pool to MariaDB
 const pool = mariadb.createPool({
     host: 'localhost',       // Database host
-    user: 'root',            // Database username
+    user: 'test',            // Database username
     database: 'react_ploclo',// Database name
     password: '123456',            // Database password
-    port: '3306',   // Database port
+    port: '3308',   // Database port
     connectionLimit: 50,       // Limit the number of connections in the pool
 });
 
