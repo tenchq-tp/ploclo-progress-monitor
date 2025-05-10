@@ -17,6 +17,7 @@ export default function AddProgram({
     program_shortname_th: "",
   });
 
+  // asdwad
   const showAlert = (message, type) => {
     setAlert({ show: true, message, type });
   };
