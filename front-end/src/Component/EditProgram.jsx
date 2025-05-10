@@ -177,6 +177,30 @@ export default function Program() {
     }
   }
 
+  // ------* Functions *-------
+  async function fetchUniversity() {
+    try {
+      const response = await axios.get('/api/university');
+      setUniversities(response.data);
+    } catch {
+      showAlert("ไม่สามารถโหลดรายชื่อมหาวิทยาลัยได้", "danger");
+    }
+  }
+
+  async function fetchFaculty() {
+    try {
+      const res = axios.get(`/api/university/faculty?university_id=${selectedUniversity}`);
+      const facultyData = Array.isArray(response.data)
+          ? response.data
+          : [response.data];
+        setFacultys(facultyData);
+    } catch {
+      showAlert("ไม่สามารถโหลดคณะได้", "danger");
+      setFacultys([]);
+      setSelectedFaculty("all");
+    }
+  }
+
   useEffect(() => {
     fetchUniversity();
   }, []);
