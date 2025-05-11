@@ -176,7 +176,6 @@ export default function Program() {
       setSelectedProgram("all");
     }
   }
-
   useEffect(() => {
     fetchUniversity();
   }, []);
@@ -187,7 +186,6 @@ export default function Program() {
       setSelectedFaculty("all");
       return;
     }
-
     fetchFaculty();
   }, [selectedUniversity]);
 
@@ -327,6 +325,7 @@ export default function Program() {
   const handleFacultyChange = (e) => {
     setSelectedFaculty(e.target.value);
   };
+
   const handleTabClick = (tabIndex) => {
     setActiveTab(tabIndex);
     setShowLoadPreviousPLOModal(false); // ปิด modal เมื่อเปลี่ยนแท็บ

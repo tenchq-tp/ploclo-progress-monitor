@@ -563,7 +563,7 @@ export default function Course() {
   const fetchCourseWeights = async (programId) => {
     try {
       if (!selectedCourseId || !selectedSectionId || !selectedSemesterId || !selectedYear) {
-        console.log("ไม่มีพารามิเตอร์ที่จำเป็นสำหรับการดึงข้อมูล weights");
+        // console.log("ไม่มีพารามิเตอร์ที่จำเป็นสำหรับการดึงข้อมูล weights");
         return;
       }
   
@@ -616,7 +616,7 @@ export default function Course() {
         });
         setCloWeights(cloWeightsObj);
       } else {
-        console.log("ไม่พบข้อมูล course_clo");
+        // console.log("ไม่พบข้อมูล course_clo");
         setWeights({});
         setCloWeights({});
       }
@@ -2944,24 +2944,24 @@ export default function Course() {
       alert("ไม่พบข้อมูล CLO สำหรับ Assignment นี้ กรุณาเพิ่ม CLO ก่อนบันทึกคะแนน");
       return;
     }
-  
+
     // ตรวจสอบว่ามี homeworks หรือไม่
     if (!homeworks || homeworks.length === 0) {
       alert("ไม่พบข้อมูล Assignment ที่จะบันทึก");
       return;
     }
-  
+
     // เตรียมข้อมูลสำหรับส่งไป API
     const prepareDataForApi = () => {
       const apiData = [];
-  
+
       homeworks.forEach((hw) => {
         // สำหรับแต่ละ CLO ใน homework
         for (const cloId in hw.scores) {
           if (Object.prototype.hasOwnProperty.call(hw.scores, cloId)) {
             const score = Number(hw.scores[cloId]) || 0;
             const weight = cloWeights[cloId] || 0;
-  
+
             apiData.push({
               assignment_id: hw.id,
               item: {
@@ -2973,10 +2973,10 @@ export default function Course() {
           }
         }
       });
-  
+
       return apiData;
     };
-  
+
     // บันทึกข้อมูล
     const saveData = async () => {
       try {
@@ -3009,7 +3009,7 @@ export default function Course() {
         setLoading(false);
       }
     };
-  
+
     saveData();
   };
 
@@ -3776,7 +3776,7 @@ export default function Course() {
                 className="form-select"
                 value={selectedCourseId || ""}
                 onChange={(e) => {
-                  console.log("Selected Course:", e.target.value);
+                  // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
                 disabled={!newCourse.semester_id}
@@ -3797,7 +3797,7 @@ export default function Course() {
                 className="form-select"
                 value={selectedSectionId || ""}
                 onChange={(e) => {
-                  console.log("Selected Section:", e.target.value);
+                  // console.log("Selected Section:", e.target.value);
                   setSelectedSectionId(e.target.value);
                 }}
                 disabled={!selectedCourseId}
@@ -5195,7 +5195,6 @@ export default function Course() {
 
 
 
-
               {selectedAssignment && (
                 <div className="modal fade show" style={{ display: "block" }}>
                   <div className="modal-dialog modal-lg">
@@ -5228,7 +5227,6 @@ export default function Course() {
                                 <p><strong>วันที่สร้าง:</strong> {selectedAssignment.created_at ? new Date(selectedAssignment.created_at).toLocaleDateString("th-TH") : "-"}</p>
                               </div>
                             </div>
-
 
                             {/* แสดงข้อมูล CLO จากการค้นหาจาก CLOs ที่มีอยู่แล้ว */}
                             <h6 className="mt-4 mb-3">คะแนน CLO</h6>
