@@ -4,7 +4,7 @@ async function getAll(req, res) {
   try {
     const conn = await pool.getConnection();
     const result = await conn.query("SELECT * FROM course");
-    res.json(result);
+    res.json(resultyFilter);
     conn.release();
   } catch (err) {
     console.error(err);

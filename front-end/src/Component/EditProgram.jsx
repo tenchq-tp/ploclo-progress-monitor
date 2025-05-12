@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
 import PreviousPLOs from "./EditProgram/PreviousPlo";
 import AddProgram from "./EditProgram/AddProgram";
+import EditProgramModal from "./EditProgram/EditProgramModal";
 
 export default function Program() {
   const [program, setProgram] = useState([]);
@@ -51,6 +52,19 @@ export default function Program() {
     useState(false);
   const [previousYearPLOs, setPreviousYearPLOs] = useState([]);
   const [showPasteArea, setShowPasteArea] = useState(false);
+
+  // -------> Edit Program Modal
+  const [name, setName] = useState("Natthapong Pan-in");
+  const [initialProgramValue, setInitialProgramValue] = useState({
+    program_id: "",
+    code: "",
+    program_name: "",
+    program_name_th: "",
+    program_shortname_en: "",
+    program_shortname_th: "",
+    year: "",
+  });
+  const [showPopup, setShowPopup] = useState(false);
 
   // ---------* Function *-----------
   async function fetchUniversity() {
@@ -888,6 +902,25 @@ export default function Program() {
     }
   };
 
+  async function updateProgramToDatabase(updatedProgram) {
+    await axios.put(
+      `/api/program/${updatedProgram.program_id}/update`,
+      updatedProgram
+    );
+  }
+
+  const handleSaveProgram = async (updatedProgram) => {
+    try {
+      await updateProgramToDatabase(updatedProgram);
+      setInitialProgramValue(updatedProgram);
+
+      setShowPopup(false);
+      fetchProgram();
+    } catch (err) {
+      console.error("Update failed:", err);
+    }
+  };
+
   const pageStyle = {
     backgroundColor: "#ffffff",
     padding: "30px",
@@ -1155,7 +1188,18 @@ export default function Program() {
                       </button>
                       <button
                         className="btn btn-primary btn-sm"
-                        onClick={() => handleEditProgram(p.program_id)}>
+                        onClick={() => {
+                          setInitialProgramValue({
+                            program_id: p.program_id,
+                            code: p.code,
+                            program_name: p.program_name,
+                            program_name_th: p.program_name_th,
+                            program_shortname_en: p.program_shortname_en,
+                            program_shortname_th: p.program_shortname_th,
+                            year: p.year,
+                          });
+                          setShowPopup(true);
+                        }}>
                         Edit
                       </button>
                     </div>
@@ -1164,6 +1208,13 @@ export default function Program() {
               ))}
             </tbody>
           </table>
+          {showPopup && (
+            <EditProgramModal
+              initialValue={initialProgramValue}
+              onSave={handleSaveProgram}
+              onCancel={() => setShowPopup(false)}
+            />
+          )}
           <hr className="my-4" />
           <AddProgram
             setAlert={setAlert}

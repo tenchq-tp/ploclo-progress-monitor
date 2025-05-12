@@ -12,10 +12,14 @@ async function getManyByProgram(req, res) {
   try {
     const conn = await pool.getConnection();
     const plos = await conn.query(
-      `SELECT p.PLO_id, p.PLO_name, p.PLO_engname,  p.PLO_code
-             FROM plo p
-             INNER JOIN program_plo pp ON p.PLO_id = pp.PLO_id
-             WHERE pp.program_id = ?`,
+      `
+        SELECT p.PLO_id, p.PLO_name, p.PLO_engname,  p.PLO_code
+        FROM plo p
+        INNER JOIN program_plo pp ON p.PLO_id = pp.PLO_id
+        WHERE pp.program_id = ?
+        ORDER BY p.PLO_id ASC
+    `,
+
       [program_id]
     );
 

@@ -9,6 +9,8 @@ const pool = mariadb.createPool({
   port: process.env.DB_PORT,
   connectionLimit: 50,
   initSql: "SET NAMES utf8mb4",
+  allowPublicKeyRetrieval: true,
+  ssl: false,
 });
 
 pool

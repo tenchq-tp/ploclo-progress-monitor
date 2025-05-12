@@ -4,6 +4,10 @@ import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
 import { FaBars } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import AddCourse from "./EditCourse/AddCourse";
+import EditCourse from "./EditCourse/EditCourse";
+import CourseTable from "./EditCourse/CourseTable";
+import TableEditCloWeight from "./EditCourse/TableEditCloWeight";
 
 export default function Course() {
   const [course, setCourse] = useState([]);
@@ -63,7 +67,8 @@ export default function Course() {
   const [excelData, setExcelData] = useState(null);
   const [typeError, setTypeError] = useState(null);
   const [previousYearCLOs, setPreviousYearCLOs] = useState([]);
-  const [showPreviousYearCLOsModal, setShowPreviousYearCLOsModal] = useState(false);
+  const [showPreviousYearCLOsModal, setShowPreviousYearCLOsModal] =
+    useState(false);
   const [allPLOs, setAllPLOs] = useState([]);
   const [showPasteArea, setShowPasteArea] = useState(false);
   const [programCourseData, setProgramCourseData] = useState({
@@ -74,36 +79,35 @@ export default function Course() {
   });
 
   const [fileUploaded, setFileUploaded] = useState(false);
-  const [currentAssignment, setCurrentAssignment] = useState(null)
-  const [currentStep, setCurrentStep] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const navigate = useNavigate()
-  const [assignmentName, setAssignmentName] = useState("")
+  const [currentAssignment, setCurrentAssignment] = useState(null);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const [assignmentName, setAssignmentName] = useState("");
   const [isEditing, setIsEditing] = useState(false); // เพิ่มตรงนี้
 
-
   // Step 2: CLO Scoring System state
-  const [homeworks, setHomeworks] = useState([])
-  const [validationErrors, setValidationErrors] = useState({})
-  const [cloWeights, setCloWeights] = useState({})
+  const [homeworks, setHomeworks] = useState([]);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [cloWeights, setCloWeights] = useState({});
 
   // Step 3: Import Students state
-  const [importedStudents, setImportedStudents] = useState([])
-  const [clipboardText, setClipboardText] = useState("")
-  const [importErrors, setImportErrors] = useState([])
-  const [importSuccess, setImportSuccess] = useState("")
-  const [currentAssignmentId, setCurrentAssignmentId] = useState(null)
+  const [importedStudents, setImportedStudents] = useState([]);
+  const [clipboardText, setClipboardText] = useState("");
+  const [importErrors, setImportErrors] = useState([]);
+  const [importSuccess, setImportSuccess] = useState("");
+  const [currentAssignmentId, setCurrentAssignmentId] = useState(null);
 
   // Other state variables
-  const [assignments, setAssignments] = useState([])
-  const [selectedAssignment, setSelectedAssignment] = useState(null)
-  const [students, setStudents] = useState([])
-  const [selectedStudentName, setSelectedStudentName] = useState("")
-  const [selectedCourse, setSelectedCourse] = useState("")
-  const [selectedAssignmentName, setSelectedAssignmentName] = useState("")
-  const [year, setYear] = useState("")
-  const [courses, setCourses] = useState([])
+  const [assignments, setAssignments] = useState([]);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [selectedStudentName, setSelectedStudentName] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedAssignmentName, setSelectedAssignmentName] = useState("");
+  const [year, setYear] = useState("");
+  const [courses, setCourses] = useState([]);
 
   const [weightDisplay, setWeightDisplay] = useState([]);
   const [courseClo, setCourseClo] = useState({});
@@ -118,9 +122,8 @@ export default function Course() {
     year: "",
     program_id: "",
     faculty_id: "",
-    university_id: ""
+    university_id: "",
   });
-
 
   // แก้ไขการเรียกใช้ API เพื่อดึงข้อมูลมหาวิทยาลัย
   useEffect(() => {
@@ -157,9 +160,13 @@ export default function Course() {
 
     const fetchFaculties = async () => {
       try {
-        const response = await axios.get(`/faculty?university_id=${selectedUniversity}`);
+        const response = await axios.get(
+          `/faculty?university_id=${selectedUniversity}`
+        );
         // console.log("Response from faculty API:", response);
-        const facultyData = Array.isArray(response.data) ? response.data : [response.data].filter(Boolean);
+        const facultyData = Array.isArray(response.data)
+          ? response.data
+          : [response.data].filter(Boolean);
         // console.log("Processed Faculty Data:", facultyData);
         setFacultys(facultyData);
       } catch (error) {
@@ -185,7 +192,9 @@ export default function Course() {
 
     const fetchPrograms = async () => {
       try {
-        const response = await axios.get(`/program?faculty_id=${selectedFaculty}`);
+        const response = await axios.get(
+          `/program?faculty_id=${selectedFaculty}`
+        );
         // ตรวจสอบและแปลงข้อมูลให้เป็น array เสมอ
         const programData = Array.isArray(response.data)
           ? response.data
@@ -256,7 +265,10 @@ export default function Course() {
         setYears(uniqueYears);
 
         // ตรวจสอบว่าปีที่เลือกไว้ยังอยู่ในรายการปีใหม่หรือไม่
-        if (uniqueYears.length > 0 && !uniqueYears.includes(parseInt(selectedYear))) {
+        if (
+          uniqueYears.length > 0 &&
+          !uniqueYears.includes(parseInt(selectedYear))
+        ) {
           setSelectedYear("");
         }
 
@@ -303,7 +315,13 @@ export default function Course() {
 
   // แก้ไขการดึงข้อมูล CLO เมื่อเลือกรายวิชา
   useEffect(() => {
-    if (selectedCourseId && selectedSectionId && selectedSemesterId && selectedYear && selectedProgram) {
+    if (
+      selectedCourseId &&
+      selectedSectionId &&
+      selectedSemesterId &&
+      selectedYear &&
+      selectedProgram
+    ) {
       // console.log("กำลังดึงข้อมูล CLO สำหรับรายวิชาที่เลือก:", {
       //   program_id: selectedProgram,
       //   course_id: selectedCourseId,
@@ -316,7 +334,8 @@ export default function Course() {
         try {
           // ค้นหาข้อมูลโปรแกรม
           const programData = programs.find(
-            program => program.program_id.toString() === selectedProgram.toString()
+            (program) =>
+              program.program_id.toString() === selectedProgram.toString()
           );
 
           if (!programData) {
@@ -332,8 +351,8 @@ export default function Course() {
               course_id: selectedCourseId,
               semester_id: selectedSemesterId,
               section_id: selectedSectionId,
-              year: selectedYear
-            }
+              year: selectedYear,
+            },
           });
 
           // console.log("ข้อมูล CLO ที่ได้รับ:", response.data);
@@ -342,31 +361,39 @@ export default function Course() {
           let formattedCLOs = [];
 
           if (Array.isArray(response.data)) {
-            formattedCLOs = response.data.map(clo => ({
-              CLO_id: clo.clo_id || clo.CLO_id,  // รองรับทั้งสองรูปแบบ
-              CLO_code: clo.CLO_code || clo.clo_code || `CLO${clo.clo_id || clo.CLO_id}`,
+            formattedCLOs = response.data.map((clo) => ({
+              CLO_id: clo.clo_id || clo.CLO_id, // รองรับทั้งสองรูปแบบ
+              CLO_code:
+                clo.CLO_code ||
+                clo.clo_code ||
+                `CLO${clo.clo_id || clo.CLO_id}`,
               CLO_name: clo.CLO_name || clo.clo_name || "",
               CLO_engname: clo.CLO_engname || clo.clo_engname || "",
               course_id: clo.course_id || selectedCourseId,
               section_id: clo.section_id || selectedSectionId,
               semester_id: clo.semester_id || selectedSemesterId,
               year: clo.year || selectedYear,
-              weight: clo.weight || 0
+              weight: clo.weight || 0,
             }));
-          } else if (response.data && typeof response.data === 'object') {
+          } else if (response.data && typeof response.data === "object") {
             // กรณีข้อมูลเป็น object เดียว
             const clo = response.data;
-            formattedCLOs = [{
-              CLO_id: clo.clo_id || clo.CLO_id,
-              CLO_code: clo.CLO_code || clo.clo_code || `CLO${clo.clo_id || clo.CLO_id}`,
-              CLO_name: clo.CLO_name || clo.clo_name || "",
-              CLO_engname: clo.CLO_engname || clo.clo_engname || "",
-              course_id: clo.course_id || selectedCourseId,
-              section_id: clo.section_id || selectedSectionId,
-              semester_id: clo.semester_id || selectedSemesterId,
-              year: clo.year || selectedYear,
-              weight: clo.weight || 0
-            }];
+            formattedCLOs = [
+              {
+                CLO_id: clo.clo_id || clo.CLO_id,
+                CLO_code:
+                  clo.CLO_code ||
+                  clo.clo_code ||
+                  `CLO${clo.clo_id || clo.CLO_id}`,
+                CLO_name: clo.CLO_name || clo.clo_name || "",
+                CLO_engname: clo.CLO_engname || clo.clo_engname || "",
+                course_id: clo.course_id || selectedCourseId,
+                section_id: clo.section_id || selectedSectionId,
+                semester_id: clo.semester_id || selectedSemesterId,
+                year: clo.year || selectedYear,
+                weight: clo.weight || 0,
+              },
+            ];
           }
 
           // console.log("ข้อมูล CLO ที่จัดรูปแบบแล้ว:", formattedCLOs);
@@ -393,7 +420,13 @@ export default function Course() {
       setMappings([]);
       setPlos([]);
     }
-  }, [selectedCourseId, selectedSectionId, selectedSemesterId, selectedYear, selectedProgram]);
+  }, [
+    selectedCourseId,
+    selectedSectionId,
+    selectedSemesterId,
+    selectedYear,
+    selectedProgram,
+  ]);
 
   // ดึงข้อมูลหลักสูตรและภาคเรียนเมื่อเริ่มต้นใช้งาน
   useEffect(() => {
@@ -417,7 +450,13 @@ export default function Course() {
 
   // ตรวจสอบว่าฟิลเตอร์ครบถ้วนและเรียกใช้ API ตามฟิลเตอร์
   useEffect(() => {
-    if (selectedUniversity && selectedFaculty && selectedProgram && selectedYear && newCourse.semester_id) {
+    if (
+      selectedUniversity &&
+      selectedFaculty &&
+      selectedProgram &&
+      selectedYear &&
+      newCourse.semester_id
+    ) {
       setAllFiltersSelected(true);
       setShowMapping(true); // This requires semester to be selected
 
@@ -455,15 +494,33 @@ export default function Course() {
       setWeights({});
       setScores({});
     }
-  }, [selectedUniversity, selectedFaculty, selectedYear, selectedProgram, newCourse.semester_id]);
+  }, [
+    selectedUniversity,
+    selectedFaculty,
+    selectedYear,
+    selectedProgram,
+    newCourse.semester_id,
+  ]);
 
   // ใช้ useEffect เพื่อดึงข้อมูล weights เมื่อข้อมูลที่จำเป็นพร้อม
   useEffect(() => {
-    if (selectedProgram && selectedCourseId && selectedSectionId && selectedSemesterId && selectedYear) {
+    if (
+      selectedProgram &&
+      selectedCourseId &&
+      selectedSectionId &&
+      selectedSemesterId &&
+      selectedYear
+    ) {
       // console.log("ข้อมูลพร้อม - เรียกใช้ fetchCourseWeights");
       fetchCourseWeights(selectedProgram);
     }
-  }, [selectedProgram, selectedCourseId, selectedSectionId, selectedSemesterId, selectedYear]);
+  }, [
+    selectedProgram,
+    selectedCourseId,
+    selectedSectionId,
+    selectedSemesterId,
+    selectedYear,
+  ]);
 
   // แก้ไขการอัพเดต weights จาก mappings
   useEffect(() => {
@@ -511,14 +568,15 @@ export default function Course() {
   useEffect(() => {
     if (selectedCourseId && selectedSectionId && selectedSemesterId) {
       // ดึงข้อมูล PLO
-      axios.get("/program_plo", { params: { program_id: selectedProgram } })
-        .then(response => {
+      axios
+        .get("/program_plo", { params: { program_id: selectedProgram } })
+        .then((response) => {
           const plosData = response.data;
           // console.log("PLOs data:", plosData);
 
           // ตรวจสอบ ID ของแต่ละ PLO
           if (Array.isArray(plosData)) {
-            plosData.forEach(plo => {
+            plosData.forEach((plo) => {
               // console.log(`PLO: ${plo.PLO_code}, ID: ${plo.plo_id}`);
             });
           }
@@ -544,7 +602,7 @@ export default function Course() {
         return;
       }
 
-      const response_course_clo = await axios.get('/course-clo');
+      const response_course_clo = await axios.get("/course-clo");
       setCourseClo(response_course_clo.data);
 
       const response = await axios.get("/clo");
@@ -562,19 +620,24 @@ export default function Course() {
 
   const fetchCourseWeights = async (programId) => {
     try {
-      if (!selectedCourseId || !selectedSectionId || !selectedSemesterId || !selectedYear) {
+      if (
+        !selectedCourseId ||
+        !selectedSectionId ||
+        !selectedSemesterId ||
+        !selectedYear
+      ) {
         // console.log("ไม่มีพารามิเตอร์ที่จำเป็นสำหรับการดึงข้อมูล weights");
         return;
       }
-  
+
       console.log("กำลังดึงข้อมูล course_clo weights ด้วยพารามิเตอร์:", {
         program_id: programId,
         course_id: selectedCourseId,
         section_id: selectedSectionId,
         semester_id: selectedSemesterId,
-        year: selectedYear
+        year: selectedYear,
       });
-  
+
       // เปลี่ยนจาก '/course_clo' เป็น '/course_clo_with_weight' เพื่อดึงข้อมูล weight
       const response = await axios.get("/course_clo_with_weight", {
         params: {
@@ -582,36 +645,36 @@ export default function Course() {
           course_id: selectedCourseId,
           section_id: selectedSectionId,
           semester_id: selectedSemesterId,
-          year: selectedYear
-        }
+          year: selectedYear,
+        },
       });
-  
+
       console.log("ข้อมูลจาก API course_clo_with_weight:", response.data);
-  
+
       if (Array.isArray(response.data) && response.data.length > 0) {
-        setWeightEachCourse(prev => {
+        setWeightEachCourse((prev) => {
           const newWeights = { ...prev };
-  
-          response.data.forEach(item => {
+
+          response.data.forEach((item) => {
             const cloId = item.CLO_id;
             const weight = item.weight || 0;
-  
+
             if (cloId !== undefined) {
               const key = `a${selectedCourseId}_${cloId}`;
               newWeights[key] = {
                 weight,
                 clo_id: cloId,
-                course_id: selectedCourseId
+                course_id: selectedCourseId,
               };
             }
           });
-  
+
           return newWeights;
         });
-  
+
         // เพิ่มการเก็บค่า weight ในอีกตัวแปรสำหรับใช้ในการคำนวณคะแนน
         const cloWeightsObj = {};
-        response.data.forEach(item => {
+        response.data.forEach((item) => {
           cloWeightsObj[item.CLO_id] = item.weight || 0;
         });
         setCloWeights(cloWeightsObj);
@@ -638,7 +701,9 @@ export default function Course() {
         return;
       }
 
-      const response = await axios.get(`/program_plo?program_id=${selectedProgram}`);
+      const response = await axios.get(
+        `/program_plo?program_id=${selectedProgram}`
+      );
       // console.log("PLO response:", response.data);
 
       // ปรับแต่งข้อมูลให้มีฟิลด์ PLO_id
@@ -646,20 +711,22 @@ export default function Course() {
       const data = response.data;
 
       if (data.success && Array.isArray(data.message)) {
-        formattedPLOs = data.message.map(plo => ({
+        formattedPLOs = data.message.map((plo) => ({
           ...plo,
-          PLO_id: plo.PLO_id || plo.plo_id
+          PLO_id: plo.PLO_id || plo.plo_id,
         }));
       } else if (Array.isArray(data)) {
-        formattedPLOs = data.map(plo => ({
+        formattedPLOs = data.map((plo) => ({
           ...plo,
-          PLO_id: plo.PLO_id || plo.plo_id
+          PLO_id: plo.PLO_id || plo.plo_id,
         }));
       } else if (data) {
-        formattedPLOs = [{
-          ...data,
-          PLO_id: data.PLO_id || data.plo_id
-        }];
+        formattedPLOs = [
+          {
+            ...data,
+            PLO_id: data.PLO_id || data.plo_id,
+          },
+        ];
       }
 
       // console.log("Formatted PLOs:", formattedPLOs);
@@ -676,7 +743,7 @@ export default function Course() {
     const uniquePrograms = [];
     const seenNames = new Set();
 
-    programsArray.forEach(program => {
+    programsArray.forEach((program) => {
       // ใช้ program_name เป็น key
       const programName = program.program_name;
 
@@ -708,8 +775,8 @@ export default function Course() {
       const response = await axios.get("/program_courses_detail", {
         params: {
           program_id: selectedProgram,
-          year: selectedYear
-        }
+          year: selectedYear,
+        },
       });
 
       if (!response.data || !Array.isArray(response.data)) {
@@ -721,16 +788,15 @@ export default function Course() {
       console.log("Raw courses data:", response.data);
 
       // กรองข้อมูลตามปีและภาคเรียนที่เลือก
-      const filteredCourses = response.data.filter(course => {
+      const filteredCourses = response.data.filter((course) => {
         const courseYear = parseInt(course.year);
         const targetYear = parseInt(selectedYear);
         const isSameYear = courseYear === targetYear;
-        const isSameSemester = parseInt(course.semester_id) === parseInt(newCourse.semester_id);
+        const isSameSemester =
+          parseInt(course.semester_id) === parseInt(newCourse.semester_id);
 
         return isSameYear && isSameSemester;
       });
-
-      console.log(`Filtered ${response.data.length} courses to ${filteredCourses.length} courses for year ${selectedYear} and semester ${newCourse.semester_id}`);
       setCourse(filteredCourses);
 
       // หากมี course และมีการเลือก program ครบถ้วน ให้ดึงข้อมูล weights
@@ -753,11 +819,7 @@ export default function Course() {
         setSemesters([]);
         return;
       }
-
-      console.log("Fetched Semesters:", response.data);
-
       const uniqueSemesters = getUniqueSemesters(response.data);
-      console.log("Unique Semesters:", uniqueSemesters);
       setSemesters(uniqueSemesters || []);
     } catch (err) {
       console.error("Error fetching semesters:", err);
@@ -775,7 +837,8 @@ export default function Course() {
     }
 
     // เคลียร์ข้อมูลตามแท็บที่เลือก
-    if (tabIndex === 4) { // แท็บ Assignment
+    if (tabIndex === 4) {
+      // แท็บ Assignment
       // ไม่ต้องรีเซ็ตข้อมูลทั้งหมดเพื่อให้สามารถกลับมาดูข้อมูลเดิมได้
       setCurrentStep(1);
       setError(null);
@@ -814,9 +877,9 @@ export default function Course() {
     const { name, value } = e.target;
 
     // อัพเดทค่าใน newCourse
-    setNewCourse(prev => ({
+    setNewCourse((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
 
     // หากเป็นการเปลี่ยนภาคเรียน ให้อัพเดทค่า selectedSemesterId สำหรับแท็บ CLO ด้วย
@@ -828,7 +891,7 @@ export default function Course() {
         console.log("Fetching courses for:", {
           program_id: selectedProgram,
           year: selectedYear,
-          semester_id: value
+          semester_id: value,
         });
 
         fetchCourses();
@@ -846,7 +909,7 @@ export default function Course() {
 
   function handleEditWeightEachCourse(course_id, clo_id, newWeight) {
     const key = `a${course_id}_${clo_id}`;
-    setWeightEachCourse(prev => ({
+    setWeightEachCourse((prev) => ({
       ...prev,
       [key]: {
         ...prev[key],
@@ -859,14 +922,15 @@ export default function Course() {
     refreshDataAndMappings();
   };
 
-
   // แก้ไขฟังก์ชัน handlePostScores เพื่อตรวจสอบว่าอยู่ที่แท็บไหน
   const handlePostScores = () => {
     // ตรวจสอบว่าตอนนี้อยู่ที่แท็บไหนอย่างชัดเจน
-    if (activeTab === 3) {  // ถ้าอยู่ที่แท็บ CLO-PLO Mapping (แท็บ 3)
+    if (activeTab === 3) {
+      // ถ้าอยู่ที่แท็บ CLO-PLO Mapping (แท็บ 3)
       // ส่งข้อมูลไปยังตาราง plo_clo
       handlePostPloCloScores();
-    } else if (activeTab === 2) {  // ถ้าอยู่ที่แท็บ Course-CLO Mapping (แท็บ 2)
+    } else if (activeTab === 2) {
+      // ถ้าอยู่ที่แท็บ Course-CLO Mapping (แท็บ 2)
       // ส่งข้อมูลไปยังตาราง course_clo
       handlePostCourseCloScores();
     }
@@ -882,7 +946,13 @@ export default function Course() {
     }
 
     // ตรวจสอบข้อมูลที่จำเป็น
-    if (!selectedProgram || !selectedSemesterId || !selectedYear || !selectedCourseId || !selectedSectionId) {
+    if (
+      !selectedProgram ||
+      !selectedSemesterId ||
+      !selectedYear ||
+      !selectedCourseId ||
+      !selectedSectionId
+    ) {
       alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
@@ -900,7 +970,7 @@ export default function Course() {
     for (const key in scores) {
       if (scores[key] > 0) {
         // แยกค่า PLO_id และ CLO_id จาก key
-        const parts = key.split('-');
+        const parts = key.split("-");
 
         // ตรวจสอบว่ามีการแบ่งอย่างถูกต้อง
         if (parts.length !== 2) {
@@ -919,20 +989,22 @@ export default function Course() {
 
         // เพิ่มข้อมูลที่จะส่ง
         ploCloData.push({
-          PLO_id: ploId,  // ต้องใช้ชื่อฟิลด์ให้ตรงกับที่ backend ต้องการ
+          PLO_id: ploId, // ต้องใช้ชื่อฟิลด์ให้ตรงกับที่ backend ต้องการ
           CLO_id: cloId,
           course_id: parseInt(selectedCourseId, 10),
           section_id: parseInt(selectedSectionId, 10),
           semester_id: parseInt(selectedSemesterId, 10),
           year: parseInt(selectedYear, 10),
-          weight: parseInt(scores[key], 10) || 0
+          weight: parseInt(scores[key], 10) || 0,
         });
       }
     }
 
     // ตรวจสอบว่ามีข้อมูลที่จะส่งหรือไม่
     if (ploCloData.length === 0) {
-      alert("ไม่มีคะแนนที่จะส่ง หรือข้อมูลมีรูปแบบไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง");
+      alert(
+        "ไม่มีคะแนนที่จะส่ง หรือข้อมูลมีรูปแบบไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง"
+      );
       return;
     }
 
@@ -941,131 +1013,42 @@ export default function Course() {
 
     // สร้าง payload ในรูปแบบที่ server ต้องการ
     const payload = {
-      scores: ploCloData  // เปลี่ยนจาก mappings เป็น scores
+      scores: ploCloData, // เปลี่ยนจาก mappings เป็น scores
     };
 
     // แสดงข้อมูลที่จะส่งในคอนโซล
     console.log("กำลังส่งข้อมูล plo_clo:", JSON.stringify(payload, null, 2));
 
-
     // หลังจากบันทึกข้อมูลเรียบร้อยแล้ว ให้เรียกใช้ฟังก์ชันรีเฟรชข้อมูล
-    axios.post("/plo_clo", payload)
-      .then((response) => {
-        if (response.data && response.data.success) {
-          // เพิ่มการเรียกใช้ฟังก์ชันดึงข้อมูลใหม่
-          fetchPLOCLOMappings();
-          alert("บันทึกการเชื่อมโยง PLO-CLO สำเร็จ!");
-          setEditingScores(false);
-        }
-      });
+    axios.post("/plo_clo", payload).then((response) => {
+      if (response.data && response.data.success) {
+        // เพิ่มการเรียกใช้ฟังก์ชันดึงข้อมูลใหม่
+        fetchPLOCLOMappings();
+        alert("บันทึกการเชื่อมโยง PLO-CLO สำเร็จ!");
+        setEditingScores(false);
+      }
+    });
   };
 
-  // เปลี่ยนชื่อฟังก์ชันเดิมเป็น handlePostCourseCloScores
-  // const handlePostCourseCloScores = () => {
-  //   console.log("กำลังบันทึกข้อมูลลงตาราง course_clo");
-
-  //   // ตรวจสอบว่าตอนนี้อยู่ที่แท็บ Course-CLO Mapping จริงๆ
-  //   if (activeTab !== 2) {
-  //     console.error("ฟังก์ชันนี้ควรถูกเรียกจากแท็บ Course-CLO Mapping เท่านั้น");
-  //     return;
-  //   }
-  //   // ตรวจสอบข้อมูลที่จำเป็น
-  //   if (!selectedProgram || !selectedSemesterId || !selectedYear || !selectedCourseId || !selectedSectionId) {
-  //     alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-  //     return;
-  //   }
-
-  //   // ตรวจสอบว่ามีข้อมูล scores หรือไม่
-  //   if (Object.keys(scores).length === 0) {
-  //     alert("ไม่มีคะแนนที่จะส่ง กรุณาใส่คะแนนก่อน");
-  //     return;
-  //   }
-
-  //   // สร้าง array courseCloData สำหรับเก็บข้อมูลที่จะส่งไปยัง API
-  //   const courseCloData = [];
-
-  //   // สร้างข้อมูล course_clo
-  //   for (const key in scores) {
-  //     if (scores[key] > 0) {
-  //       const parts = key.split('-');
-  //       let cloId;
-
-  //       if (parts.length === 2) {
-  //         cloId = parts[1];
-  //       } else {
-  //         cloId = key;
-  //       }
-
-  //       // เพิ่มข้อมูลเฉพาะที่จำเป็น - เน้นเรื่องการอัพเดทค่า weight
-  //       courseCloData.push({
-  //         course_id: parseInt(selectedCourseId, 10),
-  //         clo_id: parseInt(cloId, 10), // ใช้ตัวเล็กตามข้อมูลที่เห็นใน console
-  //         section_id: parseInt(selectedSectionId, 10),
-  //         semester_id: parseInt(selectedSemesterId, 10),
-  //         year: parseInt(selectedYear, 10),
-  //         weight: parseInt(scores[key], 10) || 0
-  //       });
-  //     }
-  //   }
-
-  //   // ตรวจสอบว่ามีข้อมูลที่จะส่งหรือไม่
-  //   if (courseCloData.length === 0) {
-  //     alert("ไม่มีคะแนนที่จะส่ง กรุณาใส่คะแนนก่อน");
-  //     return;
-  //   }
-
-  //   // แสดง loading spinner
-  //   setLoading(true);
-
-  //   // สร้าง payload ในรูปแบบที่ server ต้องการ - เน้นการอัพเดทเท่านั้น
-  //   const payload = {
-  //     program_id: parseInt(selectedProgram, 10),
-  //     semester_id: parseInt(selectedSemesterId, 10),
-  //     section_id: parseInt(selectedSectionId, 10),
-  //     year: parseInt(selectedYear, 10),
-  //     scores: courseCloData
-  //   };
-
-  //   console.log("Sending course_clo payload:", JSON.stringify(payload, null, 2));
-
-  //   // ใช้ PATCH method แทน เพื่อทำการอัพเดทเท่านั้น
-  //   axios.patch("/course_clo/weight", payload)
-  //     .then((response) => {
-  //       console.log("API response for course_clo:", response.data);
-
-  //       if (response.data && response.data.success) {
-  //         // อัปเดตสถานะ
-  //         alert("บันทึกการเชื่อมโยง Course-CLO สำเร็จ!");
-  //         setEditingScores(false); // ออกจากโหมดแก้ไข
-  //         refreshDataFromServer();
-  //       } else {
-  //         alert(response.data?.message || "เกิดข้อผิดพลาด");
-  //       }
-  //       setLoading(false);
-  //     })
-  //     .catch((error) => {
-  //       console.error("เกิดข้อผิดพลาดในการส่งข้อมูล:", error);
-
-  //       // แสดงรายละเอียดข้อผิดพลาด
-  //       let errorMsg = `เกิดข้อผิดพลาด: ${error.message}`;
-  //       if (error.response && error.response.data) {
-  //         errorMsg += `\nรายละเอียด: ${JSON.stringify(error.response.data)}`;
-  //       }
-  //       alert(errorMsg);
-  //       setLoading(false);
-  //     });
-  // };
   const handlePostCourseCloScores = () => {
     console.log("กำลังบันทึกข้อมูลลงตาราง course_clo");
 
     // ตรวจสอบว่าตอนนี้อยู่ที่แท็บ Course-CLO Mapping จริงๆ
     if (activeTab !== 2) {
-      console.error("ฟังก์ชันนี้ควรถูกเรียกจากแท็บ Course-CLO Mapping เท่านั้น");
+      console.error(
+        "ฟังก์ชันนี้ควรถูกเรียกจากแท็บ Course-CLO Mapping เท่านั้น"
+      );
       return;
     }
 
     // ตรวจสอบข้อมูลที่จำเป็น
-    if (!selectedProgram || !selectedSemesterId || !selectedYear || !selectedCourseId || !selectedSectionId) {
+    if (
+      !selectedProgram ||
+      !selectedSemesterId ||
+      !selectedYear ||
+      !selectedCourseId ||
+      !selectedSectionId
+    ) {
       alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
@@ -1097,7 +1080,7 @@ export default function Course() {
             section_id: parseInt(selectedSectionId, 10),
             semester_id: parseInt(selectedSemesterId, 10),
             year: parseInt(selectedYear, 10),
-            weight: parseInt(value.weight, 10) || 0
+            weight: parseInt(value.weight, 10) || 0,
           });
         }
       }
@@ -1118,13 +1101,17 @@ export default function Course() {
       semester_id: parseInt(selectedSemesterId, 10),
       section_id: parseInt(selectedSectionId, 10),
       year: parseInt(selectedYear, 10),
-      scores: courseCloData
+      scores: courseCloData,
     };
 
-    console.log("Sending course_clo payload:", JSON.stringify(payload, null, 2));
+    console.log(
+      "Sending course_clo payload:",
+      JSON.stringify(payload, null, 2)
+    );
 
     // ใช้ PATCH method เพื่อทำการอัพเดทเท่านั้น
-    axios.patch("/course_clo/weight", payload)
+    axios
+      .patch("/course_clo/weight", payload)
       .then((response) => {
         console.log("API response for course_clo:", response.data);
 
@@ -1154,7 +1141,13 @@ export default function Course() {
   const refreshDataAndMappings = async () => {
     // 1. ดึงข้อมูล CLO ใหม่
     try {
-      if (selectedProgram && selectedCourseId && selectedSectionId && selectedSemesterId && selectedYear) {
+      if (
+        selectedProgram &&
+        selectedCourseId &&
+        selectedSectionId &&
+        selectedSemesterId &&
+        selectedYear
+      ) {
         console.log("รีเฟรชข้อมูล CLO...");
 
         const response = await axios.get("/course_clo", {
@@ -1163,12 +1156,14 @@ export default function Course() {
             course_id: selectedCourseId,
             semester_id: selectedSemesterId,
             section_id: selectedSectionId,
-            year: selectedYear
-          }
+            year: selectedYear,
+          },
         });
 
         console.log("CLO data refreshed:", response.data);
-        const formattedCLOs = Array.isArray(response.data) ? response.data : [response.data].filter(Boolean);
+        const formattedCLOs = Array.isArray(response.data)
+          ? response.data
+          : [response.data].filter(Boolean);
         setCLOs(formattedCLOs);
 
         // 2. ดึงข้อมูล PLO-CLO mappings ใหม่
@@ -1189,10 +1184,12 @@ export default function Course() {
   // แก้ไขฟังก์ชัน handlePatchScores เพื่อตรวจสอบว่าอยู่ที่แท็บไหน
   const handlePatchScores = () => {
     // ตรวจสอบว่าตอนนี้อยู่ที่แท็บไหนอย่างชัดเจน
-    if (activeTab === 3) {  // ถ้าอยู่ที่แท็บ CLO-PLO Mapping (แท็บ 3)
+    if (activeTab === 3) {
+      // ถ้าอยู่ที่แท็บ CLO-PLO Mapping (แท็บ 3)
       // ส่งข้อมูลไปยังตาราง plo_clo
       handlePatchPloCloScores();
-    } else if (activeTab === 2) {  // ถ้าอยู่ที่แท็บ Course-CLO Mapping (แท็บ 2)
+    } else if (activeTab === 2) {
+      // ถ้าอยู่ที่แท็บ Course-CLO Mapping (แท็บ 2)
       // ส่งข้อมูลไปยังตาราง course_clo
       handlePatchCourseCloScores();
     }
@@ -1211,16 +1208,16 @@ export default function Course() {
     // วนลูปสร้างข้อมูล
     for (const key in scores) {
       if (scores[key] > 0) {
-        const [ploId, cloId] = key.split('-');
+        const [ploId, cloId] = key.split("-");
 
-        ploCloData = ploCloData.map(item => ({
+        ploCloData = ploCloData.map((item) => ({
           PLO_id: item.plo_id || item.PLO_id, // ตรวจสอบและใช้ชื่อฟิลด์ที่ถูกต้อง
           CLO_id: item.clo_id || item.CLO_id,
           course_id: parseInt(selectedCourseId, 10),
           section_id: parseInt(selectedSectionId, 10),
           semester_id: parseInt(selectedSemesterId, 10),
           year: parseInt(selectedYear, 10),
-          weight: parseInt(item.weight, 10) || 0
+          weight: parseInt(item.weight, 10) || 0,
         }));
       }
     }
@@ -1232,7 +1229,8 @@ export default function Course() {
     const ploCloPayload = { mappings: ploCloData };
 
     // ส่งข้อมูล plo_clo
-    axios.patch("/plo_clo", ploCloPayload)
+    axios
+      .patch("/plo_clo", ploCloPayload)
       .then((response) => {
         console.log("ผลลัพธ์การอัพเดต plo_clo:", response.data);
 
@@ -1245,7 +1243,7 @@ export default function Course() {
         }
         setLoading(false);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("เกิดข้อผิดพลาดในการอัปเดตข้อมูล:", error);
         let errorMsg = `เกิดข้อผิดพลาด: ${error.message}`;
         if (error.response && error.response.data) {
@@ -1272,18 +1270,18 @@ export default function Course() {
     // วนลูปสร้างข้อมูลทั้งสองส่วน
     for (const key in scores) {
       if (scores[key] > 0) {
-        const [ploId, cloId] = key.split('-');
+        const [ploId, cloId] = key.split("-");
 
         // เพิ่มข้อมูล plo_clo
         ploCloData.push({
           clo_id: parseInt(cloId, 10),
           plo_id: parseInt(ploId, 10),
           program_id: parseInt(selectedProgram, 10),
-          course_id: parseInt(selectedCourseId, 10),  // เพิ่ม parameter ที่จำเป็น
-          section_id: parseInt(selectedSectionId, 10),  // เพิ่ม parameter ที่จำเป็น
-          semester_id: parseInt(selectedSemesterId, 10),  // เพิ่ม parameter ที่จำเป็น
-          year: parseInt(selectedYear, 10),  // เพิ่ม parameter ที่จำเป็น
-          weight: 100  // CLO → PLO ใช้น้ำหนัก 100 เสมอ
+          course_id: parseInt(selectedCourseId, 10), // เพิ่ม parameter ที่จำเป็น
+          section_id: parseInt(selectedSectionId, 10), // เพิ่ม parameter ที่จำเป็น
+          semester_id: parseInt(selectedSemesterId, 10), // เพิ่ม parameter ที่จำเป็น
+          year: parseInt(selectedYear, 10), // เพิ่ม parameter ที่จำเป็น
+          weight: 100, // CLO → PLO ใช้น้ำหนัก 100 เสมอ
         });
 
         // เพิ่มข้อมูล course_clo
@@ -1294,8 +1292,8 @@ export default function Course() {
           section_id: parseInt(selectedSectionId, 10),
           semester_id: parseInt(selectedSemesterId, 10),
           year: parseInt(selectedYear, 10),
-          program_id: parseInt(selectedProgram, 10),  // เพิ่ม program_id ที่จำเป็น
-          weight: parseInt(scores[key], 10) || 0
+          program_id: parseInt(selectedProgram, 10), // เพิ่ม program_id ที่จำเป็น
+          weight: parseInt(scores[key], 10) || 0,
         });
       }
     }
@@ -1308,7 +1306,8 @@ export default function Course() {
     const courseCloPayload = { mappings: courseCloData };
 
     // ส่งข้อมูล plo_clo ก่อน
-    axios.patch("/plo_clo", ploCloPayload)
+    axios
+      .patch("/plo_clo", ploCloPayload)
       .then(() => {
         // หลังจากปรับปรุง plo_clo สำเร็จ ให้ปรับปรุง course_clo ต่อ
         return axios.patch("/course_clo", courseCloPayload);
@@ -1325,7 +1324,7 @@ export default function Course() {
         }
         setLoading(false);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("เกิดข้อผิดพลาดในการอัปเดตคะแนน:", error);
         let errorMsg = `เกิดข้อผิดพลาด: ${error.message}`;
         if (error.response && error.response.data) {
@@ -1346,7 +1345,7 @@ export default function Course() {
     if (editingScores) {
       Object.entries(scores).forEach(([key, value]) => {
         if (value > 0) {
-          const [ploId, cloId] = key.split('-');
+          const [ploId, cloId] = key.split("-");
 
           ploCloData.push({
             clo_id: parseInt(cloId, 10),
@@ -1356,13 +1355,13 @@ export default function Course() {
             section_id: parseInt(selectedSectionId, 10),
             semester_id: parseInt(selectedSemesterId, 10),
             year: parseInt(selectedYear, 10),
-            weight: parseInt(value, 10) || 100
+            weight: parseInt(value, 10) || 100,
           });
         }
       });
     } else {
       // ถ้าไม่อยู่ในโหมดแก้ไข ให้ใช้ข้อมูลจาก mappings ที่มีอยู่
-      mappings.forEach(mapping => {
+      mappings.forEach((mapping) => {
         if (mapping.PLO_id && mapping.weight > 0) {
           ploCloData.push({
             clo_id: parseInt(mapping.CLO_id, 10),
@@ -1372,7 +1371,7 @@ export default function Course() {
             section_id: parseInt(selectedSectionId, 10),
             semester_id: parseInt(selectedSemesterId, 10),
             year: parseInt(selectedYear, 10),
-            weight: parseInt(mapping.weight, 10) || 100
+            weight: parseInt(mapping.weight, 10) || 100,
           });
         }
       });
@@ -1381,7 +1380,8 @@ export default function Course() {
     console.log("ข้อมูล PLO-CLO ที่จะส่ง:", ploCloData);
 
     // ส่งข้อมูลไปยัง API
-    axios.post("/plo_clo", { mappings: ploCloData })
+    axios
+      .post("/plo_clo", { mappings: ploCloData })
       .then((response) => {
         console.log("ผลลัพธ์การบันทึก PLO-CLO:", response.data);
         alert("บันทึกการเชื่อมโยง PLO-CLO สำเร็จ!");
@@ -1401,18 +1401,15 @@ export default function Course() {
   // ฟังก์ชันเพิ่มรายวิชา
   const addCourse = async () => {
     try {
-      const response = await axios.post(
-        "/program_course",
-        {
-          program_id: newCourse.program_id,
-          course_id: newCourse.course_id,
-          course_name: newCourse.course_name, // Send course_name data
-          course_engname: newCourse.course_engname, // Send course_engname data
-          semester_id: newCourse.semester_id,
-          year: newCourse.year,
-          section_id: newCourse.section,
-        }
-      );
+      const response = await axios.post("/api/program-course", {
+        program_id: newCourse.program_id,
+        course_id: newCourse.course_id,
+        course_name: newCourse.course_name, // Send course_name data
+        course_engname: newCourse.course_engname, // Send course_engname data
+        semester_id: newCourse.semester_id,
+        year: newCourse.year,
+        section_id: newCourse.section,
+      });
 
       // Update State to show new course
       setCourse([...course, response.data.data]);
@@ -1471,16 +1468,13 @@ export default function Course() {
   // ฟังก์ชันลบรายวิชา
   const deleteCourse = async (courseId) => {
     try {
-      const response = await axios.delete(
-        "/program_course",
-        {
-          params: {
-            program_id: newCourse.program_id, // Selected program
-            semester_id: newCourse.semester_id, // Selected semester
-            course_id: courseId, // Course ID to delete
-          },
-        }
-      );
+      const response = await axios.delete("/api/program-course", {
+        params: {
+          program_id: newCourse.program_id, // Selected program
+          semester_id: newCourse.semester_id, // Selected semester
+          course_id: courseId, // Course ID to delete
+        },
+      });
       console.log(response.data.message);
       // Update State to remove deleted course from table
       setCourse(
@@ -1507,8 +1501,6 @@ export default function Course() {
   };
 
   const handleFilterChange = (filterName, value) => {
-    console.log(`Filter changed: ${filterName} = ${value}`);
-
     switch (filterName) {
       case "university":
         setSelectedUniversity(value);
@@ -1517,7 +1509,7 @@ export default function Course() {
         setSelectedFaculty("");
         setSelectedProgram("");
         setSelectedYear("");
-        setNewCourse(prev => ({
+        setNewCourse((prev) => ({
           ...prev,
           semester_id: "",
         }));
@@ -1541,7 +1533,7 @@ export default function Course() {
         // รีเซ็ตค่าที่เกี่ยวข้อง
         setSelectedProgram("");
         setSelectedYear("");
-        setNewCourse(prev => ({
+        setNewCourse((prev) => ({
           ...prev,
           semester_id: "",
         }));
@@ -1564,7 +1556,7 @@ export default function Course() {
 
         // รีเซ็ตค่าปีและภาคเรียน แต่ไม่ disable Year
         setSelectedYear("");
-        setNewCourse(prev => ({
+        setNewCourse((prev) => ({
           ...prev,
           semester_id: "",
         }));
@@ -1586,7 +1578,7 @@ export default function Course() {
         setSelectedYear(value);
 
         // อัพเดทค่าในตัวแปร newCourse
-        setNewCourse(prev => ({
+        setNewCourse((prev) => ({
           ...prev,
           year: value,
           semester_id: "", // รีเซ็ตภาคเรียน เมื่อเปลี่ยนปี
@@ -1636,7 +1628,7 @@ export default function Course() {
 
     if (editingScores) {
       // ใช้ scores ในโหมดแก้ไข
-      CLOs.forEach(clo => {
+      CLOs.forEach((clo) => {
         const key = `${ploId}-${clo.CLO_id}`;
         const value = Number(scores[key] || 0);
         // console.log(`  key=${key}, value=${value}`);
@@ -1644,15 +1636,17 @@ export default function Course() {
       });
     } else {
       // ใช้ข้อมูลจาก mappings ที่มีอยู่
-      const ploMappings = mappings.filter(m =>
-        (m.PLO_id === ploId || m.plo_id === ploId)
+      const ploMappings = mappings.filter(
+        (m) => m.PLO_id === ploId || m.plo_id === ploId
       );
 
       // console.log(`  พบ ${ploMappings.length} mappings สำหรับ PLO_id: ${ploId}`);
 
       total = ploMappings.reduce((sum, mapping) => {
         const value = Number(mapping.weight || 0);
-        console.log(`    mapping: CLO_id=${mapping.CLO_id || mapping.clo_id}, weight=${value}`);
+        console.log(
+          `    mapping: CLO_id=${mapping.CLO_id || mapping.clo_id}, weight=${value}`
+        );
         return sum + value;
       }, 0);
     }
@@ -1664,17 +1658,26 @@ export default function Course() {
   const saveEditAssignment = async () => {
     try {
       setSaving(true);
-      
+
       // ตรวจสอบข้อมูลที่จำเป็น
-      const requiredFields = ['assignment_name', 'course_name', 'section_id', 'semester_id', 'year'];
-      const missingFields = requiredFields.filter(field => !editData[field]);
-      
+      const requiredFields = [
+        "assignment_name",
+        "course_name",
+        "section_id",
+        "semester_id",
+        "year",
+      ];
+      const missingFields = requiredFields.filter((field) => !editData[field]);
+
       if (missingFields.length > 0) {
-        showAlert(`กรุณากรอกข้อมูลให้ครบถ้วน: ${missingFields.join(', ')}`, 'error');
+        showAlert(
+          `กรุณากรอกข้อมูลให้ครบถ้วน: ${missingFields.join(", ")}`,
+          "error"
+        );
         setSaving(false);
         return;
       }
-      
+
       // เตรียมข้อมูลสำหรับส่งไป API
       const updateData = {
         program_id: parseInt(editData.program_id) || assignment.program_id,
@@ -1684,32 +1687,36 @@ export default function Course() {
         year: parseInt(editData.year),
         assignment_name: editData.assignment_name,
         faculty_id: parseInt(editData.faculty_id) || assignment.faculty_id,
-        university_id: parseInt(editData.university_id) || assignment.university_id
+        university_id:
+          parseInt(editData.university_id) || assignment.university_id,
       };
-      
-      console.log('ข้อมูลที่จะส่งไปอัพเดต:', updateData);
-      
+
+      console.log("ข้อมูลที่จะส่งไปอัพเดต:", updateData);
+
       // เรียกใช้ API สำหรับอัปเดตข้อมูล
-      const response = await axios.put(`/api/update_assignment/${currentAssignmentId}`, updateData);
-      
-      console.log('ผลการอัปเดต Assignment:', response.data);
-      
+      const response = await axios.put(
+        `/api/update_assignment/${currentAssignmentId}`,
+        updateData
+      );
+
+      console.log("ผลการอัปเดต Assignment:", response.data);
+
       if (response.data) {
         // อัปเดตข้อมูลใน state
-        setAssignment(prev => ({
+        setAssignment((prev) => ({
           ...prev,
-          ...updateData
+          ...updateData,
         }));
-        
+
         // ปิดโหมดแก้ไข
         setIsEditing(false);
-        showAlert('บันทึกการแก้ไขข้อมูล Assignment เรียบร้อยแล้ว', 'success');
+        showAlert("บันทึกการแก้ไขข้อมูล Assignment เรียบร้อยแล้ว", "success");
       }
     } catch (error) {
-      console.error('เกิดข้อผิดพลาดในการบันทึกการแก้ไข:', error);
+      console.error("เกิดข้อผิดพลาดในการบันทึกการแก้ไข:", error);
       const errorDetail = error.response?.data?.error || error.message;
-      console.error('รายละเอียดข้อผิดพลาด:', errorDetail);
-      showAlert('เกิดข้อผิดพลาดในการบันทึกการแก้ไข: ' + errorDetail, 'error');
+      console.error("รายละเอียดข้อผิดพลาด:", errorDetail);
+      showAlert("เกิดข้อผิดพลาดในการบันทึกการแก้ไข: " + errorDetail, "error");
     } finally {
       setSaving(false);
     }
@@ -1718,25 +1725,25 @@ export default function Course() {
   const cancelEdit = () => {
     // รีเซ็ตข้อมูลการแก้ไขเป็นค่าเดิม
     setEditData({
-      assignment_name: assignment.assignment_name || '',
-      course_name: assignment.course_name || '',
-      section_id: assignment.section_id || '',
-      semester_id: assignment.semester_id || '',
-      year: assignment.year || '',
-      program_id: assignment.program_id || '',
-      faculty_id: assignment.faculty_id || '',
-      university_id: assignment.university_id || ''
+      assignment_name: assignment.assignment_name || "",
+      course_name: assignment.course_name || "",
+      section_id: assignment.section_id || "",
+      semester_id: assignment.semester_id || "",
+      year: assignment.year || "",
+      program_id: assignment.program_id || "",
+      faculty_id: assignment.faculty_id || "",
+      university_id: assignment.university_id || "",
     });
-    
+
     // ปิดโหมดแก้ไข
     setIsEditing(false);
   };
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
-    setEditData(prev => ({
+    setEditData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -1747,7 +1754,7 @@ export default function Course() {
       course_id: selectedCourseId,
       section_id: selectedSectionId,
       semester_id: selectedSemesterId,
-      year: selectedYear
+      year: selectedYear,
     });
 
     try {
@@ -1758,8 +1765,8 @@ export default function Course() {
           course_id: selectedCourseId,
           section_id: selectedSectionId,
           semester_id: selectedSemesterId,
-          year: selectedYear
-        }
+          year: selectedYear,
+        },
       });
 
       // ตรวจสอบข้อมูลที่ได้รับ
@@ -1787,8 +1794,6 @@ export default function Course() {
   };
 
   useEffect(() => {
-    console.log("mappings ได้รับการอัพเดต:", mappings);
-
     // ตรวจสอบว่ามีข้อมูลใน mappings หรือไม่
     if (mappings.length > 0) {
       // สร้างข้อมูลสำหรับแสดงผลในตาราง
@@ -1799,7 +1804,7 @@ export default function Course() {
         console.log(`Mapping ${index}:`, {
           PLO_id: mapping.PLO_id || mapping.plo_id,
           CLO_id: mapping.CLO_id || mapping.clo_id,
-          weight: mapping.weight
+          weight: mapping.weight,
         });
       });
     }
@@ -1810,7 +1815,7 @@ export default function Course() {
 
     const updatedWeights = {};
 
-    mappingData.forEach(mapping => {
+    mappingData.forEach((mapping) => {
       // ใช้ PLO_id หรือ plo_id ตามที่มีในข้อมูล
       const ploId = mapping.PLO_id || mapping.plo_id;
       const cloId = mapping.CLO_id || mapping.clo_id;
@@ -1818,7 +1823,9 @@ export default function Course() {
       if (ploId && cloId) {
         const key = `${ploId}-${cloId}`;
         updatedWeights[key] = mapping.weight || 0;
-        console.log(`กำหนดค่า weight สำหรับ key=${key} เป็น ${mapping.weight || 0}`);
+        console.log(
+          `กำหนดค่า weight สำหรับ key=${key} เป็น ${mapping.weight || 0}`
+        );
       } else {
         console.error("ไม่พบ PLO_id หรือ CLO_id ในข้อมูล mapping:", mapping);
       }
@@ -1837,9 +1844,8 @@ export default function Course() {
   const fetchProgramCoursesData = (programId) => {
     if (!programId) return;
 
-    console.log("Fetching courses for Program ID:", programId);
-
-    axios.get(`/program_courses_detail?program_id=${programId}`)
+    axios
+      .get(`/program_courses_detail?program_id=${programId}`)
       .then((response) => {
         if (!response.data || !Array.isArray(response.data)) {
           console.warn("Invalid or empty response for program courses");
@@ -1847,13 +1853,12 @@ export default function Course() {
             courses: [],
             sections: [],
             semesters: [],
-            years: []
+            years: [],
           });
           return;
         }
 
         const data = response.data;
-        console.log("Raw Courses Data:", data);
 
         // Filter unique courses
         const uniqueCourses = data.reduce((acc, course) => {
@@ -1873,16 +1878,13 @@ export default function Course() {
         }, []);
 
         // Extract unique sections, semesters, and years
-        const uniqueSections = [...new Set(data.map((item) => item.section_id))];
-        const uniqueSemesters = [...new Set(data.map((item) => item.semester_id))];
+        const uniqueSections = [
+          ...new Set(data.map((item) => item.section_id)),
+        ];
+        const uniqueSemesters = [
+          ...new Set(data.map((item) => item.semester_id)),
+        ];
         const uniqueYears = [...new Set(data.map((item) => item.year))];
-
-        console.log("Processed course data:", {
-          courses: uniqueCourses.length,
-          sections: uniqueSections,
-          semesters: uniqueSemesters,
-          years: uniqueYears
-        });
 
         setProgramCourseData({
           courses: uniqueCourses,
@@ -1902,6 +1904,21 @@ export default function Course() {
       });
   };
 
+  async function fetchAllCourseByProgram(programId) {
+    if (!programId) return;
+    try {
+      const response = await axios.get(`/api/program-course/detail?`);
+    } catch (error) {
+      console.error("Error fetching program courses:", error);
+      setProgramCourseData({
+        courses: [],
+        sections: [],
+        semesters: [],
+        years: [],
+      });
+    }
+  }
+
   const handleSaveEditAssignment = async () => {
     if (
       !selectedProgram ||
@@ -1915,21 +1932,21 @@ export default function Course() {
       setTypeError("กรุณากรอกข้อมูลทั้งหมดก่อนบันทึก");
       return;
     }
-  
+
     // Get the course name from the selected course ID
     const selectedCourseObj = programCourseData.courses.find(
       (c) => c.course_id.toString() === selectedCourseId.toString()
     );
-  
+
     // If no course is found, show error
     if (!selectedCourseObj) {
       setTypeError("ไม่พบข้อมูลรายวิชาที่เลือก");
       return;
     }
-  
+
     // แสดงสถานะกำลังบันทึก
     setLoading(true);
-  
+
     try {
       // Construct the payload for updating assignment
       const updateData = {
@@ -1940,42 +1957,45 @@ export default function Course() {
         year: parseInt(selectedYear, 10),
         assignment_name: assignmentName,
         faculty_id: parseInt(selectedFaculty, 10),
-        university_id: parseInt(selectedUniversity, 10)
+        university_id: parseInt(selectedUniversity, 10),
       };
-  
+
       console.log("ข้อมูลที่จะส่งไปอัพเดต:", updateData);
-  
+
       // Call the API to update the assignment
-      const response = await axios.put(`/api/update_assignment/${currentAssignmentId}`, updateData);
-  
+      const response = await axios.put(
+        `/api/update_assignment/${currentAssignmentId}`,
+        updateData
+      );
+
       console.log("ผลการอัพเดต Assignment:", response.data);
-  
+
       if (response.data) {
         // แสดงข้อความสำเร็จ
         alert("บันทึกการแก้ไขข้อมูล Assignment สำเร็จ!");
-        
+
         // ปิดโหมดแก้ไข
         setIsEditing(false);
-        
+
         // เมื่อแก้ไขสำเร็จ ให้ไปยังขั้นตอนที่ 2
         setCurrentStep(2);
-        
+
         // เตรียมข้อมูล homeworks
         if (currentAssignmentId) {
           // ใช้ข้อมูล Assignment ที่แก้ไขแล้ว
           const newHomework = {
             id: currentAssignmentId,
             name: assignmentName,
-            scores: {}
+            scores: {},
           };
-          
+
           // ถ้ามีข้อมูล CLO ให้เตรียมข้อมูลคะแนน
           if (CLOs && CLOs.length > 0) {
             CLOs.forEach((clo) => {
               newHomework.scores[clo.CLO_id || clo.clo_id] = 0;
             });
           }
-          
+
           setHomeworks([newHomework]);
         }
       } else {
@@ -1984,7 +2004,7 @@ export default function Course() {
       }
     } catch (error) {
       console.error("Error updating Assignment:", error);
-      
+
       // แสดงข้อความผิดพลาด
       alert(`เกิดข้อผิดพลาด: ${error.message || "ไม่สามารถบันทึกข้อมูลได้"}`);
     } finally {
@@ -1999,9 +2019,9 @@ export default function Course() {
 
     // รับข้อมูลจาก clipboard event
     const clipboardData = e.clipboardData || window.clipboardData;
-    const text = clipboardData.getData('text');
+    const text = clipboardData.getData("text");
 
-    if (!text || text.trim() === '') {
+    if (!text || text.trim() === "") {
       return;
     }
 
@@ -2009,13 +2029,13 @@ export default function Course() {
     const rows = text.trim().split(/\r?\n/);
 
     // ตรวจสอบว่ามีการใช้ tab หรือ comma เป็นตัวคั่น
-    let delimiter = '\t'; // ค่าเริ่มต้นคือ tab
-    if (rows[0].includes(',') && !rows[0].includes('\t')) {
-      delimiter = ',';
+    let delimiter = "\t"; // ค่าเริ่มต้นคือ tab
+    if (rows[0].includes(",") && !rows[0].includes("\t")) {
+      delimiter = ",";
     }
 
     // แปลงข้อมูลเป็น array ของ objects
-    const parsedData = rows.map(row => {
+    const parsedData = rows.map((row) => {
       const columns = row.split(delimiter);
       return {
         program_id: parseInt(selectedProgram),
@@ -2023,9 +2043,9 @@ export default function Course() {
         semester_id: parseInt(selectedSemesterId),
         section_id: parseInt(selectedSectionId),
         year: parseInt(selectedYear),
-        CLO_code: columns[0] || '',
-        CLO_name: columns[1] || '',
-        CLO_engname: columns[2] || ''
+        CLO_code: columns[0] || "",
+        CLO_name: columns[1] || "",
+        CLO_engname: columns[2] || "",
       };
     });
 
@@ -2046,8 +2066,8 @@ export default function Course() {
       const text = await navigator.clipboard.readText();
 
       // ตรวจสอบว่าข้อมูลมีหรือไม่
-      if (!text || text.trim() === '') {
-        alert('ไม่พบข้อมูลใน clipboard โปรดคัดลอกข้อมูลก่อนกดปุ่ม Paste Data');
+      if (!text || text.trim() === "") {
+        alert("ไม่พบข้อมูลใน clipboard โปรดคัดลอกข้อมูลก่อนกดปุ่ม Paste Data");
         return;
       }
 
@@ -2055,13 +2075,13 @@ export default function Course() {
       const rows = text.trim().split(/\r?\n/);
 
       // ตรวจสอบว่ามีการใช้ tab หรือ comma เป็นตัวคั่น
-      let delimiter = '\t'; // ค่าเริ่มต้นคือ tab
-      if (rows[0].includes(',') && !rows[0].includes('\t')) {
-        delimiter = ',';
+      let delimiter = "\t"; // ค่าเริ่มต้นคือ tab
+      if (rows[0].includes(",") && !rows[0].includes("\t")) {
+        delimiter = ",";
       }
 
       // แปลงข้อมูลเป็น array ของ objects
-      const parsedData = rows.map(row => {
+      const parsedData = rows.map((row) => {
         const columns = row.split(delimiter);
         return {
           program_id: parseInt(selectedProgram),
@@ -2069,9 +2089,9 @@ export default function Course() {
           semester_id: parseInt(selectedSemesterId),
           section_id: parseInt(selectedSectionId),
           year: parseInt(selectedYear),
-          CLO_code: columns[0] || '',
-          CLO_name: columns[1] || '',
-          CLO_engname: columns[2] || ''
+          CLO_code: columns[0] || "",
+          CLO_name: columns[1] || "",
+          CLO_engname: columns[2] || "",
         };
       });
 
@@ -2110,12 +2130,15 @@ export default function Course() {
 
             // Find the selected program
             const programData = programs.find(
-              (program) => program.program_id.toString() === selectedProgram.toString()
+              (program) =>
+                program.program_id.toString() === selectedProgram.toString()
             );
 
             if (!programData) {
               console.error("Selected program not found:", selectedProgram);
-              alert("Error: Selected program not found. Please select a valid program.");
+              alert(
+                "Error: Selected program not found. Please select a valid program."
+              );
               return;
             }
 
@@ -2128,18 +2151,25 @@ export default function Course() {
               year: parseInt(selectedYear),
               CLO_code: row.CLO_code || "DEFAULT_CODE", // ให้ค่าเริ่มต้นแทนค่าว่าง
               CLO_name: row.CLO_name || "DEFAULT_NAME", // ให้ค่าเริ่มต้นแทนค่าว่าง
-              CLO_engname: row.CLO_engname || "DEFAULT_ENG_NAME" // ให้ค่าเริ่มต้นแทนค่าว่าง
+              CLO_engname: row.CLO_engname || "DEFAULT_ENG_NAME", // ให้ค่าเริ่มต้นแทนค่าว่าง
             }));
 
             // Validate that all required fields are present in each row
-            const invalidRows = updatedData.filter(row =>
-              !row.program_id || !row.course_id || !row.semester_id ||
-              !row.section_id || !row.year || !row.CLO_code
+            const invalidRows = updatedData.filter(
+              (row) =>
+                !row.program_id ||
+                !row.course_id ||
+                !row.semester_id ||
+                !row.section_id ||
+                !row.year ||
+                !row.CLO_code
             );
 
             if (invalidRows.length > 0) {
               console.error("Invalid rows found:", invalidRows);
-              alert(`Error: ${invalidRows.length} rows are missing required fields. Please check your Excel data.`);
+              alert(
+                `Error: ${invalidRows.length} rows are missing required fields. Please check your Excel data.`
+              );
               return;
             }
 
@@ -2173,17 +2203,30 @@ export default function Course() {
     }
 
     // Additional validation before sending to server
-    if (!selectedProgram || !selectedCourseId || !selectedSectionId ||
-      !selectedSemesterId || !selectedYear) {
-      alert("Please select Program, Course, Section, Semester, and Year before uploading.");
+    if (
+      !selectedProgram ||
+      !selectedCourseId ||
+      !selectedSectionId ||
+      !selectedSemesterId ||
+      !selectedYear
+    ) {
+      alert(
+        "Please select Program, Course, Section, Semester, and Year before uploading."
+      );
       return;
     }
 
     // Check each row for required fields
-    const missingFields = excelData.some(row =>
-      !row.program_id || !row.course_id || !row.semester_id ||
-      !row.section_id || !row.year || !row.CLO_code ||
-      !row.CLO_name || !row.CLO_engname
+    const missingFields = excelData.some(
+      (row) =>
+        !row.program_id ||
+        !row.course_id ||
+        !row.semester_id ||
+        !row.section_id ||
+        !row.year ||
+        !row.CLO_code ||
+        !row.CLO_name ||
+        !row.CLO_engname
     );
 
     if (missingFields) {
@@ -2191,32 +2234,39 @@ export default function Course() {
       return;
     }
 
-    axios.post("/program_course_clo/excel", excelData)
+    axios
+      .post("/program_course_clo/excel", excelData)
       .then((response) => {
         console.log("Success:", response.data);
         alert("Data Uploaded Successfully!");
         setExcelData(null); // ล้างข้อมูลหลังจากอัปโหลดสำเร็จ
 
         // Refresh CLOs after successful upload
-        if (selectedCourseId && selectedSectionId && selectedSemesterId && selectedYear && selectedProgram) {
-          axios.get(
-            `/course_clo`,
-            {
+        if (
+          selectedCourseId &&
+          selectedSectionId &&
+          selectedSemesterId &&
+          selectedYear &&
+          selectedProgram
+        ) {
+          axios
+            .get(`/course_clo`, {
               params: {
                 program_id: selectedProgram,
                 course_id: selectedCourseId,
                 semester_id: selectedSemesterId,
                 section_id: selectedSectionId,
-                year: selectedYear
-              }
-            }
-          )
+                year: selectedYear,
+              },
+            })
             .then((response) => {
               console.log("CLO Data refreshed:", response.data);
-              const formattedCLOs = Array.isArray(response.data) ? response.data : [response.data].filter(Boolean);
+              const formattedCLOs = Array.isArray(response.data)
+                ? response.data
+                : [response.data].filter(Boolean);
               setCLOs(formattedCLOs);
             })
-            .catch(error => console.error("Error refreshing CLOs:", error));
+            .catch((error) => console.error("Error refreshing CLOs:", error));
         }
       })
       .catch((error) => {
@@ -2243,19 +2293,19 @@ export default function Course() {
       alert("ไม่พบรายชื่อนักเรียนที่จะบันทึกคะแนน");
       return;
     }
-  
+
     try {
       // แสดงสถานะกำลังบันทึก
       setSaving(true);
-  
+
       // สร้างข้อมูลสำหรับส่งไป API
       const scoreData = [];
-  
+
       // สร้างข้อมูลคะแนนสำหรับแต่ละนักเรียน
       importedStudents.forEach((student) => {
         // ดูว่ามีคะแนนของนักเรียนคนนี้หรือไม่
         const studentScores = scores[student.student_id] || {};
-  
+
         // สำหรับแต่ละ CLO ในงานนี้
         CLOs.forEach((clo) => {
           // ดึงค่า assignment_clo_id จาก CLO
@@ -2265,19 +2315,19 @@ export default function Course() {
             scoreData.push({
               student_id: student.student_id,
               assignment_clo_id: assignmentCloId,
-              score: studentScores[assignmentCloId] || 0
+              score: studentScores[assignmentCloId] || 0,
             });
           }
         });
       });
-  
+
       // ส่งข้อมูลไป API
       const response = await axios.post("/api/save_scores", {
-        scores: scoreData
+        scores: scoreData,
       });
-  
+
       console.log("ผลการบันทึกคะแนน:", response.data);
-  
+
       if (response.data && response.data.success) {
         alert("บันทึกคะแนนเรียบร้อยแล้ว");
       } else {
@@ -2293,42 +2343,46 @@ export default function Course() {
   const handleFileImport = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-  
+
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const data = new Uint8Array(event.target.result);
         const workbook = XLSX.read(data, { type: "array" });
-  
+
         // ดึงข้อมูลจาก sheet แรก
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
+
         console.log("ข้อมูลที่นำเข้าจาก Excel:", jsonData);
-  
+
         // ตรวจสอบรูปแบบข้อมูล
         if (jsonData.length === 0) {
           alert("ไม่พบข้อมูลในไฟล์ Excel");
           return;
         }
-  
+
         // ตรวจสอบว่ามีคอลัมน์ที่จำเป็นครบหรือไม่
         const requiredColumns = ["student_id", "name"];
         const firstRow = jsonData[0];
-        const missingColumns = requiredColumns.filter(col => !(col in firstRow));
-  
+        const missingColumns = requiredColumns.filter(
+          (col) => !(col in firstRow)
+        );
+
         if (missingColumns.length > 0) {
-          alert(`ไฟล์ Excel ไม่มีคอลัมน์ที่จำเป็น: ${missingColumns.join(", ")}`);
+          alert(
+            `ไฟล์ Excel ไม่มีคอลัมน์ที่จำเป็น: ${missingColumns.join(", ")}`
+          );
           return;
         }
-  
+
         // แปลงข้อมูลและอัปเดต state
-        const processedData = jsonData.map(row => ({
+        const processedData = jsonData.map((row) => ({
           student_id: String(row.student_id),
-          name: row.name
+          name: row.name,
         }));
-  
+
         setImportedStudents(processedData);
         alert(`นำเข้าข้อมูลนักเรียน ${processedData.length} คนสำเร็จ`);
       } catch (error) {
@@ -2336,15 +2390,15 @@ export default function Course() {
         alert(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${error.message}`);
       }
     };
-  
+
     reader.onerror = (error) => {
       console.error("เกิดข้อผิดพลาดในการอ่านไฟล์:", error);
       alert(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${error.message}`);
     };
-  
+
     reader.readAsArrayBuffer(file);
   };
-  
+
   // เพิ่มฟังก์ชันสำหรับดาวน์โหลดเทมเพลต Excel
   const downloadExcelTemplate = () => {
     // สร้างเทมเพลตสำหรับใช้นำเข้าข้อมูลนักเรียน
@@ -2352,19 +2406,19 @@ export default function Course() {
       {
         student_id: "รหัสนักศึกษา",
         name: "ชื่อ-นามสกุล",
-      }
+      },
     ];
-  
+
     // สร้าง workbook และ worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(template);
-  
+
     // เพิ่ม worksheet ลงใน workbook
     XLSX.utils.book_append_sheet(wb, ws, "นำเข้านักเรียน");
-  
+
     // บันทึกไฟล์
     XLSX.writeFile(wb, "template_import_students.xlsx");
-  };  
+  };
 
   // ฟังก์ชันบันทึกการแก้ไข CLO
   const handleSaveClo = async () => {
@@ -2417,11 +2471,11 @@ export default function Course() {
         const updatedCLOs = CLOs.map((clo) =>
           clo.CLO_id === editClo.CLO_id
             ? {
-              ...clo,
-              CLO_name: editCloName.trim(),
-              CLO_engname: editCloEngName.trim(),
-              CLO_code: editCloCode.trim(), // เพิ่ม CLO_code ในการอัปเดตที่แสดงในตาราง
-            }
+                ...clo,
+                CLO_name: editCloName.trim(),
+                CLO_engname: editCloEngName.trim(),
+                CLO_code: editCloCode.trim(), // เพิ่ม CLO_code ในการอัปเดตที่แสดงในตาราง
+              }
             : clo
         );
 
@@ -2435,7 +2489,9 @@ export default function Course() {
       } else {
         // Handle error response from server
         console.error("Failed to update CLO:", response.data);
-        alert(`Failed to update CLO: ${response.data?.message || "Unknown error"}`);
+        alert(
+          `Failed to update CLO: ${response.data?.message || "Unknown error"}`
+        );
       }
     } catch (err) {
       console.error("Error updating CLO:", err);
@@ -2493,7 +2549,7 @@ export default function Course() {
             section_id: sectionId,
             year: year,
             program_id: programId,
-          }
+          },
         });
 
         if (response.data && response.data.success) {
@@ -2508,8 +2564,8 @@ export default function Course() {
           // เคลียร์ค่า scores ถ้ากำลังแก้ไขอยู่
           if (editingScores) {
             const updatedScores = { ...scores };
-            Object.keys(updatedScores).forEach(key => {
-              const [ploId, mappingCloId] = key.split('-');
+            Object.keys(updatedScores).forEach((key) => {
+              const [ploId, mappingCloId] = key.split("-");
               if (parseInt(mappingCloId) === cloId) {
                 delete updatedScores[key];
               }
@@ -2624,94 +2680,94 @@ export default function Course() {
   };
   const styles = {
     heading: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      marginBottom: '16px'
+      fontSize: "24px",
+      fontWeight: "bold",
+      marginBottom: "16px",
     },
     assignmentInfo: {
-      backgroundColor: '#f5f5f5',
-      padding: '12px',
-      borderRadius: '4px',
-      marginBottom: '20px'
+      backgroundColor: "#f5f5f5",
+      padding: "12px",
+      borderRadius: "4px",
+      marginBottom: "20px",
     },
     buttonContainer: {
-      display: 'flex',
-      gap: '10px',
-      marginBottom: '20px'
+      display: "flex",
+      gap: "10px",
+      marginBottom: "20px",
     },
     editButton: {
-      backgroundColor: '#ffc107',
-      color: 'white',
-      border: 'none',
-      padding: '8px 16px',
-      borderRadius: '4px',
-      cursor: 'pointer'
+      backgroundColor: "#ffc107",
+      color: "white",
+      border: "none",
+      padding: "8px 16px",
+      borderRadius: "4px",
+      cursor: "pointer",
     },
     primaryButton: {
-      backgroundColor: '#007bff',
-      color: 'white',
-      border: 'none',
-      padding: '8px 16px',
-      borderRadius: '4px',
-      cursor: 'pointer'
+      backgroundColor: "#007bff",
+      color: "white",
+      border: "none",
+      padding: "8px 16px",
+      borderRadius: "4px",
+      cursor: "pointer",
     },
     primaryButtonDisabled: {
-      backgroundColor: '#007bff',
-      color: 'white',
-      border: 'none',
-      padding: '8px 16px',
-      borderRadius: '4px',
-      opacity: '0.65',
-      cursor: 'not-allowed'
+      backgroundColor: "#007bff",
+      color: "white",
+      border: "none",
+      padding: "8px 16px",
+      borderRadius: "4px",
+      opacity: "0.65",
+      cursor: "not-allowed",
     },
     secondaryButton: {
-      backgroundColor: '#6c757d',
-      color: 'white',
-      border: 'none',
-      padding: '8px 16px',
-      borderRadius: '4px',
-      cursor: 'pointer'
+      backgroundColor: "#6c757d",
+      color: "white",
+      border: "none",
+      padding: "8px 16px",
+      borderRadius: "4px",
+      cursor: "pointer",
     },
     outlineButton: {
-      backgroundColor: 'transparent',
-      color: '#007bff',
-      border: '1px solid #007bff',
-      padding: '8px 16px',
-      borderRadius: '4px',
-      cursor: 'pointer'
+      backgroundColor: "transparent",
+      color: "#007bff",
+      border: "1px solid #007bff",
+      padding: "8px 16px",
+      borderRadius: "4px",
+      cursor: "pointer",
     },
     cancelButton: {
-      backgroundColor: '#6c757d',
-      color: 'white',
-      border: 'none',
-      padding: '8px 16px',
-      borderRadius: '4px',
-      cursor: 'pointer'
+      backgroundColor: "#6c757d",
+      color: "white",
+      border: "none",
+      padding: "8px 16px",
+      borderRadius: "4px",
+      cursor: "pointer",
     },
     hidden: {
-      display: 'none'
+      display: "none",
     },
     editForm: {
-      padding: '20px',
-      backgroundColor: '#f8f9fa',
-      borderRadius: '8px',
-      marginBottom: '24px'
+      padding: "20px",
+      backgroundColor: "#f8f9fa",
+      borderRadius: "8px",
+      marginBottom: "24px",
     },
     formGroup: {
-      marginBottom: '16px'
+      marginBottom: "16px",
     },
     label: {
-      display: 'block',
-      marginBottom: '8px',
-      fontWeight: 'bold'
+      display: "block",
+      marginBottom: "8px",
+      fontWeight: "bold",
     },
     input: {
-      width: '100%',
-      padding: '8px 12px',
-      borderRadius: '4px',
-      border: '1px solid #ced4da',
-      fontSize: '16px'
-    }
+      width: "100%",
+      padding: "8px 12px",
+      borderRadius: "4px",
+      border: "1px solid #ced4da",
+      fontSize: "16px",
+    },
   };
   // ฟังก์ชันดึงข้อมูล CLO ปีก่อนหน้า
   const fetchPreviousYearCLOs = async () => {
@@ -2727,21 +2783,20 @@ export default function Course() {
     }
 
     try {
-      const response = await axios.get(
-        "/course_clo",
-        {
-          params: {
-            program_id: selectedProgram,
-            course_id: selectedCourseId,
-            semester_id: selectedSemesterId,
-            section_id: selectedSectionId,
-            year: selectedYear
-          }
-        }
-      );
+      const response = await axios.get("/course_clo", {
+        params: {
+          program_id: selectedProgram,
+          course_id: selectedCourseId,
+          semester_id: selectedSemesterId,
+          section_id: selectedSectionId,
+          year: selectedYear,
+        },
+      });
 
       console.log("Previous CLOs response:", response.data);
-      const formattedCLOs = Array.isArray(response.data) ? response.data : [response.data].filter(Boolean);
+      const formattedCLOs = Array.isArray(response.data)
+        ? response.data
+        : [response.data].filter(Boolean);
 
       if (formattedCLOs.length > 0) {
         setPreviousYearCLOs(formattedCLOs);
@@ -2759,41 +2814,43 @@ export default function Course() {
   // รีเซ็ตคะแนนของการบ้าน
   const resetHomeworkScores = (clos) => {
     const updatedHomeworks = homeworks.map((hw) => {
-      const newScores = {}
+      const newScores = {};
       clos.forEach((clo) => {
         // ใช้ CLO_id ตามโครงสร้างที่ API ส่งกลับมา
-        newScores[clo.CLO_id] = 0
-      })
+        newScores[clo.CLO_id] = 0;
+      });
 
       return {
         ...hw,
         scores: newScores,
-      }
-    })
+      };
+    });
 
-    setHomeworks(updatedHomeworks)
-    setValidationErrors({})
-  }
+    setHomeworks(updatedHomeworks);
+    setValidationErrors({});
+  };
   const fetchAssignmentCLOs = async (assignmentId) => {
     try {
-      const response = await axios.get(`/api/get_assignment_detail/${assignmentId}`);
-      
+      const response = await axios.get(
+        `/api/get_assignment_detail/${assignmentId}`
+      );
+
       if (response.data && response.data.success) {
         // ตั้งค่า CLOs จากข้อมูลที่ได้รับ
         setCLOs(response.data.clos || []);
-        
+
         // ตั้งค่า weights สำหรับแต่ละ CLO
         const weights = {};
         if (response.data.clos && Array.isArray(response.data.clos)) {
-          response.data.clos.forEach(clo => {
+          response.data.clos.forEach((clo) => {
             weights[clo.clo_id] = clo.weight || 0;
           });
         }
         setCloWeights(weights);
-        
+
         return response.data.clos || [];
       }
-      
+
       return [];
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการดึงข้อมูล CLO ของ Assignment:", error);
@@ -2803,37 +2860,38 @@ export default function Course() {
 
   const validateCloScores = () => {
     const errors = {};
-  
+
     // ถ้าไม่มีข้อมูล CLO ให้ผ่านการตรวจสอบไปเลย
     if (!CLOs || CLOs.length === 0) {
       return true;
     }
-  
+
     // ตรวจสอบแต่ละ CLO
     CLOs.forEach((clo) => {
       // CLO ID อาจเป็น CLO_id หรือ clo_id ขึ้นอยู่กับรูปแบบข้อมูล
       const cloId = clo.CLO_id || clo.clo_id;
       if (!cloId) return; // ข้ามถ้าไม่มี ID
-      
+
       // ดึงน้ำหนักจาก state cloWeights
       const maxWeight = cloWeights[cloId] || 0;
-  
+
       // คำนวณคะแนนรวมสำหรับ CLO นี้จากทุก homework
       const total = homeworks.reduce((sum, hw) => {
         return sum + (Number(hw.scores[cloId]) || 0);
       }, 0);
-  
+
       // ตรวจสอบว่าคะแนนรวมไม่เกินค่า weight สูงสุด
       if (total > maxWeight) {
         // ดึงรหัส CLO (CLO_code) สำหรับการแสดงข้อความ
         const cloCode = clo.CLO_code || `CLO${cloId}`;
-        errors[cloId] = `คะแนนรวม (${total}) เกินกว่าน้ำหนักที่กำหนด (${maxWeight}) สำหรับ ${cloCode}`;
+        errors[cloId] =
+          `คะแนนรวม (${total}) เกินกว่าน้ำหนักที่กำหนด (${maxWeight}) สำหรับ ${cloCode}`;
       }
     });
-  
+
     // ตั้งค่าข้อความแสดงข้อผิดพลาด
     setValidationErrors(errors);
-    
+
     // ถ้าไม่มีข้อผิดพลาด (errors เป็น object ว่าง) จะคืนค่า true
     return Object.keys(errors).length === 0;
   };
@@ -2847,19 +2905,19 @@ export default function Course() {
       !selectedYear ||
       !assignmentName
     ) {
-      setTypeError("กรุณากรอกข้อมูลทั้งหมดก่อนบันทึก")
-      return
+      setTypeError("กรุณากรอกข้อมูลทั้งหมดก่อนบันทึก");
+      return;
     }
 
     // Get the course name from the selected course ID
     const selectedCourseObj = programCourseData.courses.find(
-      c => c.course_id.toString() === selectedCourseId.toString()
+      (c) => c.course_id.toString() === selectedCourseId.toString()
     );
 
     // If no course is found, show error
     if (!selectedCourseObj) {
-      setTypeError("ไม่พบข้อมูลรายวิชาที่เลือก")
-      return
+      setTypeError("ไม่พบข้อมูลรายวิชาที่เลือก");
+      return;
     }
 
     // Construct the payload exactly as the backend expects
@@ -2871,21 +2929,26 @@ export default function Course() {
       year: parseInt(selectedYear, 10),
       assignment_name: assignmentName,
       faculty_id: parseInt(selectedFaculty, 10),
-      university_id: parseInt(selectedUniversity, 10)
-    }
+      university_id: parseInt(selectedUniversity, 10),
+    };
 
     console.log("Sending data to API:", newAssignment);
     setLoading(true);
 
     // Send the data to the API
-    axios.post("/api/add_assignment", newAssignment)
+    axios
+      .post("/api/add_assignment", newAssignment)
       .then((response) => {
         console.log("Assignment API response:", response.data);
-        if (response.data && (response.data.success || response.data.message === "Assignment บันทึกสำเร็จ")) {
-          alert("บันทึก Assignment สำเร็จ!")
+        if (
+          response.data &&
+          (response.data.success ||
+            response.data.message === "Assignment บันทึกสำเร็จ")
+        ) {
+          alert("บันทึก Assignment สำเร็จ!");
 
           // Go to Step 2 after successful save
-          setCurrentStep(2)
+          setCurrentStep(2);
 
           // Create a new homework from the saved assignment
           if (response.data.assignment_id) {
@@ -2893,26 +2956,26 @@ export default function Course() {
               id: response.data.assignment_id,
               name: assignmentName,
               scores: {},
-            }
+            };
 
             // If CLOs have data, set initial scores to 0
             if (CLOs && CLOs.length > 0) {
               CLOs.forEach((clo) => {
-                const cloId = clo.CLO_id || clo.clo_id
-                newHomework.scores[cloId] = 0
-              })
+                const cloId = clo.CLO_id || clo.clo_id;
+                newHomework.scores[cloId] = 0;
+              });
             }
 
-            setHomeworks([newHomework])
-            setCurrentAssignmentId(response.data.assignment_id)
+            setHomeworks([newHomework]);
+            setCurrentAssignmentId(response.data.assignment_id);
           }
         } else {
-          alert(response.data?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล")
+          alert(response.data?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         }
         setLoading(false);
       })
       .catch((error) => {
-        console.error("Error saving Assignment:", error)
+        console.error("Error saving Assignment:", error);
 
         // Show detailed error message
         let errorMessage = `เกิดข้อผิดพลาด: ${error.message}`;
@@ -2921,10 +2984,10 @@ export default function Course() {
           errorMessage += `\nResponse data: ${JSON.stringify(error.response.data)}`;
         }
 
-        alert(errorMessage)
+        alert(errorMessage);
         setLoading(false);
-      })
-  }
+      });
+  };
 
   const handleSaveAssignment = () => {
     // ตรวจสอบว่ามีรหัส Assignment หรือไม่
@@ -2932,7 +2995,7 @@ export default function Course() {
       setTypeError("กรุณาเลือก Assignment ก่อนบันทึก");
       return;
     }
-  
+
     // ตรวจสอบความถูกต้องของคะแนน (ข้ามได้ถ้าไม่มี CLO)
     if (CLOs.length > 0) {
       const isValid = validateCloScores();
@@ -2941,7 +3004,9 @@ export default function Course() {
       }
     } else {
       // ถ้าไม่มี CLO ให้แจ้งเตือนผู้ใช้
-      alert("ไม่พบข้อมูล CLO สำหรับ Assignment นี้ กรุณาเพิ่ม CLO ก่อนบันทึกคะแนน");
+      alert(
+        "ไม่พบข้อมูล CLO สำหรับ Assignment นี้ กรุณาเพิ่ม CLO ก่อนบันทึกคะแนน"
+      );
       return;
     }
 
@@ -2965,10 +3030,10 @@ export default function Course() {
             apiData.push({
               assignment_id: hw.id,
               item: {
-                clo_id: cloId  // ตรงนี้สำคัญ ต้องส่ง clo_id ในรูปแบบนี้ตามที่ API ต้องการ
+                clo_id: cloId, // ตรงนี้สำคัญ ต้องส่ง clo_id ในรูปแบบนี้ตามที่ API ต้องการ
               },
               score: score,
-              weight: weight
+              weight: weight,
             });
           }
         }
@@ -2981,26 +3046,26 @@ export default function Course() {
     const saveData = async () => {
       try {
         const dataToSend = prepareDataForApi();
-  
+
         console.log("ข้อมูลที่จะส่งไป API:", {
-          data: dataToSend
+          data: dataToSend,
         });
-  
+
         // แสดงสถานะกำลังบันทึก
         setLoading(true);
-  
+
         const response = await axios.post("/api/save_assignment_clo", {
-          data: dataToSend
+          data: dataToSend,
         });
-  
+
         console.log("ผลการบันทึก:", response.data);
-        
+
         // แสดงข้อความสำเร็จ
         alert("บันทึกคะแนน CLO สำเร็จ!");
-        
+
         // ไปยัง Step 3 หลังจากบันทึกสำเร็จ
         setCurrentStep(3);
-        
+
         // ปิดสถานะกำลังบันทึก
         setLoading(false);
       } catch (error) {
@@ -3016,7 +3081,7 @@ export default function Course() {
   // ฟังก์ชันเปลี่ยนคะแนนของการบ้านและ CLO
   const handleScoreChange = (homeworkId, cloId, value) => {
     // Convert to number or default to 0 if empty
-    const numValue = value === "" ? 0 : Number.parseInt(value, 10)
+    const numValue = value === "" ? 0 : Number.parseInt(value, 10);
 
     // Update the homework scores
     const updatedHomeworks = homeworks.map((hw) => {
@@ -3027,259 +3092,278 @@ export default function Course() {
             ...hw.scores,
             [cloId]: numValue,
           },
-        }
+        };
       }
-      return hw
-    })
+      return hw;
+    });
 
-    setHomeworks(updatedHomeworks)
+    setHomeworks(updatedHomeworks);
 
     // Validate scores after change
-    setTimeout(() => validateCloScores(), 100)
-  }
+    setTimeout(() => validateCloScores(), 100);
+  };
 
   // ฟังก์ชันคำนวณคะแนนรวมสำหรับ CLO เฉพาะ
   const calculateCloTotal = (cloId) => {
     return homeworks.reduce((total, hw) => {
-      return total + (hw.scores[cloId] || 0)
-    }, 0)
-  }
+      return total + (hw.scores[cloId] || 0);
+    }, 0);
+  };
 
   // ฟังก์ชันไปยังขั้นตอนถัดไป
   const goToNextStep = () => {
-    setCurrentStep((prevStep) => prevStep + 1)
-  }
+    setCurrentStep((prevStep) => prevStep + 1);
+  };
 
   // ฟังก์ชันไปยังขั้นตอนก่อนหน้า
   const goToPreviousStep = () => {
-    setCurrentStep((prevStep) => prevStep - 1)
-  }
+    setCurrentStep((prevStep) => prevStep - 1);
+  };
 
   // ฟังก์ชันไปจาก Step 2 ไปยัง Step 3
   const goToStep3 = () => {
     if (homeworks.length === 0) {
-      alert("กรุณาสร้างการบ้านก่อนนำเข้ารายชื่อนักเรียน")
-      return
+      alert("กรุณาสร้างการบ้านก่อนนำเข้ารายชื่อนักเรียน");
+      return;
     }
 
     // Check if there are unsaved changes in Step 2
     // If all validations pass, go to step 3
-    setCurrentStep(3)
-  }
+    setCurrentStep(3);
+  };
 
   // ฟังก์ชันสำหรับดูสีพื้นหลังตามค่าคะแนน
   const getScoreColor = (score) => {
-    if (score === 0) return ""
-    if (score < 5) return "bg-danger text-white"
-    if (score < 8) return "bg-warning"
-    return "bg-success text-white"
-  }
+    if (score === 0) return "";
+    if (score < 5) return "bg-danger text-white";
+    if (score < 8) return "bg-warning";
+    return "bg-success text-white";
+  };
 
   // ฟังก์ชันอัพโหลดไฟล์ Excel
   const handleExcelFileUpload = (e) => {
-    const file = e.target.files[0]
-    setImportErrors([])
-    setImportSuccess("")
+    const file = e.target.files[0];
+    setImportErrors([]);
+    setImportSuccess("");
 
-    if (!file) return
+    if (!file) return;
 
     // Reset previously imported data
-    setExcelData(null)
+    setExcelData(null);
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const data = new Uint8Array(event.target.result)
-        const workbook = XLSX.read(data, { type: "array" })
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
 
         // Get first sheet
-        const firstSheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[firstSheetName]
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
 
         // Convert to JSON
-        const jsonData = XLSX.utils.sheet_to_json(worksheet)
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
         if (jsonData.length === 0) {
-          setImportErrors(["ไม่พบข้อมูลในไฟล์ Excel"])
-          return
+          setImportErrors(["ไม่พบข้อมูลในไฟล์ Excel"]);
+          return;
         }
 
         // Validate required columns
-        const firstRow = jsonData[0]
-        const hasStudentId = "student_id" in firstRow || "รหัสนักศึกษา" in firstRow
-        const hasName = "name" in firstRow || "ชื่อ-นามสกุล" in firstRow || "ชื่อ" in firstRow
+        const firstRow = jsonData[0];
+        const hasStudentId =
+          "student_id" in firstRow || "รหัสนักศึกษา" in firstRow;
+        const hasName =
+          "name" in firstRow ||
+          "ชื่อ-นามสกุล" in firstRow ||
+          "ชื่อ" in firstRow;
 
         if (!hasStudentId || !hasName) {
-          setImportErrors(["ไฟล์ Excel ต้องมีคอลัมน์ 'student_id' (หรือ 'รหัสนักศึกษา') และ 'name' (หรือ 'ชื่อ-นามสกุล', 'ชื่อ')"])
-          return
+          setImportErrors([
+            "ไฟล์ Excel ต้องมีคอลัมน์ 'student_id' (หรือ 'รหัสนักศึกษา') และ 'name' (หรือ 'ชื่อ-นามสกุล', 'ชื่อ')",
+          ]);
+          return;
         }
 
         // Process and normalize data
         const processedData = jsonData
           .map((row) => {
             // Try to find student_id in various possible column names
-            const studentId = row.student_id || row.รหัสนักศึกษา || row["รหัสนักศึกษา"]
+            const studentId =
+              row.student_id || row.รหัสนักศึกษา || row["รหัสนักศึกษา"];
             // Try to find name in various possible column names
-            const name = row.name || row["ชื่อ-นามสกุล"] || row.ชื่อ
+            const name = row.name || row["ชื่อ-นามสกุล"] || row.ชื่อ;
 
             return {
               student_id: studentId ? String(studentId).trim() : "",
               name: name ? String(name).trim() : "",
-            }
+            };
           })
-          .filter((student) => student.student_id && student.name)
+          .filter((student) => student.student_id && student.name);
 
         if (processedData.length === 0) {
-          setImportErrors(["ไม่พบข้อมูลที่ถูกต้องในไฟล์ Excel"])
-          return
+          setImportErrors(["ไม่พบข้อมูลที่ถูกต้องในไฟล์ Excel"]);
+          return;
         }
 
-        setExcelData(processedData)
+        setExcelData(processedData);
       } catch (error) {
-        console.error("Error reading Excel file:", error)
-        setImportErrors(["เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: " + error.message])
+        console.error("Error reading Excel file:", error);
+        setImportErrors([
+          "เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: " + error.message,
+        ]);
       }
-    }
+    };
 
     reader.onerror = (error) => {
-      console.error("FileReader error:", error)
-      setImportErrors(["เกิดข้อผิดพลาดในการอ่านไฟล์: " + error.message])
-    }
+      console.error("FileReader error:", error);
+      setImportErrors(["เกิดข้อผิดพลาดในการอ่านไฟล์: " + error.message]);
+    };
 
-    reader.readAsArrayBuffer(file)
-  }
+    reader.readAsArrayBuffer(file);
+  };
 
   // ฟังก์ชันนำเข้านักศึกษาจาก Excel
   const handleImportFromExcel = () => {
     if (!excelData || excelData.length === 0) {
-      setImportErrors(["ไม่พบข้อมูลที่จะนำเข้า"])
-      return
+      setImportErrors(["ไม่พบข้อมูลที่จะนำเข้า"]);
+      return;
     }
 
-    setImportErrors([])
-    setImportSuccess("")
+    setImportErrors([]);
+    setImportSuccess("");
 
     // Validate data
-    const errors = []
+    const errors = [];
     excelData.forEach((student, index) => {
       if (!student.student_id) {
-        errors.push(`แถวที่ ${index + 1}: ไม่พบรหัสนักศึกษา`)
+        errors.push(`แถวที่ ${index + 1}: ไม่พบรหัสนักศึกษา`);
       } else if (!/^\d{8,13}$/.test(student.student_id)) {
-        errors.push(`แถวที่ ${index + 1}: รหัสนักศึกษา ${student.student_id} ไม่ถูกต้อง (ต้องเป็นตัวเลข 8-13 หลัก)`)
+        errors.push(
+          `แถวที่ ${index + 1}: รหัสนักศึกษา ${student.student_id} ไม่ถูกต้อง (ต้องเป็นตัวเลข 8-13 หลัก)`
+        );
       }
 
       if (!student.name) {
-        errors.push(`แถวที่ ${index + 1}: ไม่พบชื่อ-นามสกุล`)
+        errors.push(`แถวที่ ${index + 1}: ไม่พบชื่อ-นามสกุล`);
       }
-    })
+    });
 
     if (errors.length > 0) {
-      setImportErrors(errors)
-      return
+      setImportErrors(errors);
+      return;
     }
 
     // Import to list
-    setImportedStudents([...importedStudents, ...excelData])
-    setImportSuccess(`นำเข้ารายชื่อนักเรียนจาก Excel จำนวน ${excelData.length} คน สำเร็จ`)
-    setExcelData(null)
+    setImportedStudents([...importedStudents, ...excelData]);
+    setImportSuccess(
+      `นำเข้ารายชื่อนักเรียนจาก Excel จำนวน ${excelData.length} คน สำเร็จ`
+    );
+    setExcelData(null);
 
     // Reset file input
-    const fileInput = document.querySelector('input[type="file"]')
-    if (fileInput) fileInput.value = ""
-  }
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = "";
+  };
 
   // ฟังก์ชันนำเข้านักศึกษาจาก Clipboard
   const handleImportFromClipboard = () => {
     if (!clipboardText.trim()) {
-      setImportErrors(["ไม่พบข้อมูลที่จะนำเข้า"])
-      return
+      setImportErrors(["ไม่พบข้อมูลที่จะนำเข้า"]);
+      return;
     }
 
-    setImportErrors([])
-    setImportSuccess("")
+    setImportErrors([]);
+    setImportSuccess("");
 
     // Process clipboard text
     // Expecting format: "student_id[tab]name" or "student_id[space]name" per line
-    const lines = clipboardText.trim().split(/\r?\n/)
-    const parsedStudents = []
-    const errors = []
+    const lines = clipboardText.trim().split(/\r?\n/);
+    const parsedStudents = [];
+    const errors = [];
 
     lines.forEach((line, index) => {
       // Try to split by tab first, then by multiple spaces
-      const parts = line.trim().split(/\t+/)
-      let studentId, name
+      const parts = line.trim().split(/\t+/);
+      let studentId, name;
 
       if (parts.length >= 2) {
         // If split by tab works
-        studentId = parts[0].trim()
-        name = parts.slice(1).join(" ").trim()
+        studentId = parts[0].trim();
+        name = parts.slice(1).join(" ").trim();
       } else {
         // Try splitting by multiple spaces
-        const spaceParts = line.trim().split(/\s{2,}/)
+        const spaceParts = line.trim().split(/\s{2,}/);
         if (spaceParts.length >= 2) {
-          studentId = spaceParts[0].trim()
-          name = spaceParts.slice(1).join(" ").trim()
+          studentId = spaceParts[0].trim();
+          name = spaceParts.slice(1).join(" ").trim();
         } else {
           // Try to find a pattern where numbers are followed by text
-          const match = line.match(/^(\d+)\s+(.+)$/)
+          const match = line.match(/^(\d+)\s+(.+)$/);
           if (match) {
-            studentId = match[1].trim()
-            name = match[2].trim()
+            studentId = match[1].trim();
+            name = match[2].trim();
           } else {
-            errors.push(`บรรทัดที่ ${index + 1}: รูปแบบไม่ถูกต้อง "${line}"`)
-            return
+            errors.push(`บรรทัดที่ ${index + 1}: รูปแบบไม่ถูกต้อง "${line}"`);
+            return;
           }
         }
       }
 
       // Validate student ID
       if (!studentId) {
-        errors.push(`บรรทัดที่ ${index + 1}: ไม่พบรหัสนักศึกษา`)
+        errors.push(`บรรทัดที่ ${index + 1}: ไม่พบรหัสนักศึกษา`);
       } else if (!/^\d{8,13}$/.test(studentId)) {
-        errors.push(`บรรทัดที่ ${index + 1}: รหัสนักศึกษา ${studentId} ไม่ถูกต้อง (ต้องเป็นตัวเลข 8-13 หลัก)`)
+        errors.push(
+          `บรรทัดที่ ${index + 1}: รหัสนักศึกษา ${studentId} ไม่ถูกต้อง (ต้องเป็นตัวเลข 8-13 หลัก)`
+        );
       }
 
       // Validate name
       if (!name) {
-        errors.push(`บรรทัดที่ ${index + 1}: ไม่พบชื่อ-นามสกุล`)
+        errors.push(`บรรทัดที่ ${index + 1}: ไม่พบชื่อ-นามสกุล`);
       }
 
       if (studentId && name) {
         parsedStudents.push({
           student_id: studentId,
           name: name,
-        })
+        });
       }
-    })
+    });
 
     if (errors.length > 0) {
-      setImportErrors(errors)
-      return
+      setImportErrors(errors);
+      return;
     }
 
     if (parsedStudents.length === 0) {
-      setImportErrors(["ไม่สามารถแยกแยะข้อมูลนักเรียนได้ โปรดตรวจสอบรูปแบบข้อมูล"])
-      return
+      setImportErrors([
+        "ไม่สามารถแยกแยะข้อมูลนักเรียนได้ โปรดตรวจสอบรูปแบบข้อมูล",
+      ]);
+      return;
     }
 
     // Add to imported students list
-    setImportedStudents([...importedStudents, ...parsedStudents])
-    setImportSuccess(`นำเข้ารายชื่อนักเรียนจาก Clipboard จำนวน ${parsedStudents.length} คน สำเร็จ`)
-    setClipboardText("")
-  }
+    setImportedStudents([...importedStudents, ...parsedStudents]);
+    setImportSuccess(
+      `นำเข้ารายชื่อนักเรียนจาก Clipboard จำนวน ${parsedStudents.length} คน สำเร็จ`
+    );
+    setClipboardText("");
+  };
 
   // ฟังก์ชันลบนักศึกษา
   const handleRemoveStudent = (index) => {
-    const updatedStudents = [...importedStudents]
-    updatedStudents.splice(index, 1)
-    setImportedStudents(updatedStudents)
-  }
+    const updatedStudents = [...importedStudents];
+    updatedStudents.splice(index, 1);
+    setImportedStudents(updatedStudents);
+  };
 
   // ฟังก์ชันบันทึกรายชื่อนักศึกษา
   const handleSaveImportedStudents = () => {
     if (importedStudents.length === 0) {
-      setImportErrors(["ไม่พบรายชื่อนักเรียนที่จะบันทึก"])
-      return
+      setImportErrors(["ไม่พบรายชื่อนักเรียนที่จะบันทึก"]);
+      return;
     }
 
     // ตรวจสอบว่ามี currentAssignmentId หรือไม่
@@ -3287,27 +3371,35 @@ export default function Course() {
       // ถ้าไม่มี currentAssignmentId แต่มี homeworks
       if (homeworks.length > 0 && homeworks[0].id) {
         // ใช้ id จาก homework แรก
-        setCurrentAssignmentId(homeworks[0].id)
-        console.log("Setting current assignment ID from homework:", homeworks[0].id)
+        setCurrentAssignmentId(homeworks[0].id);
+        console.log(
+          "Setting current assignment ID from homework:",
+          homeworks[0].id
+        );
       } else {
-        setImportErrors(["ไม่พบข้อมูลการบ้านที่จะบันทึก กรุณาเลือกการบ้านอีกครั้ง"])
-        return
+        setImportErrors([
+          "ไม่พบข้อมูลการบ้านที่จะบันทึก กรุณาเลือกการบ้านอีกครั้ง",
+        ]);
+        return;
       }
     }
 
     // ใช้ค่า currentAssignmentId ที่เป็นปัจจุบัน
-    const assignmentIdToUse = currentAssignmentId || (homeworks.length > 0 ? homeworks[0].id : null)
+    const assignmentIdToUse =
+      currentAssignmentId || (homeworks.length > 0 ? homeworks[0].id : null);
 
-    console.log("Using assignment ID:", assignmentIdToUse)
+    console.log("Using assignment ID:", assignmentIdToUse);
 
     if (!assignmentIdToUse) {
-      setImportErrors(["ไม่พบข้อมูลการบ้านที่จะบันทึก กรุณาเลือกการบ้านอีกครั้ง"])
-      return
+      setImportErrors([
+        "ไม่พบข้อมูลการบ้านที่จะบันทึก กรุณาเลือกการบ้านอีกครั้ง",
+      ]);
+      return;
     }
 
-    setLoading(true)
-    setImportErrors([])
-    setImportSuccess("")
+    setLoading(true);
+    setImportErrors([]);
+    setImportSuccess("");
 
     // แสดงข้อมูลที่จะส่งในคอนโซล
     const studentsData = importedStudents.map((student) => ({
@@ -3316,33 +3408,38 @@ export default function Course() {
       assignment_id: assignmentIdToUse,
       // ไม่ต้องส่ง assignment_clo_id เพราะ backend จะดึงข้อมูลทั้งหมดจาก assignment_id
       // และทำการเชื่อมโยงกับ CLO ทั้งหมดให้อัตโนมัติ
-    }))
+    }));
 
     console.log("Data being sent to API:", {
-      students: studentsData
-    })
+      students: studentsData,
+    });
 
     // ส่งข้อมูลไป API
-    axios.post("/api/add_students_to_assignment", {
-      students: studentsData,
-    })
+    axios
+      .post("/api/add_students_to_assignment", {
+        students: studentsData,
+      })
       .then((response) => {
         console.log("Response from server:", response.data);
-        setImportSuccess(`บันทึกรายชื่อนักเรียนสำเร็จ: ${response.data?.message || `จำนวน ${importedStudents.length} คน`}`);
+        setImportSuccess(
+          `บันทึกรายชื่อนักเรียนสำเร็จ: ${response.data?.message || `จำนวน ${importedStudents.length} คน`}`
+        );
         setImportedStudents([]);
         setLoading(false);
       })
       .catch((error) => {
-        console.error("Error saving students:", error)
-        setImportErrors([`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`])
-        setLoading(false)
-      })
-  }
+        console.error("Error saving students:", error);
+        setImportErrors([`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`]);
+        setLoading(false);
+      });
+  };
 
   // ฟังก์ชันเพิ่มนักศึกษาเข้า assignment
   const handleAddStudentToAssignment = (studentId, assignmentId) => {
-    const student = students.find((s) => s.student_id === studentId)
-    const assignment = assignments.find((a) => a.assignment_id === assignmentId)
+    const student = students.find((s) => s.student_id === studentId);
+    const assignment = assignments.find(
+      (a) => a.assignment_id === assignmentId
+    );
 
     if (student && assignment) {
       // console.log("Adding student to assignment...")
@@ -3352,44 +3449,45 @@ export default function Course() {
       // console.log("Assignment Name:", assignment.assignment_name)
       // console.log("Year:", assignment.year)
 
-      axios.post("/api/add_student_to_assignment", {
-        student_id: student.student_id,
-        name: student.name,
-        course: assignment.course_name,
-        assignment_id: assignment.assignment_id,
-        assignment_name: assignment.assignment_name,
-        year: assignment.year,
-      })
+      axios
+        .post("/api/add_student_to_assignment", {
+          student_id: student.student_id,
+          name: student.name,
+          course: assignment.course_name,
+          assignment_id: assignment.assignment_id,
+          assignment_name: assignment.assignment_name,
+          year: assignment.year,
+        })
         .then((response) => {
           // console.log("API response:", response.data);
           if (response.data?.message) {
-            alert("Student added successfully!")
+            alert("Student added successfully!");
           }
         })
         .catch((error) => {
-          console.error("Error adding student:", error)
-          alert("Error: " + error.message)
-        })
+          console.error("Error adding student:", error);
+          alert("Error: " + error.message);
+        });
     } else {
-      console.error("Student or assignment not found")
-      alert("Student or assignment information is missing.")
+      console.error("Student or assignment not found");
+      alert("Student or assignment information is missing.");
     }
-  }
+  };
 
   // ฟังก์ชันเลือกโปรแกรม
   const handleSelectProgram = (programName) => {
-    setSelectedProgram(programName)
-    setSelectedCourseId("")
-    setSelectedSectionId("")
-    setSelectedSemesterId("")
-    setSelectedYear("")
-  }
+    setSelectedProgram(programName);
+    setSelectedCourseId("");
+    setSelectedSectionId("");
+    setSelectedSemesterId("");
+    setSelectedYear("");
+  };
 
   const handleAssignmentClick = (assignment) => {
     // บันทึกข้อมูล assignment ที่เลือกในตัวแปร state
     setSelectedAssignment(assignment);
     console.log("เลือก Assignment:", assignment);
-  
+
     // ตั้งค่าข้อมูลตามข้อมูลใน assignment
     setSelectedCourseId(assignment.course_id?.toString() || "");
     setSelectedSectionId(assignment.section_id?.toString() || "");
@@ -3397,58 +3495,65 @@ export default function Course() {
     setSelectedYear(assignment.year?.toString() || "");
     setCurrentAssignmentId(assignment.assignment_id);
     setAssignmentName(assignment.assignment_name || "");
-  
+
     // ดึงข้อมูล CLO และนักศึกษาสำหรับ Assignment นี้
     const fetchData = async () => {
       try {
         // ดึงข้อมูล Assignment, CLOs และนักศึกษา
-        const response = await axios.get(`/api/get_assignment_detail/${assignment.assignment_id}`);
-        
+        const response = await axios.get(
+          `/api/get_assignment_detail/${assignment.assignment_id}`
+        );
+
         if (response.data && response.data.success) {
           console.log("ข้อมูล Assignment ที่ได้รับ:", response.data);
-          
+
           // นำข้อมูล CLO มาใช้
           setCLOs(response.data.clos || []);
-          
+
           // นำข้อมูลนักศึกษามาใช้ (นักศึกษาที่มีคะแนนใน Assignment นี้)
           setImportedStudents(response.data.students || []);
-          
+
           // นำข้อมูลคะแนนมาใช้
           setScores(response.data.scores || {});
-          
+
           // สร้าง homeworks สำหรับการแก้ไขคะแนน
           if (response.data.clos && response.data.clos.length > 0) {
             const homeworkData = {
               id: assignment.assignment_id,
               name: assignment.assignment_name,
-              scores: {}
+              scores: {},
             };
-            
+
             // ตั้งค่าคะแนนและน้ำหนัก CLO
             const cloWeightsObj = {};
-            response.data.clos.forEach(clo => {
+            response.data.clos.forEach((clo) => {
               homeworkData.scores[clo.clo_id] = 0; // ค่าเริ่มต้น
               cloWeightsObj[clo.clo_id] = clo.weight || 0;
             });
-            
+
             // นำคะแนนที่มีอยู่มาตั้งค่า (ถ้ามีข้อมูลนักเรียนและคะแนน)
             if (response.data.students.length > 0) {
               const firstStudent = response.data.students[0];
-              const firstStudentScores = response.data.scores[firstStudent.student_id] || {};
-              
-              response.data.clos.forEach(clo => {
+              const firstStudentScores =
+                response.data.scores[firstStudent.student_id] || {};
+
+              response.data.clos.forEach((clo) => {
                 if (firstStudentScores[clo.assignment_clo_id] !== undefined) {
-                  homeworkData.scores[clo.clo_id] = firstStudentScores[clo.assignment_clo_id];
+                  homeworkData.scores[clo.clo_id] =
+                    firstStudentScores[clo.assignment_clo_id];
                 }
               });
             }
-            
+
             // ตั้งค่า homeworks และ cloWeights
             setHomeworks([homeworkData]);
             setCloWeights(cloWeightsObj);
           }
         } else {
-          console.error("ไม่สามารถดึงข้อมูล Assignment ได้:", response.data?.message);
+          console.error(
+            "ไม่สามารถดึงข้อมูล Assignment ได้:",
+            response.data?.message
+          );
           setImportedStudents([]);
         }
       } catch (error) {
@@ -3456,20 +3561,23 @@ export default function Course() {
         setImportedStudents([]);
       }
     };
-    
+
     // เรียกใช้ฟังก์ชันดึงข้อมูล
     fetchData();
   };
 
-
   // ตรวจสอบสถานะการโหลด
   if (loading && !universities.length && !semesters.length) {
-    return <div className="d-flex justify-content-center align-items-center" style={{ height: "300px" }}>
-      <div className="spinner-border text-primary" role="status">
-        <span className="visually-hidden">กำลังโหลดข้อมูล...</span>
+    return (
+      <div
+        className="d-flex justify-content-center align-items-center"
+        style={{ height: "300px" }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">กำลังโหลดข้อมูล...</span>
+        </div>
+        <span className="ms-3">กำลังโหลดข้อมูล...</span>
       </div>
-      <span className="ms-3">กำลังโหลดข้อมูล...</span>
-    </div>;
+    );
   }
 
   // แสดงข้อผิดพลาด
@@ -3478,66 +3586,103 @@ export default function Course() {
   }
 
   return (
-    <div className="mb-3" style={{ paddingTop: '80px', maxWidth: '1200px', marginLeft: '20px' }}>
+    <div
+      className="mb-3"
+      style={{ paddingTop: "80px", maxWidth: "1200px", marginLeft: "20px" }}>
       {/* Fixed Header with Tabs and Filters */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        marginLeft: '250px',
-        backgroundColor: '#FFFFFF',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        borderBottom: '1px solid #eee'
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 0',
-          marginLeft: '15px',
-          padding: '0 15px'
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          marginLeft: "250px",
+          backgroundColor: "#FFFFFF",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          borderBottom: "1px solid #eee",
         }}>
-          <h3 className="mb-0" style={{ fontSize: '1.4rem', padding: '10px 0', marginTop: 15 }}>{t('Course Information')}</h3>
+        <div
+          style={{
+            maxWidth: "1200px",
+            margin: "0 0",
+            marginLeft: "15px",
+            padding: "0 15px",
+          }}>
+          <h3
+            className="mb-0"
+            style={{ fontSize: "1.4rem", padding: "10px 0", marginTop: 15 }}>
+            {t("Course Information")}
+          </h3>
 
           {/* แถบเมนู */}
-          <ul className="tab-bar" style={{ margin: 0, padding: '5px 0 10px 5px', borderBottom: 'none' }}>
-            <li className={`tab-item ${activeTab === 0 ? 'active' : ''}`} onClick={() => handleTabClick(0)}>{t('General Information')}</li>
-            <li className={`tab-item ${activeTab === 1 ? 'active' : ''}`} onClick={() => handleTabClick(1)}>{t('Course Learning Outcomes (CLO)')}</li>
-            <li className={`tab-item ${activeTab === 2 ? 'active' : ''}`} onClick={() => handleTabClick(2)}>{t('Course-CLO Mapping')}</li>
-            <li className={`tab-item ${activeTab === 3 ? 'active' : ''}`} onClick={() => handleTabClick(3)}>{t('CLO-PLO Mapping')}</li>
-            <li className={`tab-item ${activeTab === 4 ? 'active' : ''}`} onClick={() => handleTabClick(4)}>{t('Assignment')}</li>
-
+          <ul
+            className="tab-bar"
+            style={{
+              margin: 0,
+              padding: "5px 0 10px 5px",
+              borderBottom: "none",
+            }}>
+            <li
+              className={`tab-item ${activeTab === 0 ? "active" : ""}`}
+              onClick={() => handleTabClick(0)}>
+              {t("General Information")}
+            </li>
+            <li
+              className={`tab-item ${activeTab === 1 ? "active" : ""}`}
+              onClick={() => handleTabClick(1)}>
+              {t("Course Learning Outcomes (CLO)")}
+            </li>
+            <li
+              className={`tab-item ${activeTab === 2 ? "active" : ""}`}
+              onClick={() => handleTabClick(2)}>
+              {t("Course-CLO Mapping")}
+            </li>
+            <li
+              className={`tab-item ${activeTab === 3 ? "active" : ""}`}
+              onClick={() => handleTabClick(3)}>
+              {t("CLO-PLO Mapping")}
+            </li>
+            <li
+              className={`tab-item ${activeTab === 4 ? "active" : ""}`}
+              onClick={() => handleTabClick(4)}>
+              {t("Assignment")}
+            </li>
           </ul>
 
           {/* 5 Filters in one row */}
-          <div className="d-flex flex-row" style={{ flexWrap: 'nowrap', marginTop: '0px' }}>
-            <div className="mb-3 me-2" style={{ width: '300px' }}>
-              <label className="form-label text-start">Choose a University</label>
+          <div
+            className="d-flex flex-row"
+            style={{ flexWrap: "nowrap", marginTop: "0px" }}>
+            <div className="mb-3 me-2" style={{ width: "300px" }}>
+              <label className="form-label text-start">
+                Choose a University
+              </label>
               <select
                 className="form-select"
                 value={selectedUniversity}
-                onChange={(e) => handleFilterChange("university", e.target.value)}
-              >
+                onChange={(e) =>
+                  handleFilterChange("university", e.target.value)
+                }>
                 <option value="">Select University</option>
                 {universities.map((university) => (
                   <option
                     key={university.university_id}
-                    value={university.university_id}
-                  >
-                    {university.university_name_en} ({university.university_name_th})
+                    value={university.university_id}>
+                    {university.university_name_en} (
+                    {university.university_name_th})
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="mb-3 me-2" style={{ width: '350px' }}>
+            <div className="mb-3 me-2" style={{ width: "350px" }}>
               <label className="form-label text-start">Choose a Faculty</label>
               <select
                 className="form-select"
                 value={selectedFaculty || ""}
                 onChange={(e) => handleFilterChange("faculty", e.target.value)}
-                disabled={!selectedUniversity}
-              >
+                disabled={!selectedUniversity}>
                 <option value="">Select Faculty</option>
                 {facultys.map((faculty) => (
                   <option key={faculty.faculty_id} value={faculty.faculty_id}>
@@ -3546,14 +3691,13 @@ export default function Course() {
                 ))}
               </select>
             </div>
-            <div className="mb-3 me-2" style={{ width: '200px' }}>
+            <div className="mb-3 me-2" style={{ width: "200px" }}>
               <label className="form-label text-start">Choose a Program</label>
               <select
                 className="form-select"
                 value={selectedProgram}
                 onChange={(e) => handleFilterChange("program", e.target.value)}
-                disabled={!selectedFaculty}
-              >
+                disabled={!selectedFaculty}>
                 <option value="">Select Program</option>
                 {getUniquePrograms(programs).map((program) => (
                   <option key={program.program_id} value={program.program_id}>
@@ -3563,14 +3707,13 @@ export default function Course() {
               </select>
             </div>
 
-            <div className="mb-3 me-2" style={{ width: '90px' }}>
+            <div className="mb-3 me-2" style={{ width: "90px" }}>
               <label className="form-label">Year</label>
               <select
                 className="form-select"
                 value={selectedYear}
                 onChange={(e) => handleFilterChange("year", e.target.value)}
-                disabled={!selectedProgram}
-              >
+                disabled={!selectedProgram}>
                 <option value="">Select Year</option>
                 {years.map((year) => (
                   <option key={year} value={year}>
@@ -3580,19 +3723,20 @@ export default function Course() {
               </select>
             </div>
 
-            <div className="mb-3 me-2" style={{ width: '180px' }}>
+            <div className="mb-3 me-2" style={{ width: "180px" }}>
               <label className="form-label">Semester</label>
               <select
                 className="form-select"
                 name="semester_id"
                 value={newCourse.semester_id}
                 onChange={handleCourseChange}
-                disabled={!selectedProgram}
-              >
+                disabled={!selectedProgram}>
                 <option value="">Select Semester</option>
                 {semesters && semesters.length > 0 ? (
                   semesters.map((semester) => (
-                    <option key={semester.semester_id} value={semester.semester_id}>
+                    <option
+                      key={semester.semester_id}
+                      value={semester.semester_id}>
                       {semester.semester_name}
                     </option>
                   ))
@@ -3602,78 +3746,38 @@ export default function Course() {
               </select>
             </div>
           </div>
-
         </div>
       </div>
 
       {/* เพิ่ม padding ด้านบนของเนื้อหาเพื่อไม่ให้โดนแถบเมนูทับ */}
-      <div style={{
-        paddingTop: '10px', // ต้องเพิ่ม padding ให้มากพอสำหรับความสูงของแถบเมนู 
-        padding: '120px 0px 0 0px'
-      }}>
-
-
+      <div
+        style={{
+          paddingTop: "10px", // ต้องเพิ่ม padding ให้มากพอสำหรับความสูงของแถบเมนู
+          padding: "120px 0px 0 0px",
+        }}>
         {/* Tab content - Course Information */}
-        <div className={`tab-content ${activeTab === 0 ? 'active' : 'hidden'}`}
+        <div
+          className={`tab-content ${activeTab === 0 ? "active" : "hidden"}`}
           style={{ marginTop: "10px" }}>
           <h3>Course Management</h3>
           <hr className="my-4" />
 
-
           {/* Add Course Section */}
-          <div className="mb-4">
-            <h4>Add Course</h4>
-            <div className="row">
-              <div className="col-md-3">
-                <input
-                  className="form-control mb-2"
-                  placeholder="Course ID"
-                  name="course_id"
-                  value={newCourse.course_id}
-                  onChange={handleCourseChange}
-                />
-              </div>
-              <div className="col-md-3">
-                <input
-                  className="form-control mb-2"
-                  placeholder="Course Name (Thai)"
-                  name="course_name"
-                  value={newCourse.course_name}
-                  onChange={handleCourseChange}
-                />
-              </div>
-              <div className="col-md-3">
-                <input
-                  className="form-control mb-2"
-                  placeholder="Course Name (English)"
-                  name="course_engname"
-                  value={newCourse.course_engname}
-                  onChange={handleCourseChange}
-                />
-              </div>
-              <div className="col-md-2">
-                <input
-                  className="form-control mb-2"
-                  placeholder="Section"
-                  name="section"
-                  value={newCourse.section}
-                  onChange={handleCourseChange}
-                />
-              </div>
-              <div className="col-md-1">
-                <button
-                  onClick={addCourse}
-                  className="btn btn-success"
-                  disabled={!allFiltersSelected}
-                >
-                  Insert
-                </button>
-              </div>
-            </div>
-          </div>
+          <AddCourse
+            newCourse={newCourse}
+            handleCourseChange={handleCourseChange}
+            addCourse={addCourse}
+            allFiltersSelected={allFiltersSelected}
+          />
 
           {/* Edit Course Section */}
-          <div className="mb-4">
+          <EditCourse
+            courseList={course}
+            editCourse={editCourse}
+            setEditCourse={setEditCourse}
+            updateCourse={updateCourse}
+          />
+          {/* <div className="mb-4">
             <h4>Edit Course</h4>
             <div className="row">
               <div className="col-md-3">
@@ -3681,12 +3785,15 @@ export default function Course() {
                   className="form-select mb-2"
                   name="course_id"
                   value={editCourse.course_id}
-                  onChange={(e) => setEditCourse({ ...editCourse, course_id: e.target.value })}
-                >
+                  onChange={(e) =>
+                    setEditCourse({ ...editCourse, course_id: e.target.value })
+                  }>
                   <option value="">Select Course</option>
                   {course && course.length > 0 ? (
                     course.map((courseItem) => (
-                      <option key={courseItem.course_id} value={courseItem.course_id}>
+                      <option
+                        key={courseItem.course_id}
+                        value={courseItem.course_id}>
                         {courseItem.course_id}- {courseItem.course_name}
                       </option>
                     ))
@@ -3701,7 +3808,12 @@ export default function Course() {
                   placeholder="Course Name (Thai)"
                   name="course_name"
                   value={editCourse.course_name}
-                  onChange={(e) => setEditCourse({ ...editCourse, course_name: e.target.value })}
+                  onChange={(e) =>
+                    setEditCourse({
+                      ...editCourse,
+                      course_name: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="col-md-3">
@@ -3710,66 +3822,32 @@ export default function Course() {
                   placeholder="Course Name (English)"
                   name="course_engname"
                   value={editCourse.course_engname}
-                  onChange={(e) => setEditCourse({ ...editCourse, course_engname: e.target.value })}
+                  onChange={(e) =>
+                    setEditCourse({
+                      ...editCourse,
+                      course_engname: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="col-md-3">
                 <button
                   onClick={() => updateCourse(editCourse)}
-                  className="btn btn-warning"
-                >
+                  className="btn btn-warning">
                   Edit
                 </button>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Course Table */}
-          <div className="mt-4">
-            <h4>Course List</h4>
-            <table className="table table-bordered">
-              <thead>
-                <tr>
-                  <th>Course ID</th>
-                  <th>Course Name</th>
-                  <th>Course engName</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {course && course.length > 0 ? (
-                  course.map((courseItem) => (
-                    <tr key={courseItem.course_id}>
-                      <td>{courseItem.course_id}</td>
-                      <td>{courseItem.course_name}</td>
-                      <td>{courseItem.course_engname}</td>
-                      <td>
-                        <button
-                          onClick={() => deleteCourse(courseItem.course_id)}
-                          className="btn btn-danger btn-sm"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="text-center">No courses available</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-
-
+          <CourseTable course_list={course} deleteCourse={deleteCourse} />
         </div>
 
-        <div className={`tab-content ${activeTab === 1 ? 'active' : 'hidden'}`}
+        <div
+          className={`tab-content ${activeTab === 1 ? "active" : "hidden"}`}
           style={{ marginTop: "0px" }}>
-
-<div className="row" style={{ padding: '0px 10px 0 10px' }}>
+          <div className="row" style={{ padding: "0px 10px 0 10px" }}>
             <div className="col-md-3">
               <label className="form-label text-start">Choose a Course</label>
               <select
@@ -3779,8 +3857,7 @@ export default function Course() {
                   // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
-                disabled={!newCourse.semester_id}
-              >
+                disabled={!newCourse.semester_id}>
                 <option value="" disabled>
                   Select Course
                 </option>
@@ -3800,8 +3877,7 @@ export default function Course() {
                   // console.log("Selected Section:", e.target.value);
                   setSelectedSectionId(e.target.value);
                 }}
-                disabled={!selectedCourseId}
-              >
+                disabled={!selectedCourseId}>
                 <option value="" disabled>
                   Select Section
                 </option>
@@ -3827,8 +3903,13 @@ export default function Course() {
                   onClick={() => setShowAddModal(true)}
                   className="btn"
                   style={{ backgroundColor: "#FF8C00", color: "white" }}
-                  disabled={!selectedProgram || !selectedCourseId || !selectedSectionId || !selectedSemesterId || !selectedYear}
-                >
+                  disabled={
+                    !selectedProgram ||
+                    !selectedCourseId ||
+                    !selectedSectionId ||
+                    !selectedSemesterId ||
+                    !selectedYear
+                  }>
                   Add CLO
                 </button>
 
@@ -3841,24 +3922,28 @@ export default function Course() {
                     !selectedSemesterId ||
                     !selectedSectionId ||
                     !selectedYear
-                  }
-                >
+                  }>
                   Load Previous Year CLOs
                 </button>
               </div>
 
               <div className="button-group ms-auto">
                 <button
-                  onClick={() => document.getElementById('uploadExcel').click()}
+                  onClick={() => document.getElementById("uploadExcel").click()}
                   className="btn btn-secondary"
-                  disabled={!selectedProgram || !selectedCourseId || !selectedSectionId || !selectedSemesterId || !selectedYear}
-                >
+                  disabled={
+                    !selectedProgram ||
+                    !selectedCourseId ||
+                    !selectedSectionId ||
+                    !selectedSemesterId ||
+                    !selectedYear
+                  }>
                   Upload Excel
                 </button>
                 <input
                   type="file"
                   id="uploadExcel"
-                  style={{ display: 'none' }}
+                  style={{ display: "none" }}
                   accept=".xlsx, .xls"
                   onChange={handleFileUpload}
                 />
@@ -3866,32 +3951,34 @@ export default function Course() {
                 <button
                   onClick={handleUploadButtonClick}
                   className="btn btn-success"
-                  disabled={!excelData || excelData.length === 0}
-                >
+                  disabled={!excelData || excelData.length === 0}>
                   Submit Excel Data
                 </button>
               </div>
             </div>
 
             {/* พื้นที่วางข้อมูล */}
-            <div className="paste-area mt-3" style={{ display: showPasteArea ? 'block' : 'none' }}>
+            <div
+              className="paste-area mt-3"
+              style={{ display: showPasteArea ? "block" : "none" }}>
               <div className="card">
                 <div className="card-header">
                   <h5>วางข้อมูล CLO</h5>
-                  <p className="text-muted mb-0">คัดลอกข้อมูลจาก Excel แล้ววางที่นี่ (รองรับทั้งคอลัมน์ที่คั่นด้วย Tab และ Comma)</p>
+                  <p className="text-muted mb-0">
+                    คัดลอกข้อมูลจาก Excel แล้ววางที่นี่
+                    (รองรับทั้งคอลัมน์ที่คั่นด้วย Tab และ Comma)
+                  </p>
                 </div>
                 <div className="card-body">
                   <textarea
                     className="form-control"
                     rows="5"
                     placeholder="วางข้อมูล CLO ที่นี่... (CLO Code, CLO Name, CLO English Name)"
-                    onPaste={handleDirectPaste}
-                  ></textarea>
+                    onPaste={handleDirectPaste}></textarea>
                   <div className="mt-2">
                     <button
                       className="btn btn-sm btn-secondary"
-                      onClick={() => setShowPasteArea(false)}
-                    >
+                      onClick={() => setShowPasteArea(false)}>
                       ปิด
                     </button>
                   </div>
@@ -3931,8 +4018,7 @@ export default function Course() {
               className="modal fade show"
               style={{ display: "block" }}
               aria-labelledby="exampleModalLabel"
-              aria-hidden="true"
-            >
+              aria-hidden="true">
               <div className="modal-dialog">
                 <div className="modal-content">
                   <div className="modal-header">
@@ -3943,8 +4029,7 @@ export default function Course() {
                       type="button"
                       className="btn-close"
                       onClick={() => setShowAddModal(false)}
-                      aria-label="Close"
-                    ></button>
+                      aria-label="Close"></button>
                   </div>
                   <div className="modal-body">
                     <label>CLO Code:</label>
@@ -3973,16 +4058,12 @@ export default function Course() {
                     />
                   </div>
                   <div className="modal-footer">
-                    <button
-                      onClick={handleAddClo}
-                      className="btn btn-primary"
-                    >
+                    <button onClick={handleAddClo} className="btn btn-primary">
                       Add CLO
                     </button>
                     <button
                       onClick={() => setShowAddModal(false)}
-                      className="btn btn-secondary"
-                    >
+                      className="btn btn-secondary">
                       Close
                     </button>
                   </div>
@@ -4001,8 +4082,9 @@ export default function Course() {
                     <button
                       type="button"
                       className="btn-close"
-                      onClick={() => setShowPreviousYearCLOsModal(false)}
-                    ></button>
+                      onClick={() =>
+                        setShowPreviousYearCLOsModal(false)
+                      }></button>
                   </div>
                   <div className="modal-body">
                     {previousYearCLOs.length > 0 ? (
@@ -4035,8 +4117,7 @@ export default function Course() {
                                         setEditCloEngName(clo.CLO_engname);
                                         setShowAddModal(true);
                                         setShowPreviousYearCLOsModal(false);
-                                      }}
-                                    >
+                                      }}>
                                       Copy
                                     </button>
                                   </td>
@@ -4048,7 +4129,8 @@ export default function Course() {
                       </div>
                     ) : (
                       <div className="alert alert-warning text-center">
-                        No Course Learning Outcomes (CLOs) found for the selected year
+                        No Course Learning Outcomes (CLOs) found for the
+                        selected year
                       </div>
                     )}
                   </div>
@@ -4056,8 +4138,7 @@ export default function Course() {
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      onClick={() => setShowPreviousYearCLOsModal(false)}
-                    >
+                      onClick={() => setShowPreviousYearCLOsModal(false)}>
                       Close
                     </button>
                   </div>
@@ -4099,8 +4180,7 @@ export default function Course() {
                         <td>
                           <button
                             className="btn btn-warning me-2"
-                            onClick={() => handleEditClo(clo.CLO_id)}
-                          >
+                            onClick={() => handleEditClo(clo.CLO_id)}>
                             Edit
                           </button>
 
@@ -4116,8 +4196,7 @@ export default function Course() {
                                 selectedYear,
                                 selectedProgram
                               );
-                            }}
-                          >
+                            }}>
                             Delete
                           </button>
                         </td>
@@ -4140,11 +4219,9 @@ export default function Course() {
                     <button
                       type="button"
                       className="btn-close"
-                      onClick={() => setShowEditModal(false)}
-                    ></button>
+                      onClick={() => setShowEditModal(false)}></button>
                   </div>
                   <div className="modal-body">
-
                     <div className="mb-3">
                       <label htmlFor="clo-code" className="form-label">
                         CLO Code
@@ -4187,15 +4264,13 @@ export default function Course() {
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      onClick={() => setShowEditModal(false)}
-                    >
+                      onClick={() => setShowEditModal(false)}>
                       Cancel
                     </button>
                     <button
                       type="button"
                       className="btn btn-primary"
-                      onClick={handleSaveClo}
-                    >
+                      onClick={handleSaveClo}>
                       Save
                     </button>
                   </div>
@@ -4203,11 +4278,10 @@ export default function Course() {
               </div>
             </div>
           )}
-
         </div>
 
-        <div className={`tab-content ${activeTab === 3 ? 'active' : 'hidden'}`}>
-        <div className="row" style={{ padding: '0px 10px 0 10px' }}>
+        <div className={`tab-content ${activeTab === 3 ? "active" : "hidden"}`}>
+          <div className="row" style={{ padding: "0px 10px 0 10px" }}>
             <div className="col-md-3">
               <label className="form-label text-start">Choose a Course</label>
 
@@ -4218,8 +4292,7 @@ export default function Course() {
                   // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
-                disabled={!newCourse.semester_id}
-              >
+                disabled={!newCourse.semester_id}>
                 <option value="" disabled>
                   Select Course
                 </option>
@@ -4239,8 +4312,7 @@ export default function Course() {
                   // console.log("Selected Section:", e.target.value);
                   setSelectedSectionId(e.target.value);
                 }}
-                disabled={!selectedCourseId}
-              >
+                disabled={!selectedCourseId}>
                 <option value="" disabled>
                   Select Section
                 </option>
@@ -4259,7 +4331,9 @@ export default function Course() {
             </div>
             <div className="card-body">
               <div className="mb-3">
-                <button className="btn btn-primary me-2" onClick={handleEditToggle}>
+                <button
+                  className="btn btn-primary me-2"
+                  onClick={handleEditToggle}>
                   {editingScores ? "Cancel Edit" : "Edit PLO-CLO Mapping"}
                 </button>
                 {editingScores && (
@@ -4267,37 +4341,38 @@ export default function Course() {
                     <button
                       className="btn btn-success me-2"
                       onClick={handlePatchScores}
-                      disabled={!editingScores}
-                    >
+                      disabled={!editingScores}>
                       Save PLO-CLO Mapping
                     </button>
                     <button
                       className="btn btn-success"
                       onClick={handlePostScores}
-                      disabled={!editingScores}
-                    >
+                      disabled={!editingScores}>
                       Submit PLO-CLO Scores
                     </button>
                   </>
                 )}
               </div>
 
-              {(allPLOs.length > 0 && CLOs.length > 0) ? (
+              {allPLOs.length > 0 && CLOs.length > 0 ? (
                 <div className="table-responsive">
                   <table
                     className="table table-bordered"
                     border="1"
-                    cellPadding="10"
-                  >
+                    cellPadding="10">
                     <thead>
                       <tr>
                         <th rowSpan="2">CLO</th>
-                        <th colSpan={allPLOs.length} className="text-center">PLO</th>
+                        <th colSpan={allPLOs.length} className="text-center">
+                          PLO
+                        </th>
                         <th rowSpan="2">Total</th>
                       </tr>
                       <tr>
                         {allPLOs.map((plo) => (
-                          <th key={`header-plo-${plo.PLO_id || plo.plo_id}`} className="text-center">
+                          <th
+                            key={`header-plo-${plo.PLO_id || plo.plo_id}`}
+                            className="text-center">
                             {plo.PLO_code || "N/A"}
                           </th>
                         ))}
@@ -4312,7 +4387,7 @@ export default function Course() {
                         let cloTotal = 0;
 
                         // เช็คว่า CLO นี้เชื่อมโยงกับ PLO ตัวไหน
-                        allPLOs.forEach(plo => {
+                        allPLOs.forEach((plo) => {
                           const ploId = plo.PLO_id || plo.plo_id;
                           const key = `${ploId}-${clo.CLO_id}`;
 
@@ -4325,7 +4400,9 @@ export default function Course() {
                           } else {
                             // ถ้าไม่อยู่ในโหมดแก้ไข ให้ดูจาก mappings
                             const mapping = mappings.find(
-                              (m) => (m.PLO_id === ploId || m.plo_id === ploId) && m.CLO_id === clo.CLO_id
+                              (m) =>
+                                (m.PLO_id === ploId || m.plo_id === ploId) &&
+                                m.CLO_id === clo.CLO_id
                             );
 
                             if (mapping && mapping.weight > 0) {
@@ -4349,13 +4426,19 @@ export default function Course() {
                                       <input
                                         type="radio"
                                         className="form-check-input me-2"
-                                        checked={scores[key] > 0 || (selectedPlo === ploId && !scores[key])}
+                                        checked={
+                                          scores[key] > 0 ||
+                                          (selectedPlo === ploId &&
+                                            !scores[key])
+                                        }
                                         onChange={() => {
                                           // ล้างค่าเดิมของ CLO นี้ทั้งหมด
                                           const newScores = { ...scores };
-                                          allPLOs.forEach(p => {
+                                          allPLOs.forEach((p) => {
                                             const pId = p.PLO_id || p.plo_id;
-                                            delete newScores[`${pId}-${clo.CLO_id}`];
+                                            delete newScores[
+                                              `${pId}-${clo.CLO_id}`
+                                            ];
                                           });
 
                                           // ตั้งค่าใหม่
@@ -4368,7 +4451,11 @@ export default function Course() {
                                           type="number"
                                           min="0"
                                           max="100"
-                                          value={scores[key] !== undefined ? scores[key] : (cloTotal || 100)}
+                                          value={
+                                            scores[key] !== undefined
+                                              ? scores[key]
+                                              : cloTotal || 100
+                                          }
                                           onChange={(e) =>
                                             handleInputChange(
                                               ploId,
@@ -4381,8 +4468,10 @@ export default function Course() {
                                         />
                                       )}
                                     </div>
+                                  ) : selectedPlo === ploId ? (
+                                    cloTotal
                                   ) : (
-                                    selectedPlo === ploId ? cloTotal : "-"
+                                    "-"
                                   )}
                                 </td>
                               );
@@ -4400,7 +4489,9 @@ export default function Course() {
                           const ploTotal = calculateTotalForPLO(ploId);
 
                           return (
-                            <td key={`ploTotal-${ploId}`} className="text-center fw-bold">
+                            <td
+                              key={`ploTotal-${ploId}`}
+                              className="text-center fw-bold">
                               {ploTotal || "-"}
                             </td>
                           );
@@ -4417,26 +4508,23 @@ export default function Course() {
                     selectedSectionId &&
                     selectedSemesterId &&
                     selectedYear
-                  ) ? (
-                    "กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนแสดงตาราง"
-                  ) : CLOs.length === 0 ? (
-                    "ไม่พบข้อมูล CLO"
-                  ) : allPLOs.length === 0 ? (
-                    "ไม่พบข้อมูล PLO"
-                  ) : (
-                    "ไม่พบข้อมูลการแมป PLO-CLO"
-                  )}
+                  )
+                    ? "กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนแสดงตาราง"
+                    : CLOs.length === 0
+                      ? "ไม่พบข้อมูล CLO"
+                      : allPLOs.length === 0
+                        ? "ไม่พบข้อมูล PLO"
+                        : "ไม่พบข้อมูลการแมป PLO-CLO"}
                 </p>
               )}
             </div>
           </div>
         </div>
 
-        <div className={`tab-content ${activeTab === 2 ? 'active' : 'hidden'}`}
+        <div
+          className={`tab-content ${activeTab === 2 ? "active" : "hidden"}`}
           style={{ marginTop: "0px" }}>
-
-
-<div className="row" style={{ padding: '0px 10px 0 10px' }}>
+          <div className="row" style={{ padding: "0px 10px 0 10px" }}>
             <div className="col-md-3">
               <label className="form-label text-start">Choose a Course</label>
               <select
@@ -4446,8 +4534,7 @@ export default function Course() {
                   // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
-                disabled={!newCourse.semester_id}
-              >
+                disabled={!newCourse.semester_id}>
                 <option value="" disabled>
                   Select Course
                 </option>
@@ -4467,8 +4554,7 @@ export default function Course() {
                   // console.log("Selected Section:", e.target.value);
                   setSelectedSectionId(e.target.value);
                 }}
-                disabled={!selectedCourseId}
-              >
+                disabled={!selectedCourseId}>
                 <option value="" disabled>
                   Select Section
                 </option>
@@ -4481,15 +4567,13 @@ export default function Course() {
             </div>
           </div>
 
-
           {showMapping && selectedCourseId && selectedSectionId ? (
             <>
               <h2 className="mt-3">Course-CLO Mapping</h2>
               <div className="action-buttons mb-3">
                 <button
                   onClick={handleEditToggle}
-                  className="btn btn-primary me-2"
-                >
+                  className="btn btn-primary me-2">
                   {editingScores ? "Cancel Edit" : "Edit Course-CLO Mapping"}
                 </button>
 
@@ -4497,12 +4581,12 @@ export default function Course() {
                   onClick={handlePostScores}
                   disabled={!editingScores}
                   className="btn"
-                  style={{ backgroundColor: "#FF8C00", color: "white" }}
-                >
+                  style={{ backgroundColor: "#FF8C00", color: "white" }}>
                   Submit Course-CLO Scores
                 </button>
               </div>
 
+              {/* <TableEditCloWeight /> */}
               <table
                 className="table table-bordered"
                 style={{
@@ -4510,8 +4594,7 @@ export default function Course() {
                   width: "100%",
                   marginTop: "15px",
                   border: "2px solid black",
-                }}
-              >
+                }}>
                 <thead>
                   <tr>
                     <th
@@ -4520,8 +4603,7 @@ export default function Course() {
                         padding: "10px",
                         textAlign: "center",
                       }}
-                      rowSpan="2"
-                    >
+                      rowSpan="2">
                       Course
                     </th>
                     <th
@@ -4529,10 +4611,13 @@ export default function Course() {
                         border: "1px solid black",
                         padding: "10px",
                         textAlign: "center",
-                        backgroundColor: "#f2f2f2"
+                        backgroundColor: "#f2f2f2",
                       }}
-                      colSpan={courseClo.filter(clo => selectedCourseId == clo.course_id).length}
-                    >
+                      colSpan={
+                        courseClo.filter(
+                          (clo) => selectedCourseId == clo.course_id
+                        ).length
+                      }>
                       CLO
                     </th>
                     <th
@@ -4541,87 +4626,94 @@ export default function Course() {
                         padding: "10px",
                         textAlign: "center",
                       }}
-                      rowSpan="2"
-                    >
+                      rowSpan="2">
                       Total(100)
                     </th>
                   </tr>
                   <tr>
-                  {courseClo
-  .filter(clo => selectedCourseId == clo.course_id)
-  .map((clo) => (
-    <th
-      key={`header-${clo.CLO_id}`}
-      style={{
-        border: "1px solid black",
-        padding: "10px",
-        textAlign: "center",
-      }}
-    >
-      {clo.CLO_code}
-    </th>
-))}
-
+                    {courseClo
+                      .filter((clo) => selectedCourseId == clo.course_id)
+                      .map((clo) => (
+                        <th
+                          key={`header-${clo.CLO_id}`}
+                          style={{
+                            border: "1px solid black",
+                            padding: "10px",
+                            textAlign: "center",
+                          }}>
+                          {clo.CLO_code}
+                        </th>
+                      ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {course.map((courseItem) => (courseItem.course_id == selectedCourseId && (
-                    <tr key={courseItem.course_id}>
-                      <td style={{ border: "1px solid black", padding: "10px" }}>
-                        {courseItem.course_id} {courseItem.course_name}
-                      </td>
-                      {weightEachCourse && Object.entries(weightEachCourse).map(([key, value]) => {
-                        // เช็คว่า key นี้เกี่ยวข้องกับ course_id ที่เลือกหรือไม่
-                        if (key.startsWith(`a${courseItem.course_id}_`)) {
-                          return (
-                            <td
-                              key={key}
-                              style={{
-                                border: "1px solid black",
-                                padding: "10px",
-                                textAlign: "center",
-                              }}
-                            >
-                              {editingScores ? (
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  value={value?.weight || 0}
-                                  onChange={(e) =>
-                                    handleEditWeightEachCourse(
-                                      courseItem.course_id,
-                                      value.clo_id,
-                                      e.target.value
-                                    )
-                                  }
-                                  style={{
-                                    width: "60px",
-                                    padding: "5px",
-                                    textAlign: "center",
-                                  }}
-                                />
-                              ) : (
-                                // แสดงค่า weight หรือ 0 ถ้าไม่มีค่า
-                                value?.weight || 0
-                              )}
-                            </td>
-                          );
-                        }
-                        return null; // ไม่แสดง td สำหรับ key ที่ไม่เกี่ยวข้องกับ course_id ที่เลือก
-                      })}
-                      <td
-                        style={{
-                          border: "1px solid black",
-                          padding: "10px",
-                          textAlign: "center",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {calculateTotal(courseItem.course_id)}
-                      </td>
-                    </tr>
-                  )))}
+                  {course.map(
+                    (courseItem) =>
+                      courseItem.course_id == selectedCourseId && (
+                        <tr key={courseItem.course_id}>
+                          <td
+                            style={{
+                              border: "1px solid black",
+                              padding: "10px",
+                            }}>
+                            {courseItem.course_id} {courseItem.course_name}
+                          </td>
+                          {weightEachCourse &&
+                            Object.entries(weightEachCourse).map(
+                              ([key, value]) => {
+                                // เช็คว่า key นี้เกี่ยวข้องกับ course_id ที่เลือกหรือไม่
+                                if (
+                                  key.startsWith(`a${courseItem.course_id}_`)
+                                ) {
+                                  return (
+                                    <td
+                                      key={key}
+                                      style={{
+                                        border: "1px solid black",
+                                        padding: "10px",
+                                        textAlign: "center",
+                                      }}>
+                                      {editingScores ? (
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          value={value?.weight || 0}
+                                          onChange={(e) =>
+                                            handleEditWeightEachCourse(
+                                              courseItem.course_id,
+                                              value.clo_id,
+                                              e.target.value
+                                            )
+                                          }
+                                          style={{
+                                            width: "60px",
+                                            padding: "5px",
+                                            textAlign: "center",
+                                          }}
+                                        />
+                                      ) : (
+                                        // แสดงค่า weight หรือ 0 ถ้าไม่มีค่า
+                                        value?.weight || 0
+                                      )}
+                                    </td>
+                                  );
+                                }
+                                return null; // ไม่แสดง td สำหรับ key ที่ไม่เกี่ยวข้องกับ course_id ที่เลือก
+                              }
+                            )}
+                          <td
+                            style={{
+                              border: "1px solid black",
+                              padding: "10px",
+                              textAlign: "center",
+                              fontWeight: "bold",
+                            }}>
+                            {calculateTotal(courseItem.course_id)}
+                          </td>
+                        </tr>
+                      )
+                  )}
                 </tbody>
               </table>
             </>
@@ -4632,11 +4724,10 @@ export default function Course() {
               </p>
             </div>
           )}
-
         </div>
 
-        <div className={`tab-content ${activeTab === 4 ? 'active' : 'hidden'}`}>
-        <div className="row" style={{ padding: '0px 10px 0 10px' }}>
+        <div className={`tab-content ${activeTab === 4 ? "active" : "hidden"}`}>
+          <div className="row" style={{ padding: "0px 10px 0 10px" }}>
             <div className="col-md-3">
               <label className="form-label text-start">Choose a Course</label>
 
@@ -4647,8 +4738,7 @@ export default function Course() {
                   // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
-                disabled={!newCourse.semester_id}
-              >
+                disabled={!newCourse.semester_id}>
                 <option value="" disabled>
                   Select Course
                 </option>
@@ -4668,8 +4758,7 @@ export default function Course() {
                   // console.log("Selected Section:", e.target.value);
                   setSelectedSectionId(e.target.value);
                 }}
-                disabled={!selectedCourseId}
-              >
+                disabled={!selectedCourseId}>
                 <option value="" disabled>
                   Select Section
                 </option>
@@ -4685,100 +4774,102 @@ export default function Course() {
             <div className="container mb-4">
               {/* Step indicator */}
 
-
               {/* Step 1: Assignment Information */}
               {currentStep === 1 && (
-  <div className="row">
-    <div className="col-md-10 mx-auto">
-      {/* University Selection */}
-      <div className="card mb-3 shadow-sm">
-        <div className="card-body">
-          {/* ไม่มีฟิลเตอร์ซ้ำ แต่แสดงชื่อ Assignment แทน */}
-          <div className="mb-3">
-            <label htmlFor="assignment-name" className="form-label">
-              Assignment Name
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              id="assignment-name"
-              value={assignmentName}
-              onChange={(e) => setAssignmentName(e.target.value)}
-              placeholder="Enter Assignment Name"
-            />
-          </div>
+                <div className="row">
+                  <div className="col-md-10 mx-auto">
+                    {/* University Selection */}
+                    <div className="card mb-3 shadow-sm">
+                      <div className="card-body">
+                        {/* ไม่มีฟิลเตอร์ซ้ำ แต่แสดงชื่อ Assignment แทน */}
+                        <div className="mb-3">
+                          <label
+                            htmlFor="assignment-name"
+                            className="form-label">
+                            Assignment Name
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="assignment-name"
+                            value={assignmentName}
+                            onChange={(e) => setAssignmentName(e.target.value)}
+                            placeholder="Enter Assignment Name"
+                          />
+                        </div>
 
-          {/* หากอยู่ในโหมดแก้ไข แสดงข้อความและปุ่มสำหรับบันทึกการแก้ไข */}
-          {isEditing && (
-            <div className="alert alert-info">
-              <i className="fas fa-info-circle me-2"></i>
-              คุณกำลังแก้ไขข้อมูล Assignment ID: {currentAssignmentId}
-            </div>
-          )}
-        </div>
-      </div>
+                        {/* หากอยู่ในโหมดแก้ไข แสดงข้อความและปุ่มสำหรับบันทึกการแก้ไข */}
+                        {isEditing && (
+                          <div className="alert alert-info">
+                            <i className="fas fa-info-circle me-2"></i>
+                            คุณกำลังแก้ไขข้อมูล Assignment ID:{" "}
+                            {currentAssignmentId}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-      {/* Error Message */}
-      {typeError && <div className="alert alert-danger mt-3">{typeError}</div>}
+                    {/* Error Message */}
+                    {typeError && (
+                      <div className="alert alert-danger mt-3">{typeError}</div>
+                    )}
 
-      {/* Next/Save Button */}
-      <div className="d-flex justify-content-end mt-4">
-        {isEditing ? (
-          <>
-            <button
-              className="btn btn-secondary px-4 me-2"
-              onClick={() => {
-                setIsEditing(false);
-                setAssignmentName("");
-                setCurrentAssignmentId(null);
-              }}
-            >
-              ยกเลิก <i className="fas fa-times ms-2"></i>
-            </button>
-            <button
-              className="btn btn-primary px-4"
-              onClick={() => {
-                // ใช้ฟังก์ชันบันทึกการแก้ไขแทนฟังก์ชันเพิ่มข้อมูลใหม่
-                handleSaveEditAssignment();
-              }}
-              disabled={
-                !(
-                  selectedProgram &&
-                  selectedCourseId &&
-                  selectedSectionId &&
-                  selectedSemesterId &&
-                  selectedYear &&
-                  assignmentName
-                )
-              }
-            >
-              บันทึกการแก้ไข <i className="fas fa-save ms-2"></i>
-            </button>
-          </>
-        ) : (
-          <button
-            className="btn btn-primary px-4"
-            onClick={() => {
-              handleSaveStep1();
-            }}
-            disabled={
-              !(
-                selectedProgram &&
-                selectedCourseId &&
-                selectedSectionId &&
-                selectedSemesterId &&
-                selectedYear &&
-                assignmentName
-              )
-            }
-          >
-            ADD Assignment <i className="fas fa-arrow-right ms-2"></i>
-          </button>
-        )}
-      </div>
-    </div>
-  </div>
-)}
+                    {/* Next/Save Button */}
+                    <div className="d-flex justify-content-end mt-4">
+                      {isEditing ? (
+                        <>
+                          <button
+                            className="btn btn-secondary px-4 me-2"
+                            onClick={() => {
+                              setIsEditing(false);
+                              setAssignmentName("");
+                              setCurrentAssignmentId(null);
+                            }}>
+                            ยกเลิก <i className="fas fa-times ms-2"></i>
+                          </button>
+                          <button
+                            className="btn btn-primary px-4"
+                            onClick={() => {
+                              // ใช้ฟังก์ชันบันทึกการแก้ไขแทนฟังก์ชันเพิ่มข้อมูลใหม่
+                              handleSaveEditAssignment();
+                            }}
+                            disabled={
+                              !(
+                                selectedProgram &&
+                                selectedCourseId &&
+                                selectedSectionId &&
+                                selectedSemesterId &&
+                                selectedYear &&
+                                assignmentName
+                              )
+                            }>
+                            บันทึกการแก้ไข <i className="fas fa-save ms-2"></i>
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="btn btn-primary px-4"
+                          onClick={() => {
+                            handleSaveStep1();
+                          }}
+                          disabled={
+                            !(
+                              selectedProgram &&
+                              selectedCourseId &&
+                              selectedSectionId &&
+                              selectedSemesterId &&
+                              selectedYear &&
+                              assignmentName
+                            )
+                          }>
+                          ADD Assignment{" "}
+                          <i className="fas fa-arrow-right ms-2"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Step 2: CLO Scoring System */}
               {currentStep === 2 && (
@@ -4786,7 +4877,9 @@ export default function Course() {
                   <div className="col-12">
                     <div className="card shadow-sm">
                       <div className="card-header bg-primary text-white">
-                        <h5 className="mb-0 text-center">ระบบกรอกคะแนนตามน้ำหนัก CLO</h5>
+                        <h5 className="mb-0 text-center">
+                          ระบบกรอกคะแนนตามน้ำหนัก CLO
+                        </h5>
                       </div>
                       <div className="card-body p-4">
                         {CLOs.length > 0 ? (
@@ -4795,14 +4888,20 @@ export default function Course() {
                               <table className="table table-bordered table-hover">
                                 <thead className="table-light">
                                   <tr>
-                                    <th className="text-center" style={{ width: "50px" }}>
+                                    <th
+                                      className="text-center"
+                                      style={{ width: "50px" }}>
                                       No.
                                     </th>
-                                    <th className="text-center" style={{ width: "200px" }}>
+                                    <th
+                                      className="text-center"
+                                      style={{ width: "200px" }}>
                                       HW
                                     </th>
                                     {CLOs.map((clo) => (
-                                      <th key={clo.CLO_id} className="text-center">
+                                      <th
+                                        key={clo.CLO_id}
+                                        className="text-center">
                                         {clo.CLO_code || `CLO${clo.CLO_id}`}
                                       </th>
                                     ))}
@@ -4812,12 +4911,17 @@ export default function Course() {
                                   {/* แถว weight */}
                                   <tr className="table-warning">
                                     <td className="font-weight-bold"></td>
-                                    <td className="font-weight-bold text-center">น้ำหนักคะแนน</td>
+                                    <td className="font-weight-bold text-center">
+                                      น้ำหนักคะแนน
+                                    </td>
                                     {CLOs.map((clo) => {
-                                      // ดึงค่า weight จาก cloWeights 
-                                      const weightValue = cloWeights[clo.CLO_id] || 0;
+                                      // ดึงค่า weight จาก cloWeights
+                                      const weightValue =
+                                        cloWeights[clo.CLO_id] || 0;
                                       return (
-                                        <td key={clo.CLO_id} className="text-center font-weight-bold">
+                                        <td
+                                          key={clo.CLO_id}
+                                          className="text-center font-weight-bold">
                                           {weightValue}
                                         </td>
                                       );
@@ -4827,23 +4931,40 @@ export default function Course() {
                                   {/* Homework rows */}
                                   {homeworks.map((hw, index) => (
                                     <tr key={hw.id}>
-                                      <td className="text-center">{index + 1}</td>
+                                      <td className="text-center">
+                                        {index + 1}
+                                      </td>
                                       <td>{hw.name}</td>
                                       {CLOs.map((clo) => {
-                                        const currentScore = hw.scores[clo.CLO_id] !== undefined ? hw.scores[clo.CLO_id] : 0
+                                        const currentScore =
+                                          hw.scores[clo.CLO_id] !== undefined
+                                            ? hw.scores[clo.CLO_id]
+                                            : 0;
                                         return (
-                                          <td key={clo.CLO_id} className={getScoreColor(currentScore || 0)}>
+                                          <td
+                                            key={clo.CLO_id}
+                                            className={getScoreColor(
+                                              currentScore || 0
+                                            )}>
                                             <input
                                               type="number"
                                               min="0"
-                                              max={cloWeights[clo.CLO_id] || 100}
+                                              max={
+                                                cloWeights[clo.CLO_id] || 100
+                                              }
                                               value={currentScore}
-                                              onChange={(e) => handleScoreChange(hw.id, clo.CLO_id, e.target.value)}
+                                              onChange={(e) =>
+                                                handleScoreChange(
+                                                  hw.id,
+                                                  clo.CLO_id,
+                                                  e.target.value
+                                                )
+                                              }
                                               className={`form-control form-control-sm text-center ${getScoreColor(currentScore || 0)}`}
                                               style={{ border: "none" }}
                                             />
                                           </td>
-                                        )
+                                        );
                                       })}
                                     </tr>
                                   ))}
@@ -4853,16 +4974,21 @@ export default function Course() {
                                     <td></td>
                                     <td className="text-center">รวม</td>
                                     {CLOs.map((clo) => {
-                                      const total = calculateCloTotal(clo.CLO_id)
+                                      const total = calculateCloTotal(
+                                        clo.CLO_id
+                                      );
                                       // ใช้ weight จากฐานข้อมูลโดยตรง
-                                      const maxWeight = cloWeights[clo.CLO_id] || 0
-                                      const isValid = total <= maxWeight
+                                      const maxWeight =
+                                        cloWeights[clo.CLO_id] || 0;
+                                      const isValid = total <= maxWeight;
 
                                       return (
-                                        <td key={clo.CLO_id} className={`text-center ${!isValid ? "text-danger" : ""}`}>
+                                        <td
+                                          key={clo.CLO_id}
+                                          className={`text-center ${!isValid ? "text-danger" : ""}`}>
                                           {total} / {maxWeight}
                                         </td>
-                                      )
+                                      );
                                     })}
                                   </tr>
                                 </tbody>
@@ -4878,27 +5004,31 @@ export default function Course() {
                                     id: -Math.floor(Math.random() * 1000),
                                     name: `การบ้าน ${homeworks.length + 1}`,
                                     scores: {},
-                                  }
-                                  const newScores = {}
+                                  };
+                                  const newScores = {};
                                   CLOs.forEach((clo) => {
-                                    newScores[clo.CLO_id] = 0
-                                  })
-                                  newHomework.scores = newScores
-                                  setHomeworks([...homeworks, newHomework])
-                                }}
-                              >
-                                <i className="fas fa-plus me-2"></i> เพิ่มการบ้าน
+                                    newScores[clo.CLO_id] = 0;
+                                  });
+                                  newHomework.scores = newScores;
+                                  setHomeworks([...homeworks, newHomework]);
+                                }}>
+                                <i className="fas fa-plus me-2"></i>{" "}
+                                เพิ่มการบ้าน
                               </button>
                             </div>
 
                             {/* Validation errors */}
                             {Object.keys(validationErrors).length > 0 && (
                               <div className="alert alert-danger mt-3">
-                                <strong>คะแนนที่กรอกเกินน้ำหนักที่กำหนด:</strong>
+                                <strong>
+                                  คะแนนที่กรอกเกินน้ำหนักที่กำหนด:
+                                </strong>
                                 <ul className="mb-0 mt-2">
-                                  {Object.values(validationErrors).map((error, index) => (
-                                    <li key={index}>{error}</li>
-                                  ))}
+                                  {Object.values(validationErrors).map(
+                                    (error, index) => (
+                                      <li key={index}>{error}</li>
+                                    )
+                                  )}
                                 </ul>
                               </div>
                             )}
@@ -4906,25 +5036,30 @@ export default function Course() {
                         ) : (
                           <div className="alert alert-info">
                             <i className="fas fa-info-circle me-2"></i>
-                            ไม่พบข้อมูล CLO สำหรับรายวิชาที่เลือก กรุณาตรวจสอบข้อมูลการเลือกวิชา, ตอน, ภาคเรียน และปีการศึกษา
+                            ไม่พบข้อมูล CLO สำหรับรายวิชาที่เลือก
+                            กรุณาตรวจสอบข้อมูลการเลือกวิชา, ตอน, ภาคเรียน
+                            และปีการศึกษา
                           </div>
                         )}
                       </div>
                     </div>
 
                     <div className="d-flex justify-content-between mt-4">
-                      <button className="btn btn-secondary px-4" onClick={goToPreviousStep}>
+                      <button
+                        className="btn btn-secondary px-4"
+                        onClick={goToPreviousStep}>
                         <i className="fas fa-arrow-left me-2"></i> Back
                       </button>
                       <div>
                         <button
                           className="btn btn-success px-4 me-2"
                           onClick={handleSaveAssignment}
-                          disabled={Object.keys(validationErrors).length > 0 || CLOs.length === 0}
-                        >
+                          disabled={
+                            Object.keys(validationErrors).length > 0 ||
+                            CLOs.length === 0
+                          }>
                           <i className="fas fa-save me-2"></i> Save Assignment
                         </button>
-                        
                       </div>
                     </div>
                   </div>
@@ -4937,7 +5072,9 @@ export default function Course() {
                   <div className="col-12">
                     <div className="card shadow-sm mb-4">
                       <div className="card-header bg-primary text-white">
-                        <h5 className="mb-0 text-center">นำเข้ารายชื่อนักเรียน</h5>
+                        <h5 className="mb-0 text-center">
+                          นำเข้ารายชื่อนักเรียน
+                        </h5>
                       </div>
                       <div className="card-body p-4">
                         <div className="row">
@@ -4952,7 +5089,8 @@ export default function Course() {
                               </div>
                               <div className="card-body">
                                 <p className="text-muted small mb-3">
-                                  รองรับไฟล์ .xlsx, .xls โดยต้องมีคอลัมน์ student_id และ name เป็นอย่างน้อย
+                                  รองรับไฟล์ .xlsx, .xls โดยต้องมีคอลัมน์
+                                  student_id และ name เป็นอย่างน้อย
                                 </p>
                                 <div className="mb-3">
                                   <input
@@ -4973,15 +5111,13 @@ export default function Course() {
                                 <button
                                   className="btn btn-primary w-100"
                                   onClick={handleImportFromExcel}
-                                  disabled={!excelData || loading}
-                                >
+                                  disabled={!excelData || loading}>
                                   {loading ? (
                                     <>
                                       <span
                                         className="spinner-border spinner-border-sm me-2"
                                         role="status"
-                                        aria-hidden="true"
-                                      ></span>
+                                        aria-hidden="true"></span>
                                       กำลังนำเข้า...
                                     </>
                                   ) : (
@@ -5006,7 +5142,9 @@ export default function Course() {
                               </div>
                               <div className="card-body">
                                 <p className="text-muted small mb-3">
-                                  วางข้อมูลในรูปแบบ: รหัสนักศึกษา[Tab]ชื่อ-นามสกุล แต่ละคนอยู่คนละบรรทัด
+                                  วางข้อมูลในรูปแบบ:
+                                  รหัสนักศึกษา[Tab]ชื่อ-นามสกุล
+                                  แต่ละคนอยู่คนละบรรทัด
                                 </p>
                                 <div className="mb-3">
                                   <textarea
@@ -5014,23 +5152,22 @@ export default function Course() {
                                     rows="8"
                                     placeholder="6411234567	นายทดสอบ ระบบเรียน&#10;6411234568	นางสาวทดสอบ ระบบสอบ"
                                     value={clipboardText}
-                                    onChange={(e) => setClipboardText(e.target.value)}
-                                  ></textarea>
+                                    onChange={(e) =>
+                                      setClipboardText(e.target.value)
+                                    }></textarea>
                                 </div>
                               </div>
                               <div className="card-footer bg-light">
                                 <button
                                   className="btn btn-info text-white w-100"
                                   onClick={handleImportFromClipboard}
-                                  disabled={!clipboardText.trim() || loading}
-                                >
+                                  disabled={!clipboardText.trim() || loading}>
                                   {loading ? (
                                     <>
                                       <span
                                         className="spinner-border spinner-border-sm me-2"
                                         role="status"
-                                        aria-hidden="true"
-                                      ></span>
+                                        aria-hidden="true"></span>
                                       กำลังนำเข้า...
                                     </>
                                   ) : (
@@ -5050,16 +5187,21 @@ export default function Course() {
                           <div className="mt-4">
                             <h6 className="mb-3">
                               <i className="fas fa-users me-2"></i>
-                              รายชื่อนักเรียนที่นำเข้า ({importedStudents.length} คน)
+                              รายชื่อนักเรียนที่นำเข้า (
+                              {importedStudents.length} คน)
                             </h6>
                             <div className="table-responsive">
                               <table className="table table-striped table-hover table-sm">
                                 <thead className="table-light">
                                   <tr>
                                     <th style={{ width: "80px" }}>ลำดับ</th>
-                                    <th style={{ width: "150px" }}>รหัสนักศึกษา</th>
+                                    <th style={{ width: "150px" }}>
+                                      รหัสนักศึกษา
+                                    </th>
                                     <th>ชื่อ-นามสกุล</th>
-                                    <th style={{ width: "100px" }}>การจัดการ</th>
+                                    <th style={{ width: "100px" }}>
+                                      การจัดการ
+                                    </th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -5071,8 +5213,9 @@ export default function Course() {
                                       <td>
                                         <button
                                           className="btn btn-sm btn-outline-danger"
-                                          onClick={() => handleRemoveStudent(index)}
-                                        >
+                                          onClick={() =>
+                                            handleRemoveStudent(index)
+                                          }>
                                           <i className="fas fa-times"></i>
                                         </button>
                                       </td>
@@ -5108,15 +5251,17 @@ export default function Course() {
 
                     {/* Back and Save Buttons */}
                     <div className="d-flex justify-content-between mt-4">
-                      <button className="btn btn-secondary px-4" onClick={goToPreviousStep}>
+                      <button
+                        className="btn btn-secondary px-4"
+                        onClick={goToPreviousStep}>
                         <i className="fas fa-arrow-left me-2"></i> Back
                       </button>
                       <button
                         className="btn btn-success px-4"
                         onClick={handleSaveImportedStudents}
-                        disabled={importedStudents.length === 0 || loading}
-                      >
-                        <i className="fas fa-save me-2"></i> บันทึกรายชื่อนักเรียน
+                        disabled={importedStudents.length === 0 || loading}>
+                        <i className="fas fa-save me-2"></i>{" "}
+                        บันทึกรายชื่อนักเรียน
                       </button>
                     </div>
                   </div>
@@ -5132,8 +5277,12 @@ export default function Course() {
                     <div className="card-body">
                       {loading ? (
                         <div className="text-center py-4">
-                          <div className="spinner-border text-primary" role="status">
-                            <span className="visually-hidden">กำลังโหลดข้อมูล...</span>
+                          <div
+                            className="spinner-border text-primary"
+                            role="status">
+                            <span className="visually-hidden">
+                              กำลังโหลดข้อมูล...
+                            </span>
                           </div>
                           <p className="mt-2">กำลังโหลดข้อมูล...</p>
                         </div>
@@ -5166,22 +5315,34 @@ export default function Course() {
                                   className="assignment-row"
                                   style={{
                                     cursor: "pointer",
-                                    transition: "all 0.2s ease"
+                                    transition: "all 0.2s ease",
                                   }}
-                                  onClick={() => handleAssignmentClick(assignment)}
-                                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#e9f5ff"}
-                                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = ""}
-                                >
+                                  onClick={() =>
+                                    handleAssignmentClick(assignment)
+                                  }
+                                  onMouseOver={(e) =>
+                                    (e.currentTarget.style.backgroundColor =
+                                      "#e9f5ff")
+                                  }
+                                  onMouseOut={(e) =>
+                                    (e.currentTarget.style.backgroundColor = "")
+                                  }>
                                   <td>
                                     <div className="d-flex align-items-center">
                                       <span>{assignment.assignment_name}</span>
-                                      <span className="ms-2 text-primary small">(คลิกเพื่อดูรายละเอียด)</span>
+                                      <span className="ms-2 text-primary small">
+                                        (คลิกเพื่อดูรายละเอียด)
+                                      </span>
                                     </div>
                                   </td>
                                   <td>{assignment.section_id}</td>
                                   <td>{assignment.semester_id}</td>
                                   <td>{assignment.year}</td>
-                                  <td>{new Date(assignment.created_at).toLocaleDateString("th-TH")}</td>
+                                  <td>
+                                    {new Date(
+                                      assignment.created_at
+                                    ).toLocaleDateString("th-TH")}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -5193,21 +5354,29 @@ export default function Course() {
                 </div>
               </div>
 
-
-
               {selectedAssignment && (
                 <div className="modal fade show" style={{ display: "block" }}>
                   <div className="modal-dialog modal-lg">
                     <div className="modal-content">
                       <div className="modal-header bg-primary text-white">
-                        <h5 className="modal-title">รายละเอียด Assignment: {selectedAssignment.assignment_name}</h5>
-                        <button type="button" className="btn-close" onClick={() => setSelectedAssignment(null)}></button>
+                        <h5 className="modal-title">
+                          รายละเอียด Assignment:{" "}
+                          {selectedAssignment.assignment_name}
+                        </h5>
+                        <button
+                          type="button"
+                          className="btn-close"
+                          onClick={() => setSelectedAssignment(null)}></button>
                       </div>
                       <div className="modal-body">
                         {loading ? (
                           <div className="text-center py-4">
-                            <div className="spinner-border text-primary" role="status">
-                              <span className="visually-hidden">กำลังโหลดข้อมูล...</span>
+                            <div
+                              className="spinner-border text-primary"
+                              role="status">
+                              <span className="visually-hidden">
+                                กำลังโหลดข้อมูล...
+                              </span>
                             </div>
                             <p className="mt-2">กำลังโหลดข้อมูล...</p>
                           </div>
@@ -5215,16 +5384,48 @@ export default function Course() {
                           <div className="container-fluid">
                             <div className="row mb-3">
                               <div className="col-md-6">
-                                <p><strong>ชื่อ Assignment:</strong> {selectedAssignment.assignment_name}</p>
+                                <p>
+                                  <strong>ชื่อ Assignment:</strong>{" "}
+                                  {selectedAssignment.assignment_name}
+                                </p>
                                 {/* แก้ไขส่วนแสดงรายวิชา โดยใช้ค่า course_name โดยตรง */}
-                                <p><strong>รายวิชา:</strong> {
-                                  programCourseData.courses.find(c => c.course_id?.toString() === selectedCourseId?.toString())?.course_name}</p>
-                                <p><strong>กลุ่มเรียน:</strong> {selectedAssignment.section_id}</p>
+                                <p>
+                                  <strong>รายวิชา:</strong>{" "}
+                                  {
+                                    programCourseData.courses.find(
+                                      (c) =>
+                                        c.course_id?.toString() ===
+                                        selectedCourseId?.toString()
+                                    )?.course_name
+                                  }
+                                </p>
+                                <p>
+                                  <strong>กลุ่มเรียน:</strong>{" "}
+                                  {selectedAssignment.section_id}
+                                </p>
                               </div>
                               <div className="col-md-6">
-                                <p><strong>ภาคเรียน:</strong> {semesters.find(s => s.semester_id?.toString() === selectedAssignment.semester_id?.toString())?.semester_name || selectedAssignment.semester_id}</p>
-                                <p><strong>ปีการศึกษา:</strong> {selectedAssignment.year}</p>
-                                <p><strong>วันที่สร้าง:</strong> {selectedAssignment.created_at ? new Date(selectedAssignment.created_at).toLocaleDateString("th-TH") : "-"}</p>
+                                <p>
+                                  <strong>ภาคเรียน:</strong>{" "}
+                                  {semesters.find(
+                                    (s) =>
+                                      s.semester_id?.toString() ===
+                                      selectedAssignment.semester_id?.toString()
+                                  )?.semester_name ||
+                                    selectedAssignment.semester_id}
+                                </p>
+                                <p>
+                                  <strong>ปีการศึกษา:</strong>{" "}
+                                  {selectedAssignment.year}
+                                </p>
+                                <p>
+                                  <strong>วันที่สร้าง:</strong>{" "}
+                                  {selectedAssignment.created_at
+                                    ? new Date(
+                                        selectedAssignment.created_at
+                                      ).toLocaleDateString("th-TH")
+                                    : "-"}
+                                </p>
                               </div>
                             </div>
 
@@ -5235,14 +5436,20 @@ export default function Course() {
                                 <table className="table table-bordered table-hover">
                                   <thead className="table-light">
                                     <tr>
-                                      <th className="text-center" style={{ width: "50px" }}>
+                                      <th
+                                        className="text-center"
+                                        style={{ width: "50px" }}>
                                         No.
                                       </th>
-                                      <th className="text-center" style={{ width: "200px" }}>
+                                      <th
+                                        className="text-center"
+                                        style={{ width: "200px" }}>
                                         HW
                                       </th>
                                       {CLOs.map((clo) => (
-                                        <th key={clo.CLO_id} className="text-center">
+                                        <th
+                                          key={clo.CLO_id}
+                                          className="text-center">
                                           {clo.CLO_code || `CLO${clo.CLO_id}`}
                                         </th>
                                       ))}
@@ -5252,12 +5459,17 @@ export default function Course() {
                                     {/* แถว weight */}
                                     <tr className="table-warning">
                                       <td className="font-weight-bold"></td>
-                                      <td className="font-weight-bold text-center">น้ำหนักคะแนน</td>
+                                      <td className="font-weight-bold text-center">
+                                        น้ำหนักคะแนน
+                                      </td>
                                       {CLOs.map((clo) => {
-                                        // ดึงค่า weight จาก cloWeights 
-                                        const weightValue = cloWeights[clo.CLO_id] || 0;
+                                        // ดึงค่า weight จาก cloWeights
+                                        const weightValue =
+                                          cloWeights[clo.CLO_id] || 0;
                                         return (
-                                          <td key={clo.CLO_id} className="text-center font-weight-bold">
+                                          <td
+                                            key={clo.CLO_id}
+                                            className="text-center font-weight-bold">
                                             {weightValue}
                                           </td>
                                         );
@@ -5267,17 +5479,26 @@ export default function Course() {
                                     {/* Homework rows */}
                                     {homeworks.map((hw, index) => (
                                       <tr key={hw.id}>
-                                        <td className="text-center">{index + 1}</td>
+                                        <td className="text-center">
+                                          {index + 1}
+                                        </td>
                                         <td>{hw.name}</td>
                                         {CLOs.map((clo) => {
-                                          const currentScore = hw.scores[clo.CLO_id] !== undefined ? hw.scores[clo.CLO_id] : 0
+                                          const currentScore =
+                                            hw.scores[clo.CLO_id] !== undefined
+                                              ? hw.scores[clo.CLO_id]
+                                              : 0;
                                           return (
-                                            <td key={clo.CLO_id} className={getScoreColor(currentScore || 0)}>
+                                            <td
+                                              key={clo.CLO_id}
+                                              className={getScoreColor(
+                                                currentScore || 0
+                                              )}>
                                               <span className="form-control-plaintext text-center">
                                                 {currentScore}
                                               </span>
                                             </td>
-                                          )
+                                          );
                                         })}
                                       </tr>
                                     ))}
@@ -5287,16 +5508,21 @@ export default function Course() {
                                       <td></td>
                                       <td className="text-center">รวม</td>
                                       {CLOs.map((clo) => {
-                                        const total = calculateCloTotal(clo.CLO_id)
+                                        const total = calculateCloTotal(
+                                          clo.CLO_id
+                                        );
                                         // ใช้ weight จากฐานข้อมูลโดยตรง
-                                        const maxWeight = cloWeights[clo.CLO_id] || 0
-                                        const isValid = total <= maxWeight
+                                        const maxWeight =
+                                          cloWeights[clo.CLO_id] || 0;
+                                        const isValid = total <= maxWeight;
 
                                         return (
-                                          <td key={clo.CLO_id} className={`text-center ${!isValid ? "text-danger" : ""}`}>
+                                          <td
+                                            key={clo.CLO_id}
+                                            className={`text-center ${!isValid ? "text-danger" : ""}`}>
                                             {total} / {maxWeight}
                                           </td>
-                                        )
+                                        );
                                       })}
                                     </tr>
                                   </tbody>
@@ -5305,349 +5531,427 @@ export default function Course() {
                             ) : (
                               <div className="alert alert-info">
                                 <i className="fas fa-info-circle me-2"></i>
-                                ไม่พบข้อมูล CLO สำหรับรายวิชานี้ กรุณาเลือกรายวิชาและตอนเรียนให้ถูกต้องเพื่อดูข้อมูล CLO
+                                ไม่พบข้อมูล CLO สำหรับรายวิชานี้
+                                กรุณาเลือกรายวิชาและตอนเรียนให้ถูกต้องเพื่อดูข้อมูล
+                                CLO
                               </div>
                             )}
 
-                          
-<h6 className="mt-4 mb-3">รายชื่อนักเรียน</h6>
-<div className="d-flex justify-content-end mb-3">
-  <button
-    className="btn btn-info text-white btn-sm"
-    onClick={() => {
-      setCurrentStep(3); // ไปยังขั้นตอนนำเข้านักเรียน
-      setSelectedAssignment(null); // ปิด modal
-    }}
-  >
-    <i className="fas fa-plus me-2"></i>
-    เพิ่มรายชื่อนักเรียน
-  </button>
-</div>
-{importedStudents.length > 0 ? (
-  <div className="table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
-    <table className="table table-sm table-striped">
-      <thead className="sticky-top bg-light">
-        <tr>
-          <th style={{ width: "60px" }}>ลำดับ</th>
-          <th style={{ width: "150px" }}>รหัสนักศึกษา</th>
-          <th>ชื่อ-นามสกุล</th>
-        </tr>
-      </thead>
-      <tbody>
-        {importedStudents.map((student, index) => (
-          <tr key={index}>
-            <td>{index + 1}</td>
-            <td>{student.student_id}</td>
-            <td>{student.name}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-) : (
-  <div className="alert alert-warning">
-    <i className="fas fa-exclamation-triangle me-2"></i>
-    ยังไม่มีรายชื่อนักเรียนในงานนี้ คลิกปุ่ม "เพิ่มรายชื่อนักเรียน" เพื่อนำเข้ารายชื่อ
-  </div>
-)}
-                           
+                            <h6 className="mt-4 mb-3">รายชื่อนักเรียน</h6>
+                            <div className="d-flex justify-content-end mb-3">
+                              <button
+                                className="btn btn-info text-white btn-sm"
+                                onClick={() => {
+                                  setCurrentStep(3); // ไปยังขั้นตอนนำเข้านักเรียน
+                                  setSelectedAssignment(null); // ปิด modal
+                                }}>
+                                <i className="fas fa-plus me-2"></i>
+                                เพิ่มรายชื่อนักเรียน
+                              </button>
+                            </div>
+                            {importedStudents.length > 0 ? (
+                              <div
+                                className="table-responsive"
+                                style={{
+                                  maxHeight: "300px",
+                                  overflowY: "auto",
+                                }}>
+                                <table className="table table-sm table-striped">
+                                  <thead className="sticky-top bg-light">
+                                    <tr>
+                                      <th style={{ width: "60px" }}>ลำดับ</th>
+                                      <th style={{ width: "150px" }}>
+                                        รหัสนักศึกษา
+                                      </th>
+                                      <th>ชื่อ-นามสกุล</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {importedStudents.map((student, index) => (
+                                      <tr key={index}>
+                                        <td>{index + 1}</td>
+                                        <td>{student.student_id}</td>
+                                        <td>{student.name}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="alert alert-warning">
+                                <i className="fas fa-exclamation-triangle me-2"></i>
+                                ยังไม่มีรายชื่อนักเรียนในงานนี้ คลิกปุ่ม
+                                "เพิ่มรายชื่อนักเรียน" เพื่อนำเข้ารายชื่อ
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                       <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={() => setSelectedAssignment(null)}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => setSelectedAssignment(null)}>
                           ปิด
                         </button>
                         <button
-  type="button"
-  className="btn btn-warning me-2"
-  onClick={() => {
-    // ตั้งค่าข้อมูลที่จำเป็นสำหรับการแก้ไข CLO ในขั้นตอนที่ 2
-    setAssignmentName(selectedAssignment.assignment_name || "");
-    setSelectedCourseId(selectedAssignment.course_id?.toString() || "");
-    setSelectedSectionId(selectedAssignment.section_id?.toString() || "");
-    setSelectedSemesterId(selectedAssignment.semester_id?.toString() || "");
-    setSelectedYear(selectedAssignment.year?.toString() || "");
-    setCurrentAssignmentId(selectedAssignment.assignment_id);
-    
-    // ดึงข้อมูลคะแนน CLO สำหรับการแก้ไขใน Step 2
-    const prepareDataForEdit = async () => {
-      try {
-        // ดึงข้อมูล CLO สำหรับรายวิชานี้
-        const cloResponse = await axios.get("/course_clo", {
-          params: {
-            program_id: selectedAssignment.program_id,
-            course_id: selectedAssignment.course_id,
-            semester_id: selectedAssignment.semester_id,
-            section_id: selectedAssignment.section_id,
-            year: selectedAssignment.year
-          }
-        });
-        
-        if (cloResponse.data && Array.isArray(cloResponse.data)) {
-          setCLOs(cloResponse.data);
-          
-          // ดึงข้อมูลรายละเอียด Assignment เพื่อให้ได้คะแนน CLO
-          const assignmentResponse = await axios.get(`/api/get_assignment_detail/${selectedAssignment.assignment_id}`);
-          
-          if (assignmentResponse.data && assignmentResponse.data.success) {
-            // สร้าง homework สำหรับการแก้ไขคะแนน
-            const homeworkData = {
-              id: selectedAssignment.assignment_id,
-              name: selectedAssignment.assignment_name,
-              scores: {}
-            };
-            
-            // ใส่คะแนนจากข้อมูลที่ดึงมา
-            const scores = assignmentResponse.data.scores || {};
-            const students = assignmentResponse.data.students || [];
-            
-            if (students.length > 0 && Object.keys(scores).length > 0) {
-              // ถ้ามีข้อมูลนักศึกษาและคะแนน
-              const firstStudentId = students[0].student_id;
-              const studentScores = scores[firstStudentId] || {};
-              
-              // ใช้ CLO ที่พบในการเชื่อมโยงคะแนน
-              assignmentResponse.data.clos.forEach(clo => {
-                homeworkData.scores[clo.clo_id] = studentScores[clo.assignment_clo_id] || 0;
-              });
-              
-              // ตั้งค่า CLO weight
-              const cloWeightsObj = {};
-              assignmentResponse.data.clos.forEach(clo => {
-                cloWeightsObj[clo.clo_id] = clo.weight || 0;
-              });
-              setCloWeights(cloWeightsObj);
-            } else {
-              // ถ้าไม่มีข้อมูลคะแนน ให้ตั้งค่าเริ่มต้นเป็น 0 สำหรับทุก CLO
-              cloResponse.data.forEach(clo => {
-                homeworkData.scores[clo.CLO_id] = 0;
-              });
-              
-              // ตั้งค่า CLO weight จากข้อมูล CLO
-              const cloWeightsObj = {};
-              cloResponse.data.forEach(clo => {
-                cloWeightsObj[clo.CLO_id] = clo.weight || 0;
-              });
-              setCloWeights(cloWeightsObj);
-            }
-            
-            // ตั้งค่า homeworks สำหรับการแก้ไข
-            setHomeworks([homeworkData]);
-          }
-        }
-        
-        // เคลียร์ validation errors
-        setValidationErrors({});
-      } catch (error) {
-        console.error("เกิดข้อผิดพลาดในการเตรียมข้อมูล:", error);
-      }
-    };
-    
-    // เรียกใช้ฟังก์ชันเตรียมข้อมูล
-    prepareDataForEdit();
-    
-    // เปลี่ยนไปยังขั้นตอนที่ 2
-    setCurrentStep(2);
-    
-    // ปิด modal
-    setSelectedAssignment(null);
-  }}
->
-  <i className="fas fa-edit me-1"></i> แก้ไขคะแนน CLO
-</button>
-<button
-  type="button"
-  className="btn btn-primary"
-  onClick={() => {
-    // นำข้อมูลมาแสดงในฟอร์มเพื่อแก้ไข
-    setAssignmentName(selectedAssignment.assignment_name || "");
-    
-    // ตั้งค่าข้อมูลฟิลเตอร์ให้ตรงกับ Assignment ที่เลือก
-    setSelectedUniversity(selectedAssignment.university_id?.toString() || "");
-    setSelectedFaculty(selectedAssignment.faculty_id?.toString() || "");
-    setSelectedProgram(selectedAssignment.program_id?.toString() || "");
-    setSelectedCourseId(selectedAssignment.course_id?.toString() || "");
-    setSelectedSectionId(selectedAssignment.section_id?.toString() || "");
-    setSelectedSemesterId(selectedAssignment.semester_id?.toString() || "");
-    setSelectedYear(selectedAssignment.year?.toString() || "");
-    
-    // ตั้งค่าข้อมูลสำหรับฟอร์มแก้ไข
-    setEditData({
-      assignment_name: selectedAssignment.assignment_name || "",
-      course_name: selectedAssignment.course_name || "",
-      section_id: selectedAssignment.section_id || "",
-      semester_id: selectedAssignment.semester_id || "",
-      year: selectedAssignment.year || "",
-      program_id: selectedAssignment.program_id || "",
-      faculty_id: selectedAssignment.faculty_id || "",
-      university_id: selectedAssignment.university_id || ""
-    });
-    
-    // ตั้งค่า assignment ID สำหรับอัพเดต
-    setCurrentAssignmentId(selectedAssignment.assignment_id);
-    
-    // เปลี่ยนไปยังขั้นตอนที่ 1 (แก้ไขข้อมูลทั่วไป)
-    setCurrentStep(1);
-    
-    // เปิดโหมดแก้ไข
-    setIsEditing(true);
-    
-    // ปิด modal
-    setSelectedAssignment(null);
-  }}
->
-  <i className="fas fa-pen me-1"></i> แก้ไขข้อมูลทั่วไป
-</button>
-{isEditing ? (
-  // แสดงฟอร์มแก้ไขเมื่ออยู่ในโหมดการแก้ไข
-  <div style={styles.editForm}>
-    <h1 className="btn btn-warning">แก้ไขข้อมูล Assignment</h1>
-    
-    <div style={styles.formGroup}>
-      <label style={styles.label}>ชื่อ Assignment:</label>
-      <input
-        type="text"
-        name="assignment_name"
-        value={editData.assignment_name}
-        onChange={handleEditChange}
-        style={styles.input}
-      />
-    </div>
-    
-    <div style={styles.formGroup}>
-      <label style={styles.label}>ชื่อวิชา:</label>
-      <input
-        type="text"
-        name="course_name"
-        value={editData.course_name}
-        onChange={handleEditChange}
-        style={styles.input}
-      />
-    </div>
-    
-    <div style={styles.formGroup}>
-      <label style={styles.label}>เซคชัน:</label>
-      <input
-        type="text"
-        name="section_id"
-        value={editData.section_id}
-        onChange={handleEditChange}
-        style={styles.input}
-      />
-    </div>
-    
-    <div style={styles.formGroup}>
-      <label style={styles.label}>ภาคการศึกษา:</label>
-      <input
-        type="text"
-        name="semester_id"
-        value={editData.semester_id}
-        onChange={handleEditChange}
-        style={styles.input}
-      />
-    </div>
-    
-    <div style={styles.formGroup}>
-      <label style={styles.label}>ปีการศึกษา:</label>
-      <input
-        type="text"
-        name="year"
-        value={editData.year}
-        onChange={handleEditChange}
-        style={styles.input}
-      />
-    </div>
-    
-    <div style={styles.buttonContainer}>
-      <button
-        style={saving ? styles.primaryButtonDisabled : styles.primaryButton}
-        onClick={saveEditAssignment}
-        disabled={saving}
-      >
-        {saving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
-      </button>
-      
-      <button
-        style={styles.cancelButton}
-        onClick={cancelEdit}
-        disabled={saving}
-      >
-        ยกเลิก
-      </button>
-    </div>
-  </div>
-) : (
-  // แสดงข้อมูล Assignment ปกติ
-  <>
-    <h1 style={styles.heading}>
-      {assignment.assignment_name} - คะแนนนักเรียน
-    </h1>
-    
-    <div style={styles.assignmentInfo}>
-      <p>
-        <strong>วิชา:</strong> {assignment.course_name}
-        &nbsp;&nbsp;|&nbsp;&nbsp;
-        <strong>เซคชัน:</strong> {assignment.section_id}
-        &nbsp;&nbsp;|&nbsp;&nbsp;
-        <strong>ภาคการศึกษา:</strong> {assignment.semester_id}/{assignment.year}
-      </p>
-    </div>
-    
-    <div style={styles.buttonContainer}>
-      {/* เพิ่มปุ่มแก้ไข Assignment */}
-      <button 
-        style={styles.editButton} 
-        onClick={() => setIsEditing(true)}
-      >
-        แก้ไขข้อมูล Assignment
-      </button>
-      
-      <button 
-        style={saving ? styles.primaryButtonDisabled : styles.primaryButton} 
-        onClick={saveScores}
-        disabled={saving}
-      >
-        {saving ? 'กำลังบันทึก...' : 'บันทึกคะแนน'}
-      </button>
-      
-      <label htmlFor="excel-file-input">
-        <button 
-          style={styles.secondaryButton} 
-          onClick={() => document.getElementById('excel-file-input').click()}
-        >
-          นำเข้าจาก Excel
-        </button>
-      </label>
-      <input
-        id="excel-file-input"
-        type="file"
-        accept=".xlsx,.xls"
-        onChange={handleFileImport}
-        style={styles.hidden}
-      />
-      
-      <button 
-        style={styles.outlineButton} 
-        onClick={downloadExcelTemplate}
-      >
-        ดาวน์โหลดเทมเพลต Excel
-      </button>
-    </div>
-  </>
-)}
+                          type="button"
+                          className="btn btn-warning me-2"
+                          onClick={() => {
+                            // ตั้งค่าข้อมูลที่จำเป็นสำหรับการแก้ไข CLO ในขั้นตอนที่ 2
+                            setAssignmentName(
+                              selectedAssignment.assignment_name || ""
+                            );
+                            setSelectedCourseId(
+                              selectedAssignment.course_id?.toString() || ""
+                            );
+                            setSelectedSectionId(
+                              selectedAssignment.section_id?.toString() || ""
+                            );
+                            setSelectedSemesterId(
+                              selectedAssignment.semester_id?.toString() || ""
+                            );
+                            setSelectedYear(
+                              selectedAssignment.year?.toString() || ""
+                            );
+                            setCurrentAssignmentId(
+                              selectedAssignment.assignment_id
+                            );
 
+                            // ดึงข้อมูลคะแนน CLO สำหรับการแก้ไขใน Step 2
+                            const prepareDataForEdit = async () => {
+                              try {
+                                // ดึงข้อมูล CLO สำหรับรายวิชานี้
+                                const cloResponse = await axios.get(
+                                  "/course_clo",
+                                  {
+                                    params: {
+                                      program_id: selectedAssignment.program_id,
+                                      course_id: selectedAssignment.course_id,
+                                      semester_id:
+                                        selectedAssignment.semester_id,
+                                      section_id: selectedAssignment.section_id,
+                                      year: selectedAssignment.year,
+                                    },
+                                  }
+                                );
+
+                                if (
+                                  cloResponse.data &&
+                                  Array.isArray(cloResponse.data)
+                                ) {
+                                  setCLOs(cloResponse.data);
+
+                                  // ดึงข้อมูลรายละเอียด Assignment เพื่อให้ได้คะแนน CLO
+                                  const assignmentResponse = await axios.get(
+                                    `/api/get_assignment_detail/${selectedAssignment.assignment_id}`
+                                  );
+
+                                  if (
+                                    assignmentResponse.data &&
+                                    assignmentResponse.data.success
+                                  ) {
+                                    // สร้าง homework สำหรับการแก้ไขคะแนน
+                                    const homeworkData = {
+                                      id: selectedAssignment.assignment_id,
+                                      name: selectedAssignment.assignment_name,
+                                      scores: {},
+                                    };
+
+                                    // ใส่คะแนนจากข้อมูลที่ดึงมา
+                                    const scores =
+                                      assignmentResponse.data.scores || {};
+                                    const students =
+                                      assignmentResponse.data.students || [];
+
+                                    if (
+                                      students.length > 0 &&
+                                      Object.keys(scores).length > 0
+                                    ) {
+                                      // ถ้ามีข้อมูลนักศึกษาและคะแนน
+                                      const firstStudentId =
+                                        students[0].student_id;
+                                      const studentScores =
+                                        scores[firstStudentId] || {};
+
+                                      // ใช้ CLO ที่พบในการเชื่อมโยงคะแนน
+                                      assignmentResponse.data.clos.forEach(
+                                        (clo) => {
+                                          homeworkData.scores[clo.clo_id] =
+                                            studentScores[
+                                              clo.assignment_clo_id
+                                            ] || 0;
+                                        }
+                                      );
+
+                                      // ตั้งค่า CLO weight
+                                      const cloWeightsObj = {};
+                                      assignmentResponse.data.clos.forEach(
+                                        (clo) => {
+                                          cloWeightsObj[clo.clo_id] =
+                                            clo.weight || 0;
+                                        }
+                                      );
+                                      setCloWeights(cloWeightsObj);
+                                    } else {
+                                      // ถ้าไม่มีข้อมูลคะแนน ให้ตั้งค่าเริ่มต้นเป็น 0 สำหรับทุก CLO
+                                      cloResponse.data.forEach((clo) => {
+                                        homeworkData.scores[clo.CLO_id] = 0;
+                                      });
+
+                                      // ตั้งค่า CLO weight จากข้อมูล CLO
+                                      const cloWeightsObj = {};
+                                      cloResponse.data.forEach((clo) => {
+                                        cloWeightsObj[clo.CLO_id] =
+                                          clo.weight || 0;
+                                      });
+                                      setCloWeights(cloWeightsObj);
+                                    }
+
+                                    // ตั้งค่า homeworks สำหรับการแก้ไข
+                                    setHomeworks([homeworkData]);
+                                  }
+                                }
+
+                                // เคลียร์ validation errors
+                                setValidationErrors({});
+                              } catch (error) {
+                                console.error(
+                                  "เกิดข้อผิดพลาดในการเตรียมข้อมูล:",
+                                  error
+                                );
+                              }
+                            };
+
+                            // เรียกใช้ฟังก์ชันเตรียมข้อมูล
+                            prepareDataForEdit();
+
+                            // เปลี่ยนไปยังขั้นตอนที่ 2
+                            setCurrentStep(2);
+
+                            // ปิด modal
+                            setSelectedAssignment(null);
+                          }}>
+                          <i className="fas fa-edit me-1"></i> แก้ไขคะแนน CLO
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => {
+                            // นำข้อมูลมาแสดงในฟอร์มเพื่อแก้ไข
+                            setAssignmentName(
+                              selectedAssignment.assignment_name || ""
+                            );
+
+                            // ตั้งค่าข้อมูลฟิลเตอร์ให้ตรงกับ Assignment ที่เลือก
+                            setSelectedUniversity(
+                              selectedAssignment.university_id?.toString() || ""
+                            );
+                            setSelectedFaculty(
+                              selectedAssignment.faculty_id?.toString() || ""
+                            );
+                            setSelectedProgram(
+                              selectedAssignment.program_id?.toString() || ""
+                            );
+                            setSelectedCourseId(
+                              selectedAssignment.course_id?.toString() || ""
+                            );
+                            setSelectedSectionId(
+                              selectedAssignment.section_id?.toString() || ""
+                            );
+                            setSelectedSemesterId(
+                              selectedAssignment.semester_id?.toString() || ""
+                            );
+                            setSelectedYear(
+                              selectedAssignment.year?.toString() || ""
+                            );
+
+                            // ตั้งค่าข้อมูลสำหรับฟอร์มแก้ไข
+                            setEditData({
+                              assignment_name:
+                                selectedAssignment.assignment_name || "",
+                              course_name: selectedAssignment.course_name || "",
+                              section_id: selectedAssignment.section_id || "",
+                              semester_id: selectedAssignment.semester_id || "",
+                              year: selectedAssignment.year || "",
+                              program_id: selectedAssignment.program_id || "",
+                              faculty_id: selectedAssignment.faculty_id || "",
+                              university_id:
+                                selectedAssignment.university_id || "",
+                            });
+
+                            // ตั้งค่า assignment ID สำหรับอัพเดต
+                            setCurrentAssignmentId(
+                              selectedAssignment.assignment_id
+                            );
+
+                            // เปลี่ยนไปยังขั้นตอนที่ 1 (แก้ไขข้อมูลทั่วไป)
+                            setCurrentStep(1);
+
+                            // เปิดโหมดแก้ไข
+                            setIsEditing(true);
+
+                            // ปิด modal
+                            setSelectedAssignment(null);
+                          }}>
+                          <i className="fas fa-pen me-1"></i> แก้ไขข้อมูลทั่วไป
+                        </button>
+                        {isEditing ? (
+                          // แสดงฟอร์มแก้ไขเมื่ออยู่ในโหมดการแก้ไข
+                          <div style={styles.editForm}>
+                            <h1 className="btn btn-warning">
+                              แก้ไขข้อมูล Assignment
+                            </h1>
+
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>
+                                ชื่อ Assignment:
+                              </label>
+                              <input
+                                type="text"
+                                name="assignment_name"
+                                value={editData.assignment_name}
+                                onChange={handleEditChange}
+                                style={styles.input}
+                              />
+                            </div>
+
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>ชื่อวิชา:</label>
+                              <input
+                                type="text"
+                                name="course_name"
+                                value={editData.course_name}
+                                onChange={handleEditChange}
+                                style={styles.input}
+                              />
+                            </div>
+
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>เซคชัน:</label>
+                              <input
+                                type="text"
+                                name="section_id"
+                                value={editData.section_id}
+                                onChange={handleEditChange}
+                                style={styles.input}
+                              />
+                            </div>
+
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>ภาคการศึกษา:</label>
+                              <input
+                                type="text"
+                                name="semester_id"
+                                value={editData.semester_id}
+                                onChange={handleEditChange}
+                                style={styles.input}
+                              />
+                            </div>
+
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>ปีการศึกษา:</label>
+                              <input
+                                type="text"
+                                name="year"
+                                value={editData.year}
+                                onChange={handleEditChange}
+                                style={styles.input}
+                              />
+                            </div>
+
+                            <div style={styles.buttonContainer}>
+                              <button
+                                style={
+                                  saving
+                                    ? styles.primaryButtonDisabled
+                                    : styles.primaryButton
+                                }
+                                onClick={saveEditAssignment}
+                                disabled={saving}>
+                                {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
+                              </button>
+
+                              <button
+                                style={styles.cancelButton}
+                                onClick={cancelEdit}
+                                disabled={saving}>
+                                ยกเลิก
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          // แสดงข้อมูล Assignment ปกติ
+                          <>
+                            <h1 style={styles.heading}>
+                              {assignment.assignment_name} - คะแนนนักเรียน
+                            </h1>
+
+                            <div style={styles.assignmentInfo}>
+                              <p>
+                                <strong>วิชา:</strong> {assignment.course_name}
+                                &nbsp;&nbsp;|&nbsp;&nbsp;
+                                <strong>เซคชัน:</strong> {assignment.section_id}
+                                &nbsp;&nbsp;|&nbsp;&nbsp;
+                                <strong>ภาคการศึกษา:</strong>{" "}
+                                {assignment.semester_id}/{assignment.year}
+                              </p>
+                            </div>
+
+                            <div style={styles.buttonContainer}>
+                              {/* เพิ่มปุ่มแก้ไข Assignment */}
+                              <button
+                                style={styles.editButton}
+                                onClick={() => setIsEditing(true)}>
+                                แก้ไขข้อมูล Assignment
+                              </button>
+
+                              <button
+                                style={
+                                  saving
+                                    ? styles.primaryButtonDisabled
+                                    : styles.primaryButton
+                                }
+                                onClick={saveScores}
+                                disabled={saving}>
+                                {saving ? "กำลังบันทึก..." : "บันทึกคะแนน"}
+                              </button>
+
+                              <label htmlFor="excel-file-input">
+                                <button
+                                  style={styles.secondaryButton}
+                                  onClick={() =>
+                                    document
+                                      .getElementById("excel-file-input")
+                                      .click()
+                                  }>
+                                  นำเข้าจาก Excel
+                                </button>
+                              </label>
+                              <input
+                                id="excel-file-input"
+                                type="file"
+                                accept=".xlsx,.xls"
+                                onChange={handleFileImport}
+                                style={styles.hidden}
+                              />
+
+                              <button
+                                style={styles.outlineButton}
+                                onClick={downloadExcelTemplate}>
+                                ดาวน์โหลดเทมเพลต Excel
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
               )}
             </div>
-
           </div>
-
         </div>
-
       </div>
     </div>
   );
