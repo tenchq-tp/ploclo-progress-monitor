@@ -302,12 +302,18 @@ async function deleteOneById(req, res) {
             WHERE program_id = ? AND semester_id = ? AND course_id = ?
         `;
 
+    const deleteQuery2 = `
+      DELETE FROM course
+      WHERE course_id = ?
+    `;
+
     // Execute SQL Query
     const result = await conn.query(deleteQuery, [
       program_id,
       semester_id,
       course_id,
     ]);
+    await conn.query(deleteQuery2, [course_id]);
     conn.release(); // ปิดการเชื่อมต่อ
 
     if (result.affectedRows > 0) {

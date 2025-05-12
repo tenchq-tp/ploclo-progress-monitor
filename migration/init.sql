@@ -3,8 +3,8 @@ USE react_ploclo;
 CREATE TABLE `clo` (
   `CLO_id` int NOT NULL AUTO_INCREMENT,
   `CLO_code` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `CLO_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `CLO_engname` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `CLO_name` varchar(1000) COLLATE utf8mb4_general_ci NOT NULL,
+  `CLO_engname` varchar(1000) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `timestamp` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`CLO_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -19,14 +19,15 @@ CREATE TABLE `course` (
 
 CREATE TABLE `plo` (
   `PLO_id` int NOT NULL AUTO_INCREMENT,
-  `PLO_code` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `PLO_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `PLO_code` varchar(1000) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `PLO_name` varchar(1000) COLLATE utf8mb4_general_ci NOT NULL,
   `PLO_engname` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`PLO_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=91 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `program` (
+  `code` VARCHAR(50),
   `program_id` int NOT NULL AUTO_INCREMENT,
   `program_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `program_name_th` VARCHAR(255),

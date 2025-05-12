@@ -120,12 +120,17 @@ async function createOne(req, res) {
 async function updateOneById(req, res) {
   const { program_id } = req.params;
   const {
+    code,
     program_name,
     program_name_th,
     year,
     program_shortname_en,
     program_shortname_th,
   } = req.body;
+
+  if (!code) {
+    return res.status(400).json({ message: "Program code is required" });
+  }
 
   if (!program_name) {
     return res.status(400).json({ message: "Program name is required" });
@@ -150,8 +155,9 @@ async function updateOneById(req, res) {
   try {
     const conn = await pool.getConnection();
     const result = await conn.query(
-      "UPDATE program SET program_name = ?, program_name_th = ?, year = ?, program_shortname_en = ?, program_shortname_th = ? WHERE program_id = ?",
+      "UPDATE program SET code = ?, program_name = ?, program_name_th = ?, year = ?, program_shortname_en = ?, program_shortname_th = ? WHERE program_id = ?",
       [
+        code,
         program_name,
         program_name_th,
         parseInt(year),
