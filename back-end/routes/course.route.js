@@ -5,9 +5,11 @@ import {
   createOne,
   updateOneById,
   deleteOneById,
+  getManyByFilter,
 } from "../controllers/course.controller.js";
 
 router.get("/", getAll);
+router.get("/filter", getManyByFilter);
 router.post("/", createOne);
 router.put("/:course_id", updateOneById);
 router.delete("/:course_id", deleteOneById);
