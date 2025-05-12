@@ -3067,7 +3067,7 @@ app.get("/course_clo", async (req, res) => {
                 AND course_clo.course_id = ?
                 AND course_clo.semester_id = ?
                 AND course_clo.section_id = ?
-                AND course_clo.year = ?
+                AND course_clo.year = (?-1)
         `;
 
     const rows = await conn.query(query, [

@@ -53,4 +53,20 @@ async function deleteOneById(req, res) {
   }
 }
 
-export { getAll, createOne, updateOneById, deleteOneById };
+async function getManyByFilter(req, res) {
+  const { semester_id, year } = req.query;
+
+  try {
+    const response = await pool.query(
+      "SELECT DISTINCT c.course_id, c.course_name, c.course_engname FROM program_course AS pc LEFT JOIN course AS c ON pc.course_id=c.course_id WHERE pc.semester_id=? AND pc.year=?",
+      [semester_id, year]
+    );
+    console.log(response);
+    res.status(200).json(response);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error get course something with filter...");
+  }
+}
+
+export { getAll, createOne, updateOneById, deleteOneById, getManyByFilter };

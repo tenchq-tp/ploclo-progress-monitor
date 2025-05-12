@@ -64,7 +64,7 @@ CREATE TABLE `course_clo` (
   `semester_id` int NOT NULL,
   `section_id` int NOT NULL,
   `year` int DEFAULT NULL,
-  `weight` INT DEFAULT NULL,
+  `weight` INT DEFAULT 0,
   PRIMARY KEY (`course_clo_id`),
   KEY `course_id` (`course_id`),
   KEY `clo_id` (`clo_id`),

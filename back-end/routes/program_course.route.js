@@ -7,6 +7,7 @@ import {
   deleteOneById,
   updateOneByCourseId,
   getManyCourseDetail,
+  updateOneByCourseSectionId,
 } from "../controllers/program_course.controller.js";
 
 router.post("/excel", importExcel);
@@ -15,5 +16,6 @@ router.post("/", createOne);
 router.delete("/", deleteOneById);
 router.put("/:course_id", updateOneByCourseId);
 router.get("/detail", getManyCourseDetail);
+router.put("/:course_id/section/:section_id", updateOneByCourseSectionId);
 
 export default router;

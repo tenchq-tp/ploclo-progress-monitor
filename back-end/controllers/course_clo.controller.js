@@ -209,9 +209,9 @@ async function addCourseClo(req, res) {
 }
 
 async function getManyByFilter(req, res) {
-  const { program_id, course_id, semester_id, section_id, year } = req.query;
+  const { program_id, course_id, semester_id, year } = req.query;
 
-  if (!program_id || !course_id || !semester_id || !section_id || !year) {
+  if (!program_id || !course_id || !semester_id || !year) {
     return res.status(400).json({ message: "Missing required parameters" });
   }
 
@@ -221,43 +221,39 @@ async function getManyByFilter(req, res) {
     conn = await pool.getConnection();
 
     const query = `
-            SELECT 
-                course_clo.course_clo_id,
-                course_clo.course_id,
-                course_clo.semester_id,
-                course_clo.section_id,
-                course_clo.year,
-                clo.CLO_id,
-                clo.CLO_code,
-                clo.CLO_name,
-                clo.CLO_engname,
-                clo.timestamp,
-                course.course_name,
-                course.course_engname
-            FROM 
-                program_course pc
-            JOIN 
-                course_clo ON pc.course_id = course_clo.course_id
-                AND pc.semester_id = course_clo.semester_id
-                AND pc.section_id = course_clo.section_id
-                AND pc.year = course_clo.year
-            JOIN 
-                clo ON course_clo.clo_id = clo.CLO_id
-            JOIN 
-                course ON course_clo.course_id = course.course_id
-            WHERE 
-                pc.program_id = ?
-                AND course_clo.course_id = ?
-                AND course_clo.semester_id = ?
-                AND course_clo.section_id = ?
-                AND course_clo.year = ?
+SELECT DISTINCT
+    course_clo.course_clo_id,
+    course_clo.course_id,
+    course_clo.semester_id,
+    course_clo.year,
+    clo.CLO_id,
+    clo.CLO_code,
+    clo.CLO_name,
+    clo.CLO_engname,
+    clo.timestamp,
+    course.course_name,
+    course.course_engname
+FROM 
+    program_course pc
+JOIN 
+    course_clo ON pc.course_id = course_clo.course_id
+    AND pc.semester_id = course_clo.semester_id
+    AND pc.year = course_clo.year
+JOIN 
+    clo ON course_clo.clo_id = clo.CLO_id
+JOIN 
+    course ON course_clo.course_id = course.course_id
+WHERE 
+    pc.program_id = ?
+    AND course_clo.course_id = ?
+    AND course_clo.semester_id = ?
+    AND course_clo.year = ?
         `;
 
     const rows = await conn.query(query, [
       program_id,
       course_id,
       semester_id,
-      section_id,
       year,
     ]);
 
@@ -396,89 +392,42 @@ async function updateByFilter(req, res) {
 }
 
 async function deleteByFilter(req, res) {
-  const { clo_id, course_id, semester_id, section_id, year, program_id } =
-    req.body;
+  const { clo_id, course_id, semester_id, year } = req.query;
 
   // ตรวจสอบว่าค่าที่จำเป็นถูกส่งมาหรือไม่
-  if (
-    !program_id ||
-    !clo_id ||
-    !course_id ||
-    !semester_id ||
-    !section_id ||
-    !year
-  ) {
-    return res.status(400).json({ message: "Missing required fields" });
+  if (!clo_id || !course_id || !semester_id || !year) {
+    return res.status(400).json({
+      clo_id,
+      course_id,
+      semester_id,
+      year,
+    });
   }
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
-    // ตรวจสอบความสัมพันธ์ระหว่าง program_id และ course_clo ผ่าน program_course
-    console.log("Checking relationship between program_id and course_clo:", {
-      program_id,
-      clo_id,
-      course_id,
-      semester_id,
-      section_id,
-      year,
-    });
-
-    const programCourseCheck = await conn.query(
-      `
-            SELECT * FROM program_course
-            WHERE program_id = ? AND course_id = ? AND semester_id = ? AND section_id = ? AND year = ?
-        `,
-      [program_id, course_id, semester_id, section_id, year]
-    );
-
-    console.log("Program course relationship found:", programCourseCheck);
-
-    if (programCourseCheck.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Program Course relationship not found" });
-    }
-
     // ลบ CLO จากตาราง course_clo
     const deleteCourseCloResult = await conn.query(
       `
             DELETE FROM course_clo
-            WHERE clo_id = ? AND course_id = ? AND semester_id = ? AND section_id = ? AND year = ?
+            WHERE clo_id = ? AND course_id = ? AND semester_id = ? AND year = ?
         `,
-      [clo_id, course_id, semester_id, section_id, year]
+      [clo_id, course_id, semester_id, year]
     );
-
-    console.log("Delete result from course_clo:", deleteCourseCloResult);
-
     // ตรวจสอบผลลัพธ์จากคำสั่ง DELETE
     if (deleteCourseCloResult.affectedRows === 0) {
       return res
         .status(404)
         .json({ message: "Course CLO not found or not deleted" });
     }
-
-    // ตรวจสอบว่ามีการใช้งาน clo_id ในตาราง course_clo ที่อื่นหรือไม่
-    const cloUsageCheck = await conn.query(
+    const deleteCloResult = await conn.query(
       `
-            SELECT COUNT(*) AS count FROM course_clo WHERE clo_id = ?
-        `,
+              DELETE FROM clo WHERE clo_id = ?
+          `,
       [clo_id]
     );
-
-    console.log("CLO usage check result:", cloUsageCheck);
-
-    if (cloUsageCheck[0].count === 0) {
-      const deleteCloResult = await conn.query(
-        `
-                DELETE FROM clo WHERE clo_id = ?
-            `,
-        [clo_id]
-      );
-      console.log("Deleted from clo:", deleteCloResult);
-    }
-
     await conn.commit();
     res.status(200).json({ message: "Course CLO deleted successfully" });
   } catch (err) {
