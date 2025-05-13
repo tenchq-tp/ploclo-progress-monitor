@@ -136,8 +136,6 @@ export default function Course() {
   const [allWeights, setAllWeights] = useState([]);
   const [courseList, setCourseList] = useState([]);
 
-
-
   useEffect(() => {
     const fetchUniversities = async () => {
       try {
@@ -365,7 +363,6 @@ export default function Course() {
       fetchCourses(); // Fetch course data when program, semester, or year is selected
     }
   }, [newCourse.program_id, newCourse.semester_id, selectedYear]);
-
 
   useEffect(() => {
     const updatedWeights = {};
@@ -1597,7 +1594,6 @@ export default function Course() {
       });
     }
   }, [mappings]);
-
 
   const updateWeightsFromMappings = (mappingData) => {
     console.log("กำลังอัพเดต weights จาก mappings:", mappingData);
@@ -3464,7 +3460,6 @@ export default function Course() {
 
           {/* Course Table */}
           <CourseTable course_list={courseList} deleteCourse={deleteCourse} />
-
         </div>
 
         <div
