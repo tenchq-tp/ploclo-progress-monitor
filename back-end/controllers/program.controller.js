@@ -379,21 +379,23 @@ async function createFromExcel(req, res) {
 
     for (const row of rows) {
       const {
-        program_id,
+        code,
         program_name,
         program_name_th,
         program_shortname_en,
         program_shortname_th,
         year,
+        faculty_id,
       } = row;
 
       if (
-        !program_id ||
+        !code ||
         !program_name ||
         !program_name_th ||
         !program_shortname_en ||
         !program_shortname_th ||
-        !year
+        !year ||
+        !faculty_id
       ) {
         await conn.rollback();
         conn.release();
@@ -405,25 +407,35 @@ async function createFromExcel(req, res) {
         });
       }
 
+      // เพิ่มข้อมูลในตาราง `program`
       const programQuery = `
         INSERT INTO program (
-          program_id, program_name, program_name_th, year, program_shortname_en, program_shortname_th
+          code, program_name, program_name_th, year, program_shortname_en, program_shortname_th
         ) VALUES (?, ?, ?, ?, ?, ?)
       `;
-      await conn.query(programQuery, [
-        program_id,
+      const result = await conn.query(programQuery, [
+        code,
         program_name,
         program_name_th,
         year,
         program_shortname_en,
         program_shortname_th,
       ]);
+
+      console.log(result); // ตรวจสอบผลลัพธ์
+
+      const program_id = result.insertId; // ดึง program_id ที่ถูกสร้างจากฐานข้อมูล
+
+      // เชื่อมโยง program กับ faculty ผ่านตาราง `program_faculty`
+      const programFacultyQuery = `
+        INSERT INTO program_faculty (program_id, faculty_id) VALUES (?, ?)
+      `;
+      await conn.query(programFacultyQuery, [program_id, faculty_id]);
     }
 
     await conn.commit();
     conn.release();
     res.json({ success: true, message: "All rows inserted successfully" });
-
   } catch (err) {
     await conn.rollback();
     conn.release();
@@ -431,6 +443,10 @@ async function createFromExcel(req, res) {
     res.status(500).json({ success: false, message: "Database error" });
   }
 }
+
+
+
+
 
 
 // async function getManyByFilter(req, res) {

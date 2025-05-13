@@ -1,8 +1,8 @@
 import { useState } from "react";
 import axios from "./../axios";
-import handleProgramExcelUpload from "./../EditProgram.jsx";
-import handleProgramUploadClick from "./../EditProgram.jsx";
-import excelData from "./../EditProgram.jsx";
+import * as XLSX from "xlsx";
+import { useTranslation } from "react-i18next";
+
 
 export default function AddProgram({
   setAlert,
@@ -12,6 +12,8 @@ export default function AddProgram({
   setProgram,
   program,
 }) {
+    const { t, i18n } = useTranslation();
+  
   const [newProgram, setNewProgram] = useState({
     code: "",
     program_name: "",
@@ -120,43 +122,67 @@ export default function AddProgram({
 
   };
 
+
+  const handleProgramExcelUpload = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = ""; // reset input เพื่อให้เลือกไฟล์ซ้ำได้
+
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = event.target.result;
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+        console.log("Sheet Names:", workbook.SheetNames);
+        console.log("Excel JSON Data:", jsonData);
+
+        if (jsonData.length === 0) {
+          alert("ไม่พบข้อมูลใน Excel");
+          return;
+        }
+
+        const dataToUpload = jsonData.map(row => ({
+          ...row,
+          faculty_id: selectedFaculty,
+        }));
+
+        const response = await axios.post("/api/program/excel", dataToUpload);
+
+
+        if (response.data.success) {
+          alert("เพิ่มโปรแกรมเรียบร้อยแล้ว");
+        } else {
+          alert("เกิดข้อผิดพลาด: " + response.data.message);
+        }
+      } catch (err) {
+        console.error("Error reading Excel file:", err);
+        alert("อ่านไฟล์ไม่สำเร็จ");
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+
+  };
+
   return (
 
     <div className="mb-3">
 
       <h5 className="form-label text-start" style={{ marginBottom: "15px" }}>
-        Add Program
+        {t('Add Program')}
       </h5>
-      <div className="button-group ms-auto">
-        <button
-          onClick={() => document.getElementById("uploadProgramFile").click()}
-          className="btn btn-primary"
-          disabled={!selectedFaculty || selectedFaculty === "all"}
 
-        >
-          Upload Excel (Program)
-        </button>
-        <input
-          type="file"
-          id="uploadProgramFile"
-          style={{ display: "none" }}
-          accept=".xlsx, .xls"
-          onChange={handleProgramExcelUpload}
 
-        />
-        <button
-          onClick={handleProgramUploadClick}
-          className="btn btn-success"
-          disabled={!excelData || !selectedFaculty || selectedFaculty === "all"}>
-          Submit Excel Data
-        </button>
-      </div>
+
 
       <div className="mb-2">
         <input
           type="text"
           className="form-control mb-2"
-          placeholder="รหัสหลักสูตร"
+          placeholder={t('รหัสหลักสูตร')}
           name="code"
           value={newProgram.code}
           onChange={handleNewProgramChange}
@@ -164,7 +190,7 @@ export default function AddProgram({
         <input
           type="text"
           className="form-control mb-2"
-          placeholder="Program Name (English)"
+          placeholder={t("Program Name")}
           name="program_name"
           value={newProgram.program_name}
           onChange={handleNewProgramChange}
@@ -172,7 +198,7 @@ export default function AddProgram({
         <input
           type="text"
           className="form-control mb-2"
-          placeholder="ชื่อหลักสูตร (ภาษาไทย)"
+          placeholder={t("ชื่อหลักสูตร (ไทย)")}
           name="program_name_th"
           value={newProgram.program_name_th}
           onChange={handleNewProgramChange}
@@ -182,7 +208,7 @@ export default function AddProgram({
             <input
               type="text"
               className="form-control"
-              placeholder="Short Name (EN)"
+              placeholder={t("Short Name")}
               name="program_shortname_en"
               value={newProgram.program_shortname_en}
               onChange={handleNewProgramChange}
@@ -192,7 +218,7 @@ export default function AddProgram({
             <input
               type="text"
               className="form-control"
-              placeholder="ชื่อย่อ (ไทย)"
+              placeholder={t('ชื่อย่อ (ไทย)')}
               name="program_shortname_th"
               value={newProgram.program_shortname_th}
               onChange={handleNewProgramChange}
@@ -204,19 +230,36 @@ export default function AddProgram({
             <input
               type="text"
               className="form-control"
-              placeholder="Year (e.g., 2022)"
+              placeholder={t('Year')}
               name="year"
               value={newProgram.year}
               onChange={handleNewProgramChange}
             />
           </div>
-          <div className="col d-flex justify-content-end">
+
+          <div className="col d-flex justify-content-end" style={{ gap: "15px" }}>
             <button
               className="btn btn-primary"
               onClick={handleAddProgram}
-              disabled={newProgram.program_name.trim() === ""}>
-              Insert
+              disabled={newProgram.program_name.trim() === "" || !selectedFaculty || selectedFaculty === "all"}>
+              {t('Insert Program')}
             </button>
+            <button
+              onClick={() => document.getElementById("uploadProgramFile").click()}
+              className="btn btn-primary"
+              disabled={!selectedFaculty || selectedFaculty === "all"}
+
+            >
+              {t('Upload Excel (Program)')}
+            </button>
+            <input
+              type="file"
+              id="uploadProgramFile"
+              style={{ display: "none" }}
+              accept=".xlsx, .xls"
+              onChange={handleProgramExcelUpload}
+
+            />
           </div>
         </div>
       </div>

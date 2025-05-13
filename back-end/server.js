@@ -809,7 +809,7 @@ app.post("/program_course/excel", async (req, res) => {
       }
     }
 
-    res.status(201).json({ message: "All courses uploaded successfully!" });
+    res.status(201).json({ success: true, message: "All courses uploaded successfully!" });
     conn.release();
   } catch (err) {
     console.error("Error adding courses from Excel:", err);
@@ -2121,8 +2121,6 @@ app.get("/api/get_course_assignments", async (req, res) => {
   }
 });
 
-//อ้อแก้ไข
-// เพิ่ม API สำหรับการเพิ่มข้อมูลโปรแกรม
 app.post("/program", async (req, res) => {
   let conn;
   try {
@@ -2573,8 +2571,189 @@ app.post("/plo/excel", async (req, res) => {
   }
 });
 
-// Fetch all course
-// Fetch course from database
+app.post("/api/program/excel", async (req, res) => {
+  const rows = req.body;
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Data should be a non-empty array",
+    });
+  }
+
+  const conn = await pool.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    for (const row of rows) {
+      const {
+        code,
+        program_name,
+        program_name_th,
+        program_shortname_en,
+        program_shortname_th,
+        year,
+        faculty_id,
+      } = row;
+
+      if (
+        !code ||
+        !program_name ||
+        !program_name_th ||
+        !program_shortname_en ||
+        !program_shortname_th ||
+        !year ||
+        !faculty_id
+      ) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({
+          success: false,
+          message: `Missing required fields in one of the rows: ${JSON.stringify(
+            row
+          )}`,
+        });
+      }
+
+      // Try inserting into program table
+      const programQuery = `
+        INSERT INTO program (
+          code, program_name, program_name_th, year, program_shortname_en, program_shortname_th
+        ) VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      try {
+        const result = await conn.query(programQuery, [
+          code,
+          program_name,
+          program_name_th,
+          year,
+          program_shortname_en,
+          program_shortname_th,
+        ]);
+        const program_id = result.insertId; // Get the auto-generated program_id
+
+        // Now insert into program_faculty using program_id
+        const pfQuery = `
+          INSERT INTO program_faculty (program_id, faculty_id)
+          VALUES (?, ?)
+        `;
+        await conn.query(pfQuery, [program_id, faculty_id]);
+      } catch (error) {
+        console.error("Error inserting into program:", error);
+        await conn.rollback();
+        conn.release();
+        return res.status(500).json({ success: false, message: "Database error inserting program", error: error.message });
+      }
+    }
+
+    await conn.commit();
+    conn.release();
+    res.json({ success: true, message: "All rows inserted successfully" });
+  } catch (err) {
+    await conn.rollback();
+    conn.release();
+    console.error("Error processing Excel upload:", err);
+    res.status(500).json({ success: false, message: "Database error", error: err.message });
+  }
+});
+
+app.post("/api/course/excel", async (req, res) => {
+  const rows = req.body;
+  const { selectedYear, selectedSemester } = req.query;
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Data should be a non-empty array",
+    });
+  }
+
+  if (!selectedYear || !selectedSemester) {
+    return res.status(400).json({
+      success: false,
+      message: "Year and semester are required",
+    });
+  }
+
+  const conn = await pool.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    for (const row of rows) {
+      const {
+        course_name,
+        course_engname,
+        section,
+        program_id,
+        course_id,
+        year,
+      } = row;
+
+      const yearToUse = year || selectedYear;
+
+      if (!course_name || !course_engname || !program_id || !yearToUse) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({
+          success: false,
+          message: `Missing required fields in one of the rows: ${JSON.stringify(row)}`,
+        });
+      }
+
+      let existingCourseId = course_id;
+
+      const [courseRows] = await conn.query(
+        "SELECT course_id FROM course WHERE course_id = ?",
+        [course_id]
+      );
+
+      if (courseRows.length === 0) {
+        const result = await conn.query(
+          `INSERT INTO course (course_id, course_name, course_engname)
+           VALUES (?, ?, ?)`,
+          [course_id, course_name, course_engname]
+        );
+        console.log(`Inserted new course with ID: ${course_id}`);
+      } else {
+        console.log(`Course already exists with ID: ${course_id}`);
+      }
+
+      const [existingLink] = await conn.query(
+        `SELECT * FROM program_course
+         WHERE program_id = ? AND course_id = ? AND year = ? AND semester_id = ?`,
+        [program_id, course_id, yearToUse, selectedSemester]
+      );
+
+      if (existingLink.length === 0) {
+        await conn.query(
+          `INSERT INTO program_course (program_id, course_id, year, semester_id, section_id)
+           VALUES (?, ?, ?, ?, ?)`,
+          [program_id, course_id, yearToUse, selectedSemester, section || 1]
+        );
+        console.log(`Linked course ${course_id} to program ${program_id} in ${yearToUse}/${selectedSemester}`);
+      } else {
+        console.log("Program-Course link already exists, skipping insert.");
+      }
+    }
+
+    await conn.commit();
+    conn.release();
+    res.json({ success: true, message: "All rows inserted successfully" });
+
+  } catch (err) {
+    await conn.rollback();
+    conn.release();
+    console.error("Error processing Excel upload:", err);
+    res.status(500).json({
+      success: false,
+      message: "Database error",
+      error: err.message,
+    });
+  }
+});
+
 app.get("/course", async (req, res) => {
   try {
     const conn = await pool.getConnection();

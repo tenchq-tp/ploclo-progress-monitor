@@ -1,4 +1,5 @@
 import pool from "../utils/db.js";
+import mysql from 'mysql2/promise';
 
 async function getAll(req, res) {
   try {
@@ -69,4 +70,105 @@ async function getManyByFilter(req, res) {
   }
 }
 
-export { getAll, createOne, updateOneById, deleteOneById, getManyByFilter };
+async function importCoursesFromExcel(req, res) {
+  const coursesData = req.body;
+
+  if (!Array.isArray(coursesData) || coursesData.length === 0) {
+    return res.status(400).json({
+      message: "No course data provided. Please upload valid Excel data.",
+    });
+  }
+
+  try {
+    const conn = await pool.getConnection();
+
+    for (const course of coursesData) {
+      const {
+        program_id,
+        course_id,
+        course_name,
+        course_engname,
+        semester_id,
+        year,
+        section_id = 1,
+      } = course;
+
+      if (!program_id || !course_id || !course_name || !semester_id || !year) {
+        conn.release();
+        console.log("Missing data:", course);
+        return res.status(400).json({
+          message:
+            "Missing required fields in some rows. Please ensure all fields are complete.",
+        });
+      }
+
+      const [existingCourse] = await conn.query(
+        `SELECT 1 FROM course WHERE course_id = ?`,
+        [course_id]
+      );
+
+      if (!existingCourse || existingCourse.length === 0) {
+        await conn.query(
+          `INSERT INTO course (course_id, course_name, course_engname, timestamp)
+           VALUES (?, ?, ?, NOW())`,
+          [course_id, course_name, course_engname]
+        );
+      } else {
+        await conn.query(
+          `UPDATE course
+           SET course_name = ?, course_engname = ?, timestamp = NOW()
+           WHERE course_id = ?`,
+          [course_name, course_engname, course_id]
+        );
+      }
+
+      const [existingSection] = await conn.query(
+        `SELECT 1 FROM section WHERE section_id = ?`,
+        [section_id]
+      );
+
+      if (!existingSection || existingSection.length === 0) {
+        await conn.query(
+          `INSERT INTO section (section_id) VALUES (?)`,
+          [section_id]
+        );
+      }
+
+      const [existingProgramCourse] = await conn.query(
+        `SELECT 1
+         FROM program_course
+         WHERE program_id = ? AND course_id = ? AND semester_id = ?`,
+        [program_id, course_id, semester_id]
+      );
+
+      if (!existingProgramCourse || existingProgramCourse.length === 0) {
+        await conn.query(
+          `INSERT INTO program_course (
+             program_id, course_id, semester_id, year, section_id
+           )
+           VALUES (?, ?, ?, ?, ?)`,
+          [program_id, course_id, semester_id, year, section_id]
+        );
+      } else {
+        await conn.query(
+          `UPDATE program_course
+           SET year = ?, section_id = ?
+           WHERE program_id = ? AND course_id = ? AND semester_id = ?`,
+          [year, section_id, program_id, course_id, semester_id]
+        );
+      }
+    }
+
+    conn.release();
+    res.status(201).json({ message: "All courses uploaded successfully!" });
+  } catch (err) {
+    console.error("Error adding courses from Excel:", err);
+    res.status(500).json({
+      message: "Database error occurred while processing Excel data.",
+      error: err.message,
+    });
+  }
+}
+
+
+export { getAll, createOne, updateOneById, deleteOneById, getManyByFilter, importCoursesFromExcel };

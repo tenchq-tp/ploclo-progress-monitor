@@ -215,7 +215,7 @@ export default function Program() {
       setSelectedProgramName("all");
       fetchAllProgram();
     }
-    console.log("selectedProgram ");
+    console.log("selectedProgram ",);
   }, [selectedFaculty]);
 
   useEffect(() => {
@@ -305,7 +305,7 @@ export default function Program() {
 
   const handleDeleteProgram = (program_id) => {
     // Confirm before deleting
-    if (!window.confirm("คุณต้องการลบหลักสูตรนี้ใช่หรือไม่?")) {
+    if (!window.confirm("Are you sure you want to delete this program?\nคุณต้องการลบหลักสูตรนี้ใช่หรือไม่?")) {
       return;
     }
 
@@ -345,7 +345,7 @@ export default function Program() {
     setShowLoadPreviousPLOModal(false); // ปิด modal เมื่อเปลี่ยนแท็บ
   };
   const handleDeletePlo = async (ploId) => {
-    if (window.confirm("Are you sure you want to delete this PLO?")) {
+    if (window.confirm("Are you sure you want to delete this PLO?\nคุณต้องการลบ PLO นี้ใช่หรือไม่?")) {
       try {
         const result = await axios.get(
           `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
@@ -493,7 +493,7 @@ export default function Program() {
     }
 
     const confirmation = window.confirm(
-      `คุณต้องการรวม ${previousYearPLOs.length} PLO จากปีก่อนหน้าเข้ากับโปรแกรมปัจจุบันใช่หรือไม่?`
+      `Do you want to merge ${previousYearPLOs.length} PLOs from the previous year into the current program?\nคุณต้องการรวม ${previousYearPLOs.length} PLO จากปีก่อนหน้าเข้ากับโปรแกรมปัจจุบันใช่หรือไม่?`
     );
     if (!confirmation) return;
 
@@ -532,7 +532,7 @@ export default function Program() {
           );
         } else {
           window.alert(
-            `เพิ่ม PLO สำเร็จ ${successfulAdds.length} รายการ จากทั้งหมด ${ploPatchRequests.length} รายการ`
+            `Successfully added ${successfulAdds.length} PLO(s) out of ${ploPatchRequests.length}.\nเพิ่ม PLO สำเร็จ ${successfulAdds.length} รายการ จากทั้งหมด ${ploPatchRequests.length} รายการ`
           );
         }
 
@@ -609,82 +609,6 @@ export default function Program() {
     }
   };
 
-  const handleProgramUploadClick = async () => {
-    if (!selectedUniversity || selectedUniversity === "all") {
-      alert("กรุณาเลือกมหาวิทยาลัยก่อนอัปโหลดข้อมูล");
-      return;
-    }
-
-    if (!selectedFaculty || selectedFaculty === "all") {
-      alert("กรุณาเลือกคณะก่อนอัปโหลดข้อมูล");
-      return;
-    }
-
-    if (!excelData || excelData.length === 0) {
-      alert("ไม่มีข้อมูลที่จะอัปโหลด กรุณาเลือกไฟล์ Excel");
-      return;
-    }
-
-    if (!window.confirm(`คุณต้องการอัปโหลดข้อมูลโปรแกรมจำนวน ${excelData.length} รายการใช่หรือไม่?`)) {
-      return;
-    }
-
-    try {
-      const dataToUpload = excelData.map(row => ({
-        ...row,
-        university_id: selectedUniversity,
-        faculty_id: selectedFaculty,
-      }));
-
-      const response = await axios.post("/program/excel", dataToUpload);
-      const data = await response.data;
-      alert("อัปโหลดข้อมูลโปรแกรมสำเร็จ!");
-      setExcelData(null);
-      // อัปเดตข้อมูลเพิ่มเติมได้ตามต้องการ
-    } catch (error) {
-      console.error("Upload error:", error);
-      alert("เกิดข้อผิดพลาดในการอัปโหลด: " + error.message);
-    }
-  };
-
-  const handleProgramExcelUpload = async (e) => {
-    const file = e.target.files[0];
-    e.target.value = ""; // reset input เพื่อให้เลือกไฟล์ซ้ำได้
-
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const data = event.target.result;
-        const workbook = XLSX.read(data, { type: "binary" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
-
-        if (jsonData.length === 0) {
-          alert("ไม่พบข้อมูลใน Excel");
-          return;
-        }
-
-        // ✅ ส่งข้อมูลเข้า API เลย (ไม่แนบ university/faculty)
-        const response = await axios.post("/program/excel", jsonData);
-
-        if (response.data.success) {
-          alert("เพิ่มโปรแกรมเรียบร้อยแล้ว");
-        } else {
-          alert("เกิดข้อผิดพลาด: " + response.data.message);
-        }
-      } catch (err) {
-        console.error("Error reading Excel file:", err);
-        alert("อ่านไฟล์ไม่สำเร็จ");
-      }
-    };
-
-    reader.readAsBinaryString(file);
-  };
-
-
-
   const handleUploadButtonClick = async () => {
     if (excelData && excelData.length > 0) {
       // ตรวจสอบว่าได้เลือกโปรแกรมแล้วหรือไม่
@@ -702,6 +626,10 @@ export default function Program() {
       // แสดง confirmation dialog
       if (
         !window.confirm(
+          "Do you want to upload " +
+          excelData.length +
+          " PLO records?" +
+          "\n" +
           "คุณต้องการอัปโหลดข้อมูล PLO จำนวน " +
           excelData.length +
           " รายการใช่หรือไม่?"
@@ -724,7 +652,7 @@ export default function Program() {
         const response = await axios.post("/plo/excel", dataToUpload);
 
         const data = await response.data;
-        window.alert("อัปโหลดข้อมูลสำเร็จ!");
+        window.alert("Data uploaded successfully\nอัปโหลดข้อมูลสำเร็จ");
 
         // รีเฟรชข้อมูล PLO หลังจากอัปโหลด โดยเพิ่มพารามิเตอร์ year
         const selectedProgramObj = program.find(
@@ -850,7 +778,6 @@ export default function Program() {
   };
 
   useEffect(() => {
-    console.log("Modal state changed:", showLoadPreviousPLOModal);
   }, [showLoadPreviousPLOModal]);
 
   const handleLoadPreviousPLO = async () => {
@@ -1125,13 +1052,13 @@ export default function Program() {
             className="d-flex flex-row"
             style={{ flexWrap: "nowrap", marginTop: "0px" }}>
             <div className="mb-3 me-2" style={{ width: "380px" }}>
-              <label className="form-label">Choose a university</label>
+              <label className="form-label">{t('Choose a university')}</label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "320px" }} // ใช้ style inline แทน
                 value={selectedUniversity}
                 onChange={handleUniversityChange}>
-                <option value="all">All Universities</option>
+                <option value="all">{t('All Universities')}</option>
                 {universities.map((university) => (
                   <option
                     key={university.university_id}
@@ -1144,31 +1071,31 @@ export default function Program() {
             </div>
 
             <div className="mb-3 me-2" style={{ width: "380px" }}>
-              <label className="form-label text-start">Choose a Faculty</label>
+              <label className="form-label text-start">{t('Choose a Faculty')}</label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "350px" }} // ใช้ style inline แทน
                 value={selectedFaculty}
                 onChange={handleFacultyChange}
                 disabled={!selectedUniversity}>
-                <option value="all">All Facultys</option>
+                <option value="all">{t('All Facultys')}</option>
                 {facultys.map((faculty) => (
                   <option key={faculty.faculty_id} value={faculty.faculty_id}>
-                    {faculty.faculty_name_en} ({faculty.faculty_name_th})
+                    {faculty.faculty_name_th} ({faculty.faculty_name_en})
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="mb-3 me-2" style={{ width: "380px" }}>
-              <label className="form-label text-start">Choose a Program</label>
+              <label className="form-label text-start">{t('Choose a Program')}</label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "380px" }} // ใช้ style inline แทน
                 value={selectedProgramName || "all"}
                 onChange={(e) => setSelectedProgramName(e.target.value)}
                 disabled={!selectedFaculty}>
-                <option value="all">All Programs</option>
+                <option value="all">{t('All Programs')}</option>
                 {program
                   .filter(
                     (item, index, self) =>
@@ -1188,14 +1115,14 @@ export default function Program() {
             </div>
 
             <div className="mb-3" style={{ width: "120px" }}>
-              <label className="form-label text-start">Year</label>
+              <label className="form-label text-start">{t('Year')}</label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "120px" }} // ใช้ style inline แทน
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 disabled={!selectedProgram}>
-                <option value="all">All Years</option>
+                <option value="all">{t('All Years')}</option>
                 {years.map((year) => (
                   <option key={year} value={year}>
                     {year}
@@ -1216,8 +1143,8 @@ export default function Program() {
         {/* เนื้อหาแท็บต่างๆ */}
         <div
           className={`tab-content ${activeTab === 0 ? "active" : ""}`}
-          style={{ marginTop: 10, marginBottom: 50, width: "80vw" }}>
-          <h3>Program Management</h3>
+          style={{ marginTop: 10, marginBottom: 50, width: "75vw" }}>
+          <h3>{t('Program Management')}</h3>
           <hr className="my-4" />
 
           {/* Alert notification */}
@@ -1233,57 +1160,65 @@ export default function Program() {
             </div>
           )}
 
-          <h5>Program</h5>
-          <table className="table table-bordered mt-3">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Program Name</th>
-                <th>ชื่อหลักสูตร (ไทย)</th>
-                <th>Short Name</th>
-                <th>ชื่อย่อ (ไทย)</th>
-                <th>Year</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProgram.map((p) => (
-                <tr key={p.program_id}>
-                  <td>{p.code}</td>
-                  <td>{p.program_name}</td>
-                  <td>{p.program_name_th || "-"}</td>
-                  <td>{p.program_shortname_en || "-"}</td>
-                  <td>{p.program_shortname_th || "-"}</td>
-                  <td>{p.year || "-"}</td>
-                  <td>
-                    <div className="d-flex justify-content-center">
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleDeleteProgram(p.program_id)}>
-                        Delete
-                      </button>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => {
-                          setInitialProgramValue({
-                            program_id: p.program_id,
-                            code: p.code,
-                            program_name: p.program_name,
-                            program_name_th: p.program_name_th,
-                            program_shortname_en: p.program_shortname_en,
-                            program_shortname_th: p.program_shortname_th,
-                            year: p.year,
-                          });
-                          setShowPopup(true);
-                        }}>
-                        Edit
-                      </button>
-                    </div>
-                  </td>
+          <h5>{t('Program')}</h5>
+          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            <table className="table table-bordered mt-3">
+              <thead style={{ position: 'sticky', top: 0, backgroundColor: '#fff', zIndex: 1 }}>
+                <tr>
+                  <th>{t('Program Code')}</th>
+                  <th>{t('Program Name')}</th>
+                  <th>{t('ชื่อหลักสูตร (ไทย)')}</th>
+                  <th>{t('Short Name')}</th>
+                  <th>{t('ชื่อย่อ (ไทย)')}</th>
+                  <th>{t('Year')}</th>
+                  <th>{t('Actions')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+  {filteredProgram
+    .sort((a, b) => (a.year || 0) - (b.year || 0)) // เรียงจาก year น้อย → มาก
+    .map((p) => (
+      <tr key={p.program_id}>
+        <td>{p.code}</td>
+        <td>{p.program_name}</td>
+        <td>{p.program_name_th || "-"}</td>
+        <td>{p.program_shortname_en || "-"}</td>
+        <td>{p.program_shortname_th || "-"}</td>
+        <td>{p.year || "-"}</td>
+        <td>
+          <div className="d-flex justify-content-center" style={{ gap: "5px" }}>
+            <button
+              className="btn btn-primary btn-sm ms-2"
+              onClick={() => {
+                setInitialProgramValue({
+                  program_id: p.program_id,
+                  code: p.code,
+                  program_name: p.program_name,
+                  program_name_th: p.program_name_th,
+                  program_shortname_en: p.program_shortname_en,
+                  program_shortname_th: p.program_shortname_th,
+                  year: p.year,
+                });
+                setShowPopup(true);
+              }}>
+              Edit
+            </button>
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={() => handleDeleteProgram(p.program_id)}>
+              Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+</tbody>
+
+            </table>
+          </div>
+
+
+
           {showPopup && (
             <EditProgramModal
               initialValue={initialProgramValue}
@@ -1306,21 +1241,21 @@ export default function Program() {
         </div>
         <div
           className={`tab-content ${activeTab === 1 ? "active" : ""}`}
-          style={{ marginTop: 10, marginBottom: 100 }}>
+          style={{ marginTop: 10, marginBottom: 50 }}>
           <div
             style={{
               backgroundColor: "#F0F0F0",
-              minHeight: "100vh",
+              minHeight: "0vh",
               paddingTop: "0px",
-              width: "80vw",
+              width: "75vw",
             }}>
             <div className="plo-management-container ">
-              <h3>PLO Management</h3>
+              <h3>{t('PLO Management')}</h3>
 
               <hr className="my-4" />
 
               {/* PLO List Section */}
-              <h5>PLO List</h5>
+              <h5>{t('PLO List')}</h5>
 
               <div className="action-buttons">
                 <div className="button-group">
@@ -1329,14 +1264,14 @@ export default function Program() {
                     className="btn"
                     style={{ backgroundColor: "#FF8C00", color: "white" }}
                     disabled={!allFiltersSelected}>
-                    Add PLO
+                    {t('Add PLO')}
                   </button>
 
                   <button
                     onClick={handleLoadPreviousPLO}
                     className="btn btn-secondary"
                     disabled={!allFiltersSelected}>
-                    Load Previous Year PLOs
+                    {t('Load Previous Year PLOs')}
                   </button>
                 </div>
 
@@ -1347,7 +1282,7 @@ export default function Program() {
                     }
                     className="btn btn-secondary"
                     disabled={!allFiltersSelected}>
-                    Upload Excel
+                    {t('Upload Excel')}
                   </button>
                   <input
                     type="file"
@@ -1356,13 +1291,6 @@ export default function Program() {
                     accept=".xlsx, .xls"
                     onChange={handleFileUpload}
                   />
-
-                  <button
-                    onClick={handleUploadButtonClick}
-                    className="btn btn-success"
-                    disabled={!excelData || !allFiltersSelected}>
-                    Submit Excel Data
-                  </button>
                 </div>
               </div>
 
@@ -1384,10 +1312,16 @@ export default function Program() {
                 <>
                   {/* แสดงข้อความเมื่อเลือกฟิลเตอร์ครบแล้ว แต่ไม่มีข้อมูล */}
                   {selectedYear !== "all" && !plos.length && (
-                    <div className="alert alert-info mt-4">
-                      {!plos.length ? "ไม่พบข้อมูล PLO " : ""}
-                      สำหรับปีการศึกษา {selectedYear}
+                    <div className="alert alert-info mt-4" style={{ textAlign: "center" }}>
+                      {!plos.length ? (
+                        <>
+                          No PLO data found for the academic year {selectedYear}.<br />
+                          ไม่พบข้อมูล PLO สำหรับปีการศึกษา {selectedYear}
+                        </>
+                      ) : null}
                     </div>
+
+
                   )}
 
                   {/* PLO Table - แสดงเฉพาะเมื่อเลือก filters ครบแล้ว และมีข้อมูล */}
@@ -1398,57 +1332,60 @@ export default function Program() {
                         <table className="plo-table">
                           <thead>
                             <tr>
-                              <th className="plo-code-col">PLO Code</th>
-                              <th className="plo-name-col">PLO Name</th>
-                              <th className="plo-actions-col">Actions</th>
+                              <th className="plo-code-col">{t('PLO Code')}</th>
+                              <th className="plo-name-col">{t('PLO Name')}</th>
+                              <th className="plo-actions-col">{t('Actions')}</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {plos.length > 0 ? (
-                              plos.map((plo) => (
-                                <tr key={plo.PLO_id}>
-                                  <td>
-                                    <div className="plo-cell-content text-center">
-                                      {plo.PLO_code}
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <div className="plo-cell-content">
-                                      {plo.PLO_name}
-                                    </div>
-                                    {plo.PLO_engname && (
-                                      <>
-                                        <div className="my-1 border-t border-gray-300"></div>
-                                        <div className="plo-cell-secondary">
-                                          {plo.PLO_engname}
-                                        </div>
-                                      </>
-                                    )}
-                                  </td>
-                                  <td>
-                                    <button
-                                      className="plo-table-btn plo-edit-btn"
-                                      onClick={() => handleEditPlo(plo)}>
-                                      Edit
-                                    </button>
-                                    <button
-                                      className="plo-table-btn plo-delete-btn"
-                                      onClick={() =>
-                                        handleDeletePlo(plo.PLO_id)
-                                      }>
-                                      Delete
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan="3" className="text-center">
-                                  No PLO data found for the selected filters.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
+  {plos.length > 0 ? (
+    [...plos]
+      .sort((a, b) => {
+        const numA = parseInt(a.PLO_code.replace(/\D/g, ""), 10) || 0;
+        const numB = parseInt(b.PLO_code.replace(/\D/g, ""), 10) || 0;
+        return numA - numB;
+      })
+      .map((plo) => (
+        <tr key={plo.PLO_id}>
+          <td>
+            <div className="plo-cell-content text-center">
+              {plo.PLO_code}
+            </div>
+          </td>
+          <td>
+            <div className="plo-cell-content">{plo.PLO_name}</div>
+            {plo.PLO_engname && (
+              <>
+                <div className="my-1 border-t border-gray-300"></div>
+                <div className="plo-cell-secondary">{plo.PLO_engname}</div>
+              </>
+            )}
+          </td>
+          <td>
+            <button
+              className="plo-table-btn plo-edit-btn"
+              onClick={() => handleEditPlo(plo)}
+            >
+              {t("Edit")}
+            </button>
+            <button
+              className="plo-table-btn plo-delete-btn"
+              onClick={() => handleDeletePlo(plo.PLO_id)}
+            >
+              {t("Delete")}
+            </button>
+          </td>
+        </tr>
+      ))
+  ) : (
+    <tr>
+      <td colSpan="3" className="text-center">
+        No PLO data found for the selected filters.
+      </td>
+    </tr>
+  )}
+</tbody>
+
                         </table>
                       </div>
                     )}
@@ -1459,338 +1396,277 @@ export default function Program() {
         </div>
         {showAddModal && (
           <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              backgroundColor: "white",
-              padding: "20px",
-              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-              zIndex: 1000,
-              width: "300px",
-            }}>
-            <h3>Add New PLO (ปี {selectedYear})</h3>
-            <label>PLO Code:</label>
-            <input
-              type="text"
-              value={newPlo.PLO_code}
-              onChange={(e) =>
-                setNewPlo({ ...newPlo, PLO_code: e.target.value })
-              }
-              style={{ width: "100%" }}
-            />
-            <label>PLO Name:</label>
-            <input
-              type="text"
-              value={newPlo.PLO_name}
-              onChange={(e) =>
-                setNewPlo({ ...newPlo, PLO_name: e.target.value })
-              }
-              style={{ width: "100%" }}
-            />
-            <label>PLO English Name:</label>
-            <input
-              type="text"
-              value={newPlo.PLO_engname}
-              onChange={(e) =>
-                setNewPlo({ ...newPlo, PLO_engname: e.target.value })
-              }
-              style={{ width: "100%" }}
-            />
-            {/* เพิ่ม hidden field สำหรับปี */}
-            <input type="hidden" value={selectedYear} name="year" />
-            <button
-              onClick={handleAddPlo}
-              style={{
-                backgroundColor: "blue",
-                color: "white",
-                padding: "8px 16px",
-                border: "none",
-                cursor: "pointer",
-                marginTop: "10px",
-                width: "100%",
-              }}>
-              Add PLO
-            </button>
-            <button
-              onClick={() => setShowAddModal(false)}
-              style={{
-                backgroundColor: "red",
-                color: "white",
-                padding: "8px 16px",
-                border: "none",
-                cursor: "pointer",
-                marginTop: "10px",
-                width: "100%",
-              }}>
-              Close
-            </button>
+            className="modal show d-block"
+            tabIndex="-1"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">
+                    {t('Add New PLO')} ({t('Year')} {selectedYear})
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Close"
+                    onClick={() => setShowAddModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="mb-2">
+                    <label>{t('PLO Code')}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newPlo.PLO_code}
+                      onChange={(e) =>
+                        setNewPlo({ ...newPlo, PLO_code: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label>{t('PLO Name (TH)')}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newPlo.PLO_name}
+                      onChange={(e) =>
+                        setNewPlo({ ...newPlo, PLO_name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label>{t('PLO Name (EN)')}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newPlo.PLO_engname}
+                      onChange={(e) =>
+                        setNewPlo({ ...newPlo, PLO_engname: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-primary" onClick={handleAddPlo}>
+                    {t('Add')}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setShowAddModal(false)}>
+                    {t('Cancel')}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
+
         {showEditModal && (
           <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              backgroundColor: "white",
-              padding: "20px",
-              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-              zIndex: 1000,
-              width: "300px",
-            }}>
-            <h3>Edit PLO (ปี {selectedYear})</h3>
-            <label>PLO Code:</label>
-            <input
-              type="text"
-              value={newPlo.PLO_code}
-              onChange={(e) =>
-                setNewPlo({ ...newPlo, PLO_code: e.target.value })
-              }
-              style={{ width: "100%" }}
-            />
-            <label>PLO Name:</label>
-            <input
-              type="text"
-              value={newPlo.PLO_name}
-              onChange={(e) =>
-                setNewPlo({ ...newPlo, PLO_name: e.target.value })
-              }
-              style={{ width: "100%" }}
-            />
-            <label>PLO English Name:</label>
-            <input
-              type="text"
-              value={newPlo.PLO_engname}
-              onChange={(e) =>
-                setNewPlo({ ...newPlo, PLO_engname: e.target.value })
-              }
-              style={{ width: "100%" }}
-            />
-            {/* เพิ่ม hidden field สำหรับปี */}
-            <input type="hidden" value={selectedYear} name="year" />
-            <button
-              onClick={handleSaveEdit} // ฟังก์ชันที่ใช้ส่งข้อมูลเพื่อแก้ไข
-              style={{
-                backgroundColor: "blue",
-                color: "white",
-                padding: "8px 16px",
-                border: "none",
-                cursor: "pointer",
-                marginTop: "10px",
-                width: "100%",
-              }}>
-              Save Changes
-            </button>
-            <button
-              onClick={() => setShowEditModal(false)}
-              style={{
-                backgroundColor: "red",
-                color: "white",
-                padding: "8px 16px",
-                border: "none",
-                cursor: "pointer",
-                marginTop: "10px",
-                width: "100%",
-              }}>
-              Close
-            </button>
+            className="modal show d-block"
+            tabIndex="-1"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Edit PLO (ปี {selectedYear})</h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Close"
+                    onClick={() => setShowEditModal(false)}></button>
+                </div>
+
+                <div className="modal-body">
+                  <div className="mb-2">
+                    <label className="form-label">{('PLO Code')}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newPlo.PLO_code}
+                      onChange={(e) =>
+                        setNewPlo({ ...newPlo, PLO_code: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label">{t('PLO Name (TH)')}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newPlo.PLO_name}
+                      onChange={(e) =>
+                        setNewPlo({ ...newPlo, PLO_name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label">{t('PLO Name (EN)')}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newPlo.PLO_engname}
+                      onChange={(e) =>
+                        setNewPlo({ ...newPlo, PLO_engname: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  {/* ถ้าต้องการส่ง year ไปพร้อมกัน */}
+                  <input type="hidden" name="year" value={selectedYear} />
+                </div>
+
+                <div className="modal-footer">
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSaveEdit}>
+                    {t('Save')}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setShowEditModal(false)}>
+                    {t('Cancel')}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
+
 
         {excelData !== null && excelData.length > 0 && (
-          <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              backgroundColor: "white",
-              padding: "20px",
-              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-              zIndex: 1050,
-              width: "80%",
-              maxWidth: "800px",
-              maxHeight: "80vh",
-              overflow: "auto",
-              borderRadius: "8px",
-            }}>
+          <div>{excelData && (
             <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "15px",
-                borderBottom: "1px solid #eee",
-                paddingBottom: "10px",
-              }}>
-              <h3 style={{ margin: 0 }}>Excel Data Preview</h3>
-              <button
-                onClick={() => setExcelData(null)}
-                style={{
-                  backgroundColor: "transparent",
-                  border: "none",
-                  fontSize: "1.5rem",
-                  cursor: "pointer",
-                }}>
-                ×
-              </button>
+              className="modal show d-block"
+              tabIndex="-1"
+              style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+            >
+              <div className="modal-dialog modal-lg modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">{t("Excel Data Preview")}</h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      aria-label="Close"
+                      onClick={() => setExcelData(null)}
+                    ></button>
+                  </div>
+                  <div className="modal-body">
+                    {excelData.length > 0 ? (
+                      <>
+                        <p>{t("Found")} {excelData.length} {t("PLO records from Excel file.")}</p>
+                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                          <table className="table table-bordered table-striped">
+                            <thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 1 }}>
+                              <tr>
+                                <th>{t("PLO Code")}</th>
+                                <th>{t("PLO Name")}</th>
+                                <th>{t("PLO Name (EN)")}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {excelData.map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.PLO_code || "-"}</td>
+                                  <td>{item.PLO_name || "-"}</td>
+                                  <td>{item.PLO_engname || "-"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    ) : (
+                      <p>{t("No data found in the Excel file.")}</p>
+                    )}
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setExcelData(null)}
+                    >
+                      {t("Cancel")}
+                    </button>
+                    {excelData.length > 0 && (
+                      <button
+                        className="btn btn-success"
+                        onClick={handleUploadButtonClick}
+                      >
+                        {t("Save")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
+          )}
 
-            {excelData.length > 0 ? (
-              <>
-                <p>Found {excelData.length} PLO records from Excel file.</p>
-                <div
-                  style={{
-                    maxHeight: "300px",
-                    overflowY: "auto",
-                    marginBottom: "20px",
-                  }}>
-                  <table className="table table-bordered table-striped">
-                    <thead>
-                      <tr>
-                        <th
-                          style={{
-                            backgroundColor: "#f2f2f2",
-                            position: "sticky",
-                            top: 0,
-                          }}>
-                          PLO Code
-                        </th>
-                        <th
-                          style={{
-                            backgroundColor: "#f2f2f2",
-                            position: "sticky",
-                            top: 0,
-                          }}>
-                          PLO Name
-                        </th>
-                        <th
-                          style={{
-                            backgroundColor: "#f2f2f2",
-                            position: "sticky",
-                            top: 0,
-                          }}>
-                          PLO English Name
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {excelData.map((item, index) => (
-                        <tr key={index}>
-                          <td>{item.PLO_code || "-"}</td>
-                          <td>{item.PLO_name || "-"}</td>
-                          <td>{item.PLO_engname || "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div
-                  style={{ display: "flex", justifyContent: "space-between" }}>
-                  <button
-                    onClick={() => setExcelData(null)}
-                    className="btn btn-secondary"
-                    style={{ minWidth: "100px" }}>
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleUploadButtonClick}
-                    className="btn btn-success"
-                    style={{ minWidth: "100px" }}>
-                    Submit Data
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p>No data found in the Excel file.</p>
-                <button
-                  onClick={() => setExcelData(null)}
-                  className="btn btn-secondary"
-                  style={{ width: "100%" }}>
-                  Close
-                </button>
-              </>
-            )}
           </div>
         )}
-        {/* Modal สำหรับแสดง Previous Year PLOs */}
         {showLoadPreviousPLOModal && (
-          <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              backgroundColor: "white",
-              padding: "20px",
-              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-              zIndex: 1050,
-              width: "80%",
-              maxWidth: "800px",
-              maxHeight: "80vh",
-              overflow: "auto",
-              borderRadius: "8px",
-            }}>
-            <h3
-              style={{ borderBottom: "1px solid #eee", paddingBottom: "10px" }}>
-              PLOs จากปีก่อนหน้า (ปี {parseInt(selectedYear) - 1})
-            </h3>
-
-            {previousYearPLOs.length > 0 ? (
-              <>
-                <p>
-                  พบ {previousYearPLOs.length} รายการ PLO จากปีการศึกษาก่อนหน้า
-                </p>
-                <div
-                  style={{
-                    maxHeight: "300px",
-                    overflowY: "auto",
-                    marginBottom: "20px",
-                  }}>
-                  <table className="table table-bordered">
-                    <thead>
-                      <tr>
-                        <th>PLO Code</th>
-                        <th>PLO Name</th>
-                        <th>PLO English Name</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {previousYearPLOs.map((plo, index) => (
-                        <tr key={index}>
-                          <td>{plo.PLO_code || "-"}</td>
-                          <td>{plo.PLO_name || "-"}</td>
-                          <td>{plo.PLO_engname || "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div
-                  style={{ display: "flex", justifyContent: "space-between" }}>
+          <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.3)" }}>
+            <div className="modal-dialog modal-lg modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">
+                    {t('PLOs from previous year')} ({parseInt(selectedYear) - 1})
+                  </h5>
                   <button
+                    type="button"
+                    className="btn-close"
                     onClick={() => setShowLoadPreviousPLOModal(false)}
-                    className="btn btn-secondary"
-                    style={{ minWidth: "100px" }}>
-                    ยกเลิก
-                  </button>
-                  <button
-                    onClick={handleMergePLOs}
-                    className="btn btn-success"
-                    style={{ minWidth: "100px" }}>
-                    นำเข้า PLOs
-                  </button>
+                  ></button>
                 </div>
-              </>
-            ) : (
-              <PreviousPLOs onClickFunc={setShowLoadPreviousPLOModal} />
-            )}
+                <div className="modal-body">
+                  {previousYearPLOs.length > 0 ? (
+                    <>
+                      <p>
+                        {t('Found')} {previousYearPLOs.length} {t('PLOs from previous year')}
+                      </p>
+                      <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                        <table className="table table-bordered">
+                          <thead className="table-light">
+                            <tr>
+                              <th>{t('PLO Code')}</th>
+                              <th>{t('PLO Name')}</th>
+                              <th>{t('PLO Name (EN)')}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {previousYearPLOs.map((plo, index) => (
+                              <tr key={index}>
+                                <td>{plo.PLO_code || "-"}</td>
+                                <td>{plo.PLO_name || "-"}</td>
+                                <td>{plo.PLO_engname || "-"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  ) : (
+                    <p>{t('No PLO records found from the previous year.')}</p>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setShowLoadPreviousPLOModal(false)}
+                  >
+                    {t('Cancel')}
+                  </button>
+                  {previousYearPLOs.length > 0 && (
+                    <button className="btn btn-success" onClick={handleMergePLOs}>
+                      {t('Import PLOs')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
+
       </div>
     </div>
   );

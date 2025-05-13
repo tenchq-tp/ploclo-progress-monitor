@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export default function EditProgramModal({ initialValue, onSave, onCancel }) {
+        const { t, i18n } = useTranslation();
+
   const [editValue, setEditValue] = useState(initialValue);
 
   const handleChange = (e) => {
@@ -19,16 +22,16 @@ export default function EditProgramModal({ initialValue, onSave, onCancel }) {
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
           <div className="modal-header">
-            <h5 className="modal-title">Edit Program</h5>
+            <h5 className="modal-title">{t('Edit Program')}</h5>
             <button
               type="button"
               className="btn-close"
-              aria-label="Close"
+              aria-label={t("Close")}
               onClick={onCancel}></button>
           </div>
           <div className="modal-body">
             <div className="mb-2">
-              <label>Code</label>
+              <label>{t('Program Code')}</label>
               <input
                 type="text"
                 name="code"
@@ -38,7 +41,7 @@ export default function EditProgramModal({ initialValue, onSave, onCancel }) {
               />
             </div>
             <div className="mb-2">
-              <label>Program Name (EN)</label>
+              <label>{t('Program Name')}</label>
               <input
                 type="text"
                 name="program_name"
@@ -48,7 +51,7 @@ export default function EditProgramModal({ initialValue, onSave, onCancel }) {
               />
             </div>
             <div className="mb-2">
-              <label>Program Name (TH)</label>
+              <label>{t('ชื่อหลักสูตร (ไทย)')}</label>
               <input
                 type="text"
                 name="program_name_th"
@@ -58,7 +61,7 @@ export default function EditProgramModal({ initialValue, onSave, onCancel }) {
               />
             </div>
             <div className="mb-2">
-              <label>Short Name (EN)</label>
+              <label>{t('Short Name')}</label>
               <input
                 type="text"
                 name="program_shortname_en"
@@ -68,7 +71,7 @@ export default function EditProgramModal({ initialValue, onSave, onCancel }) {
               />
             </div>
             <div className="mb-2">
-              <label>Short Name (TH)</label>
+              <label>{t('ชื่อย่อ (ไทย)')}</label>
               <input
                 type="text"
                 name="program_shortname_th"
@@ -78,7 +81,7 @@ export default function EditProgramModal({ initialValue, onSave, onCancel }) {
               />
             </div>
             <div className="mb-2">
-              <label>Year</label>
+              <label>{t('Year')}</label>
               <input
                 type="text"
                 name="year"
@@ -92,10 +95,10 @@ export default function EditProgramModal({ initialValue, onSave, onCancel }) {
             <button
               className="btn btn-primary"
               onClick={() => onSave(editValue)}>
-              Save
+              {t('Save')}
             </button>
             <button className="btn btn-secondary" onClick={onCancel}>
-              Cancel
+              {t('Cancel')}
             </button>
           </div>
         </div>

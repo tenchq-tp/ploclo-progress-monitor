@@ -17,20 +17,20 @@ const TeamData = [
         name_th: "ศุภณัฐ แสงตุ๊",
         name_eng: "(SUPANAS SANGTU)",
         role: "role",
-        image: "/images/supanat.png"
+        image: "/images/supanas.jpg"
         
     },
     {
         name_th: "เทพทัต แผนสันเที๊ยะ",
         name_eng: "(THEPTHAT PHAENSANTHIA)",
         role: "role",
-        image: "/images/supanat.png"
+        image: "/images/thepthat.png"
     },
     {
         name_th: "เบญญาภา แก้วพาปราบ",
         name_eng: "(BENYAPA KAEOPHAPRAP)",
         role: "role",
-        image: "/images/supanat.png"
+        image: "/images/benyapa.jpg"
     },
  
     {
