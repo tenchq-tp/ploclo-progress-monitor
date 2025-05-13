@@ -273,13 +273,13 @@ export default function Program() {
         const updatedProgram = program.map((p) =>
           p.program_id === editProgram.program_id
             ? {
-                ...p,
-                program_name: editFormData.program_name,
-                program_name_th: editFormData.program_name_th,
-                year: editFormData.year,
-                program_shortname_en: editFormData.program_shortname_en,
-                program_shortname_th: editFormData.program_shortname_th,
-              }
+              ...p,
+              program_name: editFormData.program_name,
+              program_name_th: editFormData.program_name_th,
+              year: editFormData.year,
+              program_shortname_en: editFormData.program_shortname_en,
+              program_shortname_th: editFormData.program_shortname_th,
+            }
             : p
         );
         setProgram(updatedProgram);
@@ -609,6 +609,82 @@ export default function Program() {
     }
   };
 
+  const handleProgramUploadClick = async () => {
+    if (!selectedUniversity || selectedUniversity === "all") {
+      alert("กรุณาเลือกมหาวิทยาลัยก่อนอัปโหลดข้อมูล");
+      return;
+    }
+
+    if (!selectedFaculty || selectedFaculty === "all") {
+      alert("กรุณาเลือกคณะก่อนอัปโหลดข้อมูล");
+      return;
+    }
+
+    if (!excelData || excelData.length === 0) {
+      alert("ไม่มีข้อมูลที่จะอัปโหลด กรุณาเลือกไฟล์ Excel");
+      return;
+    }
+
+    if (!window.confirm(`คุณต้องการอัปโหลดข้อมูลโปรแกรมจำนวน ${excelData.length} รายการใช่หรือไม่?`)) {
+      return;
+    }
+
+    try {
+      const dataToUpload = excelData.map(row => ({
+        ...row,
+        university_id: selectedUniversity,
+        faculty_id: selectedFaculty,
+      }));
+
+      const response = await axios.post("/program/excel", dataToUpload);
+      const data = await response.data;
+      alert("อัปโหลดข้อมูลโปรแกรมสำเร็จ!");
+      setExcelData(null);
+      // อัปเดตข้อมูลเพิ่มเติมได้ตามต้องการ
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("เกิดข้อผิดพลาดในการอัปโหลด: " + error.message);
+    }
+  };
+
+  const handleProgramExcelUpload = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = ""; // reset input เพื่อให้เลือกไฟล์ซ้ำได้
+
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = event.target.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+        if (jsonData.length === 0) {
+          alert("ไม่พบข้อมูลใน Excel");
+          return;
+        }
+
+        // ✅ ส่งข้อมูลเข้า API เลย (ไม่แนบ university/faculty)
+        const response = await axios.post("/program/excel", jsonData);
+
+        if (response.data.success) {
+          alert("เพิ่มโปรแกรมเรียบร้อยแล้ว");
+        } else {
+          alert("เกิดข้อผิดพลาด: " + response.data.message);
+        }
+      } catch (err) {
+        console.error("Error reading Excel file:", err);
+        alert("อ่านไฟล์ไม่สำเร็จ");
+      }
+    };
+
+    reader.readAsBinaryString(file);
+  };
+
+
+
   const handleUploadButtonClick = async () => {
     if (excelData && excelData.length > 0) {
       // ตรวจสอบว่าได้เลือกโปรแกรมแล้วหรือไม่
@@ -627,8 +703,8 @@ export default function Program() {
       if (
         !window.confirm(
           "คุณต้องการอัปโหลดข้อมูล PLO จำนวน " +
-            excelData.length +
-            " รายการใช่หรือไม่?"
+          excelData.length +
+          " รายการใช่หรือไม่?"
         )
       ) {
         return;

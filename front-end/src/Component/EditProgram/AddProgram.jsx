@@ -1,5 +1,8 @@
 import { useState } from "react";
 import axios from "./../axios";
+import handleProgramExcelUpload from "./../EditProgram.jsx";
+import handleProgramUploadClick from "./../EditProgram.jsx";
+import excelData from "./../EditProgram.jsx";
 
 export default function AddProgram({
   setAlert,
@@ -114,13 +117,41 @@ export default function AddProgram({
         showAlert("เกิดข้อผิดพลาดในการส่งข้อมูล", "danger");
       }
     }
+
   };
 
   return (
+
     <div className="mb-3">
+
       <h5 className="form-label text-start" style={{ marginBottom: "15px" }}>
         Add Program
       </h5>
+      <div className="button-group ms-auto">
+        <button
+          onClick={() => document.getElementById("uploadProgramFile").click()}
+          className="btn btn-primary"
+          disabled={!selectedFaculty || selectedFaculty === "all"}
+
+        >
+          Upload Excel (Program)
+        </button>
+        <input
+          type="file"
+          id="uploadProgramFile"
+          style={{ display: "none" }}
+          accept=".xlsx, .xls"
+          onChange={handleProgramExcelUpload}
+
+        />
+        <button
+          onClick={handleProgramUploadClick}
+          className="btn btn-success"
+          disabled={!excelData || !selectedFaculty || selectedFaculty === "all"}>
+          Submit Excel Data
+        </button>
+      </div>
+
       <div className="mb-2">
         <input
           type="text"

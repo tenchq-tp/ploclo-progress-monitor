@@ -10,6 +10,7 @@ import {
   deleteOneByPlo,
   updateOneByPlo,
   getProgramId,
+  createFromExcel,
 } from "../controllers/program.controller.js";
 
 router.get("/", getPrograms);
@@ -21,5 +22,6 @@ router.post("/plo", createOneByPlo);
 router.delete("/plo", deleteOneByPlo);
 router.put("/plo", updateOneByPlo);
 router.get("/id", getProgramId);
+router.post("/excel", createFromExcel);
 
 export default router;

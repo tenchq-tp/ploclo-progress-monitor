@@ -362,6 +362,77 @@ async function getProgramId(req, res) {
   }
 }
 
+async function createFromExcel(req, res) {
+  const rows = req.body;
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Data should be a non-empty array",
+    });
+  }
+
+  const conn = await pool.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    for (const row of rows) {
+      const {
+        program_id,
+        program_name,
+        program_name_th,
+        program_shortname_en,
+        program_shortname_th,
+        year,
+      } = row;
+
+      if (
+        !program_id ||
+        !program_name ||
+        !program_name_th ||
+        !program_shortname_en ||
+        !program_shortname_th ||
+        !year
+      ) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({
+          success: false,
+          message: `Missing required fields in one of the rows: ${JSON.stringify(
+            row
+          )}`,
+        });
+      }
+
+      const programQuery = `
+        INSERT INTO program (
+          program_id, program_name, program_name_th, year, program_shortname_en, program_shortname_th
+        ) VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      await conn.query(programQuery, [
+        program_id,
+        program_name,
+        program_name_th,
+        year,
+        program_shortname_en,
+        program_shortname_th,
+      ]);
+    }
+
+    await conn.commit();
+    conn.release();
+    res.json({ success: true, message: "All rows inserted successfully" });
+
+  } catch (err) {
+    await conn.rollback();
+    conn.release();
+    console.error("Error processing Excel upload:", err);
+    res.status(500).json({ success: false, message: "Database error" });
+  }
+}
+
+
 // async function getManyByFilter(req, res) {
 
 // }
@@ -376,4 +447,5 @@ export {
   deleteOneByPlo,
   updateOneByPlo,
   getProgramId,
+  createFromExcel,
 };
