@@ -134,6 +134,7 @@ export default function Course() {
   const [allSections, setAllSections] = useState([]);
   const [courses, setCourses] = useState([]);
   const [allWeights, setAllWeights] = useState([]);
+  const [courseList, setCourseList] = useState([]);
 
   useEffect(() => {
     const fetchUniversities = async () => {
@@ -190,7 +191,6 @@ export default function Course() {
   }, [selectedUniversity]);
 
   useEffect(() => {
-    console.log(courseClo);
     if (courseClo.length > 0 && activeTab === 2) {
       setShowMapping(true);
     }
@@ -287,9 +287,6 @@ export default function Course() {
         ) {
           setSelectedYear("");
         }
-
-        // เรียก API เพื่อดึงข้อมูลรายวิชาสำหรับแสดงในแท็บอื่นๆ เช่น CLO
-        fetchProgramCoursesData(selectedProgram);
       } catch (error) {
         console.error("Error fetching years:", error);
         setYears([]);
@@ -367,57 +364,6 @@ export default function Course() {
     }
   }, [newCourse.program_id, newCourse.semester_id, selectedYear]);
 
-  // ตรวจสอบว่าฟิลเตอร์ครบถ้วนและเรียกใช้ API ตามฟิลเตอร์
-  // useEffect(() => {
-  //   if (
-  //     selectedUniversity &&
-  //     selectedFaculty &&
-  //     selectedProgram &&
-  //     selectedYear &&
-  //     newCourse.semester_id
-  //   ) {
-  //     setAllFiltersSelected(true);
-  //     setShowMapping(true); // This requires semester to be selected
-
-  //     // Update newCourse state with selected filters
-  //     setNewCourse((prev) => ({
-  //       ...prev,
-  //       university_id: selectedUniversity,
-  //       faculty_id: selectedFaculty,
-  //       year: selectedYear,
-  //       program_id: selectedProgram,
-  //     }));
-
-  //     // console.log("All filters selected, fetching data with params:", {
-  //     //   university_id: selectedUniversity,
-  //     //   faculty_id: selectedFaculty,
-  //     //   program_id: selectedProgram,
-  //     //   year: selectedYear,
-  //     //   semester_id: newCourse.semester_id
-  //     // });
-
-  //     // Set selected states for CLO tab
-  //     setSelectedCourseId("");
-  //     setSelectedSectionId("");
-  //     setSelectedSemesterId(newCourse.semester_id);
-  //   } else {
-  //     setAllFiltersSelected(false);
-  //     setShowMapping(false);
-
-  //     // Reset related data when filters are incomplete
-  //     setCourse([]);
-  //     setClos([]);
-  //     setWeights({});
-  //     setScores({});
-  //   }
-  // }, [
-  //   selectedUniversity,
-  //   selectedFaculty,
-  //   selectedYear,
-  //   selectedProgram,
-  //   newCourse.semester_id,
-  // ]);
-  // แก้ไขการอัพเดต weights จาก mappings
   useEffect(() => {
     const updatedWeights = {};
 
@@ -461,25 +407,11 @@ export default function Course() {
 
   // เพิ่มการตรวจสอบค่า PLO ID ใน useEffect เมื่อดึงข้อมูล
   useEffect(() => {
-    if (selectedCourseId && selectedSectionId && selectedSemesterId) {
-      // ดึงข้อมูล PLO
-      axios
-        .get("/program_plo", { params: { program_id: selectedProgram } })
-        .then((response) => {
-          const plosData = response.data;
-          // console.log("PLOs data:", plosData);
-
-          // ตรวจสอบ ID ของแต่ละ PLO
-          if (Array.isArray(plosData)) {
-            plosData.forEach((plo) => {
-              // console.log(`PLO: ${plo.PLO_code}, ID: ${plo.plo_id}`);
-            });
-          }
-
-          setPlos(plosData);
-        });
-    }
-  }, [selectedProgram, selectedCourseId]);
+    console.log(
+      `course Id ${selectedCourseId}\nsemester ${selectedSemesterId}`
+    );
+    fetchAllCourseByProgram(selectedProgram);
+  }, [selectedSemesterId]);
 
   // ใช้ useEffect เพื่อโหลดข้อมูลตั้งต้นเมื่อเข้าสู่ Step 2
   useEffect(() => {
@@ -657,18 +589,6 @@ export default function Course() {
   // ฟังก์ชันดึงข้อมูลรายวิชาตามโปรแกรมและภาคเรียน
   const fetchCourses = async () => {
     try {
-      if (!selectedProgram || !newCourse.semester_id || !selectedYear) {
-        // console.log("Missing required parameters for fetching courses");
-        setCourse([]);
-        return;
-      }
-
-      // console.log("Fetching courses with params:", {
-      //   program_id: selectedProgram,
-      //   year: selectedYear,
-      //   semester_id: newCourse.semester_id
-      // });
-
       const response = await axios.get("/api/course/filter", {
         params: {
           semester_id: selectedSemesterId,
@@ -676,11 +596,6 @@ export default function Course() {
         },
       });
       setCourses(response.data);
-
-      // หากมี course และมีการเลือก program ครบถ้วน ให้ดึงข้อมูล weights
-      // if (filteredCourses.length > 0 && selectedProgram) {
-      //   fetchCourseWeights(selectedProgram);
-      // }
     } catch (err) {
       console.error("Error fetching courses:", err);
       setCourse([]);
@@ -1680,8 +1595,6 @@ export default function Course() {
     }
   }, [mappings]);
 
-  useEffect(() => {}, [selectedSectionId]);
-
   const updateWeightsFromMappings = (mappingData) => {
     console.log("กำลังอัพเดต weights จาก mappings:", mappingData);
 
@@ -1712,74 +1625,16 @@ export default function Course() {
     }
   };
 
-  // ฟังก์ชันดึงข้อมูลรายวิชาตามโปรแกรม
-  const fetchProgramCoursesData = (programId) => {
-    if (!programId) return;
-
-    axios
-      .get(`/program_courses_detail?program_id=${programId}`)
-      .then((response) => {
-        if (!response.data || !Array.isArray(response.data)) {
-          console.warn("Invalid or empty response for program courses");
-          setProgramCourseData({
-            courses: [],
-            sections: [],
-            semesters: [],
-            years: [],
-          });
-          return;
-        }
-
-        const data = response.data;
-
-        // Filter unique courses
-        const uniqueCourses = data.reduce((acc, course) => {
-          const existingCourse = acc.find(
-            (c) => c.course_id === course.course_id
-          );
-
-          if (!existingCourse) {
-            acc.push({
-              course_id: course.course_id,
-              course_name: course.course_name,
-              course_engname: course.course_engname,
-              program_name: course.program_name,
-            });
-          }
-          return acc;
-        }, []);
-
-        // Extract unique sections, semesters, and years
-        const uniqueSections = [
-          ...new Set(data.map((item) => item.section_id)),
-        ];
-        const uniqueSemesters = [
-          ...new Set(data.map((item) => item.semester_id)),
-        ];
-        const uniqueYears = [...new Set(data.map((item) => item.year))];
-
-        setProgramCourseData({
-          courses: uniqueCourses,
-          sections: uniqueSections,
-          semesters: uniqueSemesters,
-          years: uniqueYears,
-        });
-      })
-      .catch((error) => {
-        console.error("Error fetching program courses:", error);
-        setProgramCourseData({
-          courses: [],
-          sections: [],
-          semesters: [],
-          years: [],
-        });
-      });
-  };
-
   async function fetchAllCourseByProgram(programId) {
     if (!programId) return;
     try {
-      const response = await axios.get(`/api/program-course/detail?`);
+      const response = await axios.get(`/api/program-course/detail`, {
+        params: {
+          program_id: selectedProgram,
+          year: selectedYear,
+        },
+      });
+      setCourseList(response.data);
     } catch (error) {
       console.error("Error fetching program courses:", error);
       setProgramCourseData({
@@ -3671,7 +3526,7 @@ export default function Course() {
           </div> */}
 
           {/* Course Table */}
-          <CourseTable course_list={course} deleteCourse={deleteCourse} />
+          <CourseTable course_list={courseList} deleteCourse={deleteCourse} />
         </div>
 
         <div
