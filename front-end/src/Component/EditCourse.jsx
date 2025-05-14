@@ -133,6 +133,7 @@ export default function Course() {
 
   const [allSections, setAllSections] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [sections, setSections] = useState([]);
   const [allWeights, setAllWeights] = useState([]);
   const [courseList, setCourseList] = useState([]);
 
@@ -336,17 +337,31 @@ export default function Course() {
       } else if (activeTab === 2) {
         fetchFilteredCourseClo();
         fetchWeight();
+      } else if (activeTab === 3) {
+        fetchFilteredCourseClo();
+        fetchAllSectionByCourse();
       }
     } else {
       setCLOs([]);
       setMappings([]);
       setPlos([]);
+      setSelectedCourseId();
+      if (activeTab === 3) {
+        setSelectedSectionId();
+      }
     }
   }, [selectedCourseId]);
 
   useEffect(() => {
     if (!selectedYear) return;
   }, [selectedYear]);
+
+  useEffect(() => {
+    if (activeTab === 3) {
+      fetchPLOsForProgram();
+      refreshDataAndMappings();
+    }
+  }, [selectedSectionId]);
 
   // ดึงข้อมูลหลักสูตรและภาคเรียนเมื่อเริ่มต้นใช้งาน
   useEffect(() => {
@@ -931,7 +946,7 @@ export default function Course() {
         selectedSemesterId &&
         selectedYear
       ) {
-        const response = await axios.get("/course_clo", {
+        const response = await axios.get("/api/course-clo/filter", {
           params: {
             program_id: selectedProgram,
             course_id: selectedCourseId,
@@ -940,10 +955,7 @@ export default function Course() {
             year: selectedYear,
           },
         });
-        const formattedCLOs = Array.isArray(response.data)
-          ? response.data
-          : [response.data].filter(Boolean);
-        setCLOs(formattedCLOs);
+        setCLOs(response.data);
 
         await fetchPLOCLOMappings();
 
@@ -3806,7 +3818,7 @@ export default function Course() {
                 <option value="" disabled>
                   Select Course
                 </option>
-                {programCourseData.courses.map((course) => (
+                {courses.map((course) => (
                   <option key={course.course_id} value={course.course_id}>
                     {`${course.course_id} - ${course.course_name} (${course.course_engname})`}
                   </option>
@@ -3826,9 +3838,9 @@ export default function Course() {
                 <option value="" disabled>
                   Select Section
                 </option>
-                {programCourseData.sections.map((section) => (
-                  <option key={section} value={section}>
-                    {section}
+                {allSections.map((section) => (
+                  <option key={section.section_id} value={section.section_id}>
+                    {section.section_id}
                   </option>
                 ))}
               </select>
