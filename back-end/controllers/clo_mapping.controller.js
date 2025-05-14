@@ -112,7 +112,7 @@ async function importProgramCourseCLOFromExcel(req, res) {
       // เพิ่มข้อมูลใน `course_clo`
       const insertCourseCLOQuery = `
                 INSERT INTO course_clo (course_id, semester_id, year, clo_id, section_id)
-                VALUES (?, ?, (?+1), ?, 1)
+                VALUES (?, ?, ?, ?, 1)
             `;
       await conn.query(insertCourseCLOQuery, [
         course_id,

@@ -28,7 +28,6 @@ export default function CloMapping({
     let total = 0;
     for (let i = 0; i < weightValues.length; i++) {
       total += parseInt(weightValues[i]);
-      console.log("log --> ", parseInt(weightValues[i]));
     }
     setTotalWeight(total);
   }
@@ -44,7 +43,6 @@ export default function CloMapping({
 
   useEffect(() => {
     calculateTotalWeight();
-    console.log("totalweight ---> ", totalWeight);
   }, [weightValues]);
 
   async function handleSubmit() {

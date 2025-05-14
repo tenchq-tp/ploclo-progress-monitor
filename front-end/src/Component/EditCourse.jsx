@@ -354,16 +354,6 @@ export default function Course() {
     initializePage();
   }, []);
 
-  // ดึงข้อมูลรายวิชาเมื่อมีการเลือกโปรแกรม ภาคเรียน และปีการศึกษา
-  useEffect(() => {
-    // Reset course state before fetching new data
-    setCourse([]); // Clear old courses first
-
-    if (newCourse.program_id && newCourse.semester_id && selectedYear) {
-      fetchCourses(); // Fetch course data when program, semester, or year is selected
-    }
-  }, [newCourse.program_id, newCourse.semester_id, selectedYear]);
-
   useEffect(() => {
     const updatedWeights = {};
 
@@ -407,10 +397,9 @@ export default function Course() {
 
   // เพิ่มการตรวจสอบค่า PLO ID ใน useEffect เมื่อดึงข้อมูล
   useEffect(() => {
-    console.log(
-      `course Id ${selectedCourseId}\nsemester ${selectedSemesterId}`
-    );
     fetchAllCourseByProgram(selectedProgram);
+    // fetchCourses();
+    fetchSelectCourse();
   }, [selectedSemesterId]);
 
   // ใช้ useEffect เพื่อโหลดข้อมูลตั้งต้นเมื่อเข้าสู่ Step 2
@@ -420,6 +409,19 @@ export default function Course() {
       fetchCourseWeights(selectedProgram);
     }
   }, [currentStep]);
+
+  useEffect(() => {
+    if (
+      selectedCourseId &&
+      selectedSemesterId &&
+      selectedYear &&
+      selectedProgram
+    ) {
+      if (activeTab == 2) {
+        fetchWeight();
+      }
+    }
+  }, [activeTab]);
 
   async function fetchWeight() {
     try {
@@ -1196,26 +1198,28 @@ export default function Course() {
         year: newCourse.year,
         section_id: newCourse.section,
       });
-
-      // Update State to show new course
-      setCourse([...course, response.data.data]);
-
-      // Reset form
-      setNewCourse({
-        course_id: "",
-        course_name: "",
-        course_engname: "",
-        program_id: "",
-        year: "",
-        section: "",
-        semester_id: "",
-      });
-
       alert("Course added successfully!");
     } catch (err) {
       console.error("Error adding course:", err);
     }
+
+    fetchAllCourseByProgram(selectedProgram);
   };
+
+  async function fetchSelectCourse() {
+    try {
+      const response = await axios.get(`/api/program-course/detail`, {
+        params: {
+          program_id: selectedProgram,
+          year: selectedYear,
+        },
+      });
+      setCourses(response.data);
+    } catch (error) {
+      setCourses([]);
+      console.error(error);
+    }
+  }
 
   // ฟังก์ชันอัพเดตรายวิชา
   const updateCourse = async (updatedCourse) => {
@@ -1262,14 +1266,12 @@ export default function Course() {
           section_id: sectionId,
         },
       });
-      setCourse(
-        course.filter((courseItem) => courseItem.course_id !== courseId)
-      );
-
       alert("Course deleted successfully!");
     } catch (err) {
       console.error("Error deleting course:", err);
     }
+
+    fetchAllCourseByProgram(selectedProgram);
   };
 
   // ฟังก์ชันแก้ไขรายวิชา
@@ -1637,6 +1639,7 @@ export default function Course() {
       setCourseList(response.data);
     } catch (error) {
       console.error("Error fetching program courses:", error);
+      setCourseList([]);
       setProgramCourseData({
         courses: [],
         sections: [],
@@ -1928,6 +1931,7 @@ export default function Course() {
           year: selectedYear,
         },
       });
+      console.log(response.data);
       setSelectedCourseClo(response.data);
     } catch (error) {
       console.error("Error refreshing CLOs: ", error);
@@ -1971,12 +1975,16 @@ export default function Course() {
       return;
     }
 
+    let payload = [];
+    for (let i = 0; i < previousYearCLOs.length; i++) {
+      payload.push({
+        ...previousYearCLOs[i],
+        year: previousYearCLOs[i].year + 1,
+      });
+    }
+
     try {
-      const response = await axios.post(
-        "/api/clo-mapping/excel",
-        previousYearCLOs
-      );
-      console.log(response);
+      const response = await axios.post("/api/clo-mapping/excel", payload);
       if (
         selectedCourseId &&
         selectedSemesterId &&
@@ -2248,11 +2256,11 @@ export default function Course() {
         const updatedCLOs = CLOs.map((clo) =>
           clo.CLO_id === editClo.CLO_id
             ? {
-              ...clo,
-              CLO_name: editCloName.trim(),
-              CLO_engname: editCloEngName.trim(),
-              CLO_code: editCloCode.trim(), // เพิ่ม CLO_code ในการอัปเดตที่แสดงในตาราง
-            }
+                ...clo,
+                CLO_name: editCloName.trim(),
+                CLO_engname: editCloEngName.trim(),
+                CLO_code: editCloCode.trim(), // เพิ่ม CLO_code ในการอัปเดตที่แสดงในตาราง
+              }
             : clo
         );
 
@@ -2475,7 +2483,7 @@ export default function Course() {
           program_id: selectedProgram,
           course_id: selectedCourseId,
           semester_id: selectedSemesterId,
-          section_id: selectedSectionId,
+          section_id: 1,
           year: selectedYear - 1,
         },
       });
@@ -3341,7 +3349,7 @@ export default function Course() {
             style={{ flexWrap: "nowrap", marginTop: "0px" }}>
             <div className="mb-3 me-2" style={{ width: "300px" }}>
               <label className="form-label text-start">
-                {t('Choose a university')}
+                {t("Choose a university")}
               </label>
               <select
                 className="form-select"
@@ -3349,7 +3357,7 @@ export default function Course() {
                 onChange={(e) =>
                   handleFilterChange("university", e.target.value)
                 }>
-                <option value="">{t('Select University')}</option>
+                <option value="">{t("Select University")}</option>
                 {universities.map((university) => (
                   <option
                     key={university.university_id}
@@ -3362,13 +3370,15 @@ export default function Course() {
             </div>
 
             <div className="mb-3 me-2" style={{ width: "350px" }}>
-              <label className="form-label text-start">{t('Choose a Faculty')}</label>
+              <label className="form-label text-start">
+                {t("Choose a Faculty")}
+              </label>
               <select
                 className="form-select"
                 value={selectedFaculty || ""}
                 onChange={(e) => handleFilterChange("faculty", e.target.value)}
                 disabled={!selectedUniversity}>
-                <option value="">{t('Select Faculty')}</option>
+                <option value="">{t("Select Faculty")}</option>
                 {facultys.map((faculty) => (
                   <option key={faculty.faculty_id} value={faculty.faculty_id}>
                     {faculty.faculty_name_th} ({faculty.faculty_name_en})
@@ -3377,13 +3387,15 @@ export default function Course() {
               </select>
             </div>
             <div className="mb-3 me-2" style={{ width: "200px" }}>
-              <label className="form-label text-start">{t('Choose a Program')}</label>
+              <label className="form-label text-start">
+                {t("Choose a Program")}
+              </label>
               <select
                 className="form-select"
                 value={selectedProgram}
                 onChange={(e) => handleFilterChange("program", e.target.value)}
                 disabled={!selectedFaculty}>
-                <option value="">{t('Select Program')}</option>
+                <option value="">{t("Select Program")}</option>
                 {getUniquePrograms(programs).map((program) => (
                   <option key={program.program_id} value={program.program_id}>
                     {program.program_name}
@@ -3393,13 +3405,13 @@ export default function Course() {
             </div>
 
             <div className="mb-3 me-2" style={{ width: "90px" }}>
-              <label className="form-label">{t('Year')}</label>
+              <label className="form-label">{t("Year")}</label>
               <select
                 className="form-select"
                 value={selectedYear}
                 onChange={(e) => handleFilterChange("year", e.target.value)}
                 disabled={!selectedProgram}>
-                <option value="">{t('Select Year')}</option>
+                <option value="">{t("Select Year")}</option>
                 {years.map((year) => (
                   <option key={year} value={year}>
                     {year}
@@ -3409,14 +3421,14 @@ export default function Course() {
             </div>
 
             <div className="mb-3 me-2" style={{ width: "180px" }}>
-              <label className="form-label">{t('Semester')}</label>
+              <label className="form-label">{t("Semester")}</label>
               <select
                 className="form-select"
                 name="semester_id"
                 value={newCourse.semester_id}
                 onChange={handleCourseChange}
                 disabled={!selectedProgram}>
-                <option value="">{t('Select Semester')}</option>
+                <option value="">{t("Select Semester")}</option>
                 {semesters && semesters.length > 0 ? (
                   semesters.map((semester) => (
                     <option
@@ -3444,12 +3456,12 @@ export default function Course() {
         <div
           className={`tab-content ${activeTab === 0 ? "active" : "hidden"}`}
           style={{ marginTop: "10px" }}>
-          <h3>{t('Course Management')}</h3>
+          <h3>{t("Course Management")}</h3>
           <hr className="my-4" />
 
           {/* Add Course Section */}
           <AddCourse
-            selectedProgram={selectedProgram} 
+            selectedProgram={selectedProgram}
             newCourse={newCourse}
             handleCourseChange={handleCourseChange}
             addCourse={addCourse}
@@ -4762,8 +4774,8 @@ export default function Course() {
                                     handleAssignmentClick(assignment)
                                   }
                                   onMouseOver={(e) =>
-                                  (e.currentTarget.style.backgroundColor =
-                                    "#e9f5ff")
+                                    (e.currentTarget.style.backgroundColor =
+                                      "#e9f5ff")
                                   }
                                   onMouseOut={(e) =>
                                     (e.currentTarget.style.backgroundColor = "")
@@ -4863,8 +4875,8 @@ export default function Course() {
                                   <strong>วันที่สร้าง:</strong>{" "}
                                   {selectedAssignment.created_at
                                     ? new Date(
-                                      selectedAssignment.created_at
-                                    ).toLocaleDateString("th-TH")
+                                        selectedAssignment.created_at
+                                      ).toLocaleDateString("th-TH")
                                     : "-"}
                                 </p>
                               </div>
@@ -5120,7 +5132,7 @@ export default function Course() {
                                         (clo) => {
                                           homeworkData.scores[clo.clo_id] =
                                             studentScores[
-                                            clo.assignment_clo_id
+                                              clo.assignment_clo_id
                                             ] || 0;
                                         }
                                       );
