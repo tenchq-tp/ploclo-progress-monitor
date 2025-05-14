@@ -575,49 +575,6 @@ async function addAssignment(req, res) {
     const assignmentId = assignmentResult.insertId;
 
     // บันทึกข้อมูลคะแนน CLO เฉพาะเมื่อมีข้อมูล
-    if (clo_scores && clo_scores.length > 0) {
-      // วนลูปสำหรับแต่ละ homework
-      for (const hw of clo_scores) {
-        const { homework_name, scores } = hw;
-
-        // บันทึกข้อมูล homework
-        const homeworkQuery = `
-                    INSERT INTO assignment_homeworks (
-                        assignment_id,
-                        homework_name,
-                        created_at
-                    ) VALUES (?, ?, NOW())
-                `;
-
-        const homeworkResult = await conn.query(homeworkQuery, [
-          assignmentId,
-          homework_name,
-        ]);
-
-        const homeworkId = homeworkResult.insertId;
-
-        // บันทึกคะแนนสำหรับแต่ละ CLO
-        if (scores && scores.length > 0) {
-          const scoresQuery = `
-                        INSERT INTO homework_clo_scores (
-                            homework_id,
-                            clo_id,
-                            score,
-                            created_at
-                        ) VALUES (?, ?, ?, NOW())
-                    `;
-
-          for (const score of scores) {
-            await conn.query(scoresQuery, [
-              homeworkId,
-              score.clo_id,
-              score.score,
-            ]);
-          }
-        }
-      }
-    }
-
     await conn.commit();
 
     res.status(201).json({
