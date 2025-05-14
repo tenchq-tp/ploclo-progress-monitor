@@ -4,23 +4,19 @@ import { useEffect, useState } from "react";
 export default function CloMapping({
   handleEditToggle,
   editingScores,
-  handlePostScores,
   courseClo,
   selectedCourseId,
-  selectedSemesterId,
-  selectedYear,
   courses,
   weightEachCourse,
   handleEditWeightEachCourse,
-  calculateTotal,
 }) {
-  const id_array = initCourseClo();
+  const id_array = useState(initCourseClo());
   const [weightValues, setWeightValues] = useState(weightEachCourse);
   const [totalWeight, setTotalWeight] = useState(0);
   function handleOnChange(newValue, index) {
     const updatedWeights = [...weightValues]; // สร้าง copy ใหม่แบบ shallow
     updatedWeights[index] = parseFloat(newValue) || 0; // ตรวจสอบค่า
-    setWeightValues(updatedWeights); // อัปเดต state อย่างถูกต้อง
+    setWeightValues(updatedWeights);
     handleEditWeightEachCourse(updatedWeights); // หากต้องการส่งกลับไปยัง parent
   }
 
@@ -59,7 +55,6 @@ export default function CloMapping({
       const response = await axios.put("/api/clo-mapping/weight", {
         updates: [...updates],
       });
-      console.log(response);
     } catch (error) {
       console.error("Error during update:", error);
     }
