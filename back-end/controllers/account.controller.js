@@ -62,36 +62,14 @@ export const createAccount = async (req, res) => {
 export const updateAccount = async (req, res) => {
   let { id } = req.params;
   const { role } = req.body;
-
-  try {
-    const conn = await pool.getConnection();
-    const [result] = await conn.query("UPDATE role SET role = ? WHERE id = ?", [
-      role,
-      id,
-    ]);
-    conn.release();
-
-    if (result.affectedRows === 0)
-      return res.status(404).json({ message: "Account not found" });
-
-    return res.status(200).json({ message: "Account updated successfully" });
-  } catch (err) {
-    return res.status(500).json({ message: "Database error", error: err });
-  }
+  const result = await pool.query(`UPDATE role SET role = ? WHERE id = ${id}`, [
+    role,
+  ]);
+  res.status(200).json({ message: "Update successfully" });
 };
 
 export const deleteAccount = async (req, res) => {
   const { id } = req.params;
-  try {
-    const conn = await pool.getConnection();
-    const [result] = await conn.query("DELETE FROM role WHERE id = ?", [id]);
-    conn.release();
-
-    if (result.affectedRows === 0)
-      return res.status(404).json({ message: "Account not found" });
-
-    res.status(200).json({ message: "Account deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Database error", error: err });
-  }
+  const result = await pool.query("DELETE FROM role WHERE id = ?", [id]);
+  res.status(200).json({ message: "Delete successfully" });
 };
