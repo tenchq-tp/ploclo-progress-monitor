@@ -15,6 +15,7 @@ import EditCourse from "./Component/EditCourse.jsx";
 // import EditCLO from './Component/EditCLO.jsx';
 import StudentData from "./Component/StudentData.jsx";
 import React, { useState, useEffect } from "react";
+import ManageAccount from "./Component/manageAccount.jsx";
 
 function App() {
   const [role, setRole] = useState(null);
@@ -42,6 +43,7 @@ function App() {
           <Route path="/editprogram" element={<EditProgram />} />
           {/* <Route path="/editplo" element={<EditPLO/>} /> */}
           <Route path="/editcourse" element={<EditCourse />} />
+          <Route path="/manageAccount" element={<ManageAccount />} />
           {/* <Route path="/editclo" element={<EditCLO />} /> */}
           <Route path="*" element={<NotFound />} />
         </Routes>

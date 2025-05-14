@@ -11,6 +11,7 @@ import TableEditCloWeight from "./EditCourse/TableEditCloWeight";
 import CloMapping from "./EditCourse/CloMapping";
 
 export default function Course() {
+  const [selectedPlo, setSelectedPlo] = useState(null);
   const [course, setCourse] = useState([]);
   const [newCourse, setNewCourse] = useState({
     course_id: "",
@@ -159,6 +160,13 @@ export default function Course() {
     fetchUniversities();
   }, []);
 
+  const getCloWeightForPlo = (ploId, cloId) => {
+    const mapping = mappings.find(
+      (m) => (m.PLO_id === ploId || m.plo_id === ploId) && m.CLO_id === cloId
+    );
+    return mapping ? mapping.weight : "-";
+  };
+
   // แก้ไขการเรียกใช้ API เพื่อดึงข้อมูลคณะ
   useEffect(() => {
     if (!selectedUniversity) {
@@ -190,6 +198,29 @@ export default function Course() {
 
     fetchFaculties();
   }, [selectedUniversity]);
+
+  // เพิ่มเงื่อนไขในการเรียกใช้ fetchPLOCLOMappings ใน useEffect ที่ตรวจสอบ activeTab
+  useEffect(() => {
+    if (activeTab === 3) {
+      fetchPLOsForProgram();
+
+      // เรียกใช้ fetchPLOCLOMappings หากมีข้อมูลที่จำเป็นครบถ้วน
+      if (
+        selectedProgram &&
+        selectedCourseId &&
+        selectedSemesterId &&
+        selectedYear
+      ) {
+        fetchPLOCLOMappings();
+      }
+    }
+  }, [
+    activeTab,
+    selectedCourseId,
+    selectedSemesterId,
+    selectedYear,
+    selectedProgram,
+  ]);
 
   useEffect(() => {
     if (courseClo.length > 0 && activeTab === 2) {
@@ -547,6 +578,19 @@ export default function Course() {
     }
   };
 
+  const handleInputChange2 = (ploId, cloId, value) => {
+    const key = `${ploId}-${cloId}`;
+
+    // Create a copy of the current scores state
+    const updatedScores = { ...scores };
+
+    // Update the specific score value
+    updatedScores[key] = parseInt(value, 10) || 0;
+
+    // Set the updated scores
+    setScores(updatedScores);
+  };
+
   // ฟังก์ชันสำหรับดึง PLO ของโปรแกรม
   const fetchPLOsForProgram = async () => {
     try {
@@ -590,6 +634,161 @@ export default function Course() {
       setAllPLOs([]);
     }
   };
+
+  useEffect(() => {
+    if (
+      selectedCourseId &&
+      selectedSectionId &&
+      selectedSemesterId &&
+      selectedYear &&
+      selectedProgram &&
+      activeTab === 3
+    ) {
+      fetchPLOCLOMappings();
+    }
+  }, [selectedSectionId, activeTab]);
+
+  useEffect(() => {
+    if (
+      selectedCourseId &&
+      selectedSemesterId &&
+      selectedYear &&
+      selectedProgram &&
+      activeTab === 3
+    ) {
+      // First, fetch CLO data for the selected course
+      const fetchCLOData = async () => {
+        try {
+          const response = await axios.get("/api/course-clo/filter", {
+            params: {
+              program_id: selectedProgram,
+              course_id: selectedCourseId,
+              semester_id: selectedSemesterId,
+              year: selectedYear,
+            },
+          });
+          setCLOs(response.data);
+        } catch (error) {
+          console.error("Error fetching CLO data:", error);
+          setCLOs([]);
+        }
+      };
+
+      // Fetch PLO data for the selected program
+      const fetchPLOData = async () => {
+        try {
+          const response = await axios.get(
+            `/program_plo?program_id=${selectedProgram}`
+          );
+
+          // Format PLO data consistently
+          let formattedPLOs = [];
+          const data = response.data;
+
+          if (data.success && Array.isArray(data.message)) {
+            formattedPLOs = data.message.map((plo) => ({
+              ...plo,
+              PLO_id: plo.PLO_id || plo.plo_id,
+            }));
+          } else if (Array.isArray(data)) {
+            formattedPLOs = data.map((plo) => ({
+              ...plo,
+              PLO_id: plo.PLO_id || plo.plo_id,
+            }));
+          } else if (data) {
+            formattedPLOs = [
+              {
+                ...data,
+                PLO_id: data.PLO_id || data.plo_id,
+              },
+            ];
+          }
+
+          setAllPLOs(formattedPLOs);
+        } catch (error) {
+          console.error("Error fetching PLO data:", error);
+          setAllPLOs([]);
+        }
+      };
+
+      // Fetch CLO-PLO mappings
+      const fetchMappingData = async () => {
+        try {
+          const response = await axios.get("/plo_clo", {
+            params: {
+              program_id: selectedProgram,
+              course_id: selectedCourseId,
+              semester_id: selectedSemesterId,
+              year: selectedYear,
+            },
+          });
+
+          // Format mapping data
+          const formattedMappings = Array.isArray(response.data)
+            ? response.data
+            : [response.data].filter(Boolean);
+
+          setMappings(formattedMappings);
+
+          // Update weights from mappings
+          const updatedWeights = {};
+          formattedMappings.forEach((mapping) => {
+            const ploId = mapping.PLO_id || mapping.plo_id;
+            const cloId = mapping.CLO_id || mapping.clo_id;
+
+            if (ploId && cloId) {
+              const key = `${ploId}-${cloId}`;
+              updatedWeights[key] = mapping.weight || 0;
+            }
+          });
+
+          setWeights(updatedWeights);
+        } catch (error) {
+          console.error("Error fetching mapping data:", error);
+          setMappings([]);
+          setWeights({});
+        }
+      };
+
+      // Fetch sections for the selected course
+      const fetchSectionData = async () => {
+        try {
+          const response = await axios.get("/api/clo-mapping", {
+            params: {
+              semester_id: selectedSemesterId,
+              course_id: selectedCourseId,
+              year: selectedYear,
+            },
+          });
+          setAllSections(response.data);
+        } catch (error) {
+          console.error("Error fetching section data:", error);
+          setAllSections([]);
+        }
+      };
+
+      // Execute all fetch operations
+      const fetchAllData = async () => {
+        await fetchCLOData();
+        await fetchPLOData();
+        await fetchSectionData();
+
+        // Only fetch mappings if section is selected
+        if (selectedSectionId) {
+          await fetchMappingData();
+        }
+      };
+
+      fetchAllData();
+    }
+  }, [
+    selectedCourseId,
+    selectedSectionId,
+    selectedSemesterId,
+    selectedYear,
+    selectedProgram,
+    activeTab,
+  ]);
 
   // ฟังก์ชันสำหรับหาโปรแกรมที่ไม่ซ้ำกัน
   const getUniquePrograms = (programsArray) => {
@@ -762,7 +961,7 @@ export default function Course() {
   };
 
   const handlePostPloCloScores = () => {
-    // ตรวจสอบว่าตอนนี้อยู่ที่แท็บ CLO-PLO Mapping จริงๆ
+    // ตรวจสอบว่าอยู่ในแท็บ CLO-PLO Mapping
     if (activeTab !== 3) {
       console.error("ฟังก์ชันนี้ควรถูกเรียกจากแท็บ CLO-PLO Mapping เท่านั้น");
       return;
@@ -773,8 +972,7 @@ export default function Course() {
       !selectedProgram ||
       !selectedSemesterId ||
       !selectedYear ||
-      !selectedCourseId ||
-      !selectedSectionId
+      !selectedCourseId
     ) {
       alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
@@ -812,10 +1010,10 @@ export default function Course() {
 
         // เพิ่มข้อมูลที่จะส่ง
         ploCloData.push({
-          PLO_id: ploId, // ต้องใช้ชื่อฟิลด์ให้ตรงกับที่ backend ต้องการ
+          PLO_id: ploId,
           CLO_id: cloId,
           course_id: parseInt(selectedCourseId, 10),
-          section_id: parseInt(selectedSectionId, 10),
+          section_id: 1, // Default section เป็น 1 เนื่องจากไม่คำนึงถึง section
           semester_id: parseInt(selectedSemesterId, 10),
           year: parseInt(selectedYear, 10),
           weight: parseInt(scores[key], 10) || 0,
@@ -836,18 +1034,32 @@ export default function Course() {
 
     // สร้าง payload ในรูปแบบที่ server ต้องการ
     const payload = {
-      scores: ploCloData, // เปลี่ยนจาก mappings เป็น scores
+      scores: ploCloData,
     };
 
-    // หลังจากบันทึกข้อมูลเรียบร้อยแล้ว ให้เรียกใช้ฟังก์ชันรีเฟรชข้อมูล
-    axios.post("/plo_clo", payload).then((response) => {
-      if (response.data && response.data.success) {
-        // เพิ่มการเรียกใช้ฟังก์ชันดึงข้อมูลใหม่
-        fetchPLOCLOMappings();
-        alert("บันทึกการเชื่อมโยง PLO-CLO สำเร็จ!");
-        setEditingScores(false);
-      }
-    });
+    // ส่งข้อมูลไป API
+    axios
+      .post("/plo_clo", payload)
+      .then((response) => {
+        if (response.data && response.data.success) {
+          // แสดงข้อความสำเร็จ
+          alert("บันทึกการเชื่อมโยง PLO-CLO สำเร็จ!");
+
+          // ออกจากโหมดแก้ไข
+          setEditingScores(false);
+
+          // เรียกใช้ฟังก์ชัน fetchPLOCLOMappings เพื่อรีเฟรชข้อมูล
+          fetchPLOCLOMappings();
+        } else {
+          alert(response.data?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        }
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล PLO-CLO:", error);
+        alert(`เกิดข้อผิดพลาด: ${error.message}`);
+        setLoading(false);
+      });
   };
 
   const handlePostCourseCloScores = () => {
@@ -995,52 +1207,57 @@ export default function Course() {
 
   // เพิ่มฟังก์ชันใหม่สำหรับอัพเดทข้อมูลในตาราง plo_clo
   const handlePatchPloCloScores = () => {
+    // ตรวจสอบว่ามี scores ที่ต้องการอัพเดตหรือไม่
     if (Object.keys(scores).length === 0) {
       alert("ไม่มีการเปลี่ยนแปลงคะแนน กรุณาแก้ไขคะแนนก่อน");
       return;
     }
 
-    // เตรียมข้อมูล plo_clo
-    let ploCloData = [];
+    // สร้าง array ploCloData สำหรับเก็บข้อมูลที่จะส่งไปยัง API
+    const ploCloData = [];
 
-    // วนลูปสร้างข้อมูล
+    // สร้างข้อมูล plo_clo จาก scores
     for (const key in scores) {
       if (scores[key] > 0) {
+        // แยกค่า PLO_id และ CLO_id จาก key
         const [ploId, cloId] = key.split("-");
 
-        ploCloData = ploCloData.map((item) => ({
-          PLO_id: item.plo_id || item.PLO_id, // ตรวจสอบและใช้ชื่อฟิลด์ที่ถูกต้อง
-          CLO_id: item.clo_id || item.CLO_id,
+        // เพิ่มข้อมูลที่จะส่ง
+        ploCloData.push({
+          PLO_id: parseInt(ploId, 10),
+          CLO_id: parseInt(cloId, 10),
           course_id: parseInt(selectedCourseId, 10),
-          section_id: parseInt(selectedSectionId, 10),
+          section_id: 1, // Default section เป็น 1 เนื่องจากไม่คำนึงถึง section
           semester_id: parseInt(selectedSemesterId, 10),
           year: parseInt(selectedYear, 10),
-          weight: parseInt(item.weight, 10) || 0,
-        }));
+          weight: parseInt(scores[key], 10) || 0,
+        });
       }
     }
 
     // แสดง loading spinner
     setLoading(true);
 
-    // ข้อมูลที่จะส่ง
+    // สร้าง payload ในรูปแบบที่ server ต้องการ
     const ploCloPayload = { mappings: ploCloData };
 
-    // ส่งข้อมูล plo_clo
+    // ส่งข้อมูลไป API
     axios
       .patch("/plo_clo", ploCloPayload)
       .then((response) => {
         if (response.data && response.data.success) {
-          alert("อัปเดตการเชื่อมโยง PLO-CLO สำเร็จ!");
+          alert("อัพเดตการเชื่อมโยง PLO-CLO สำเร็จ!");
           setEditingScores(false);
-          refreshDataFromServer();
+
+          // เรียกใช้ฟังก์ชัน fetchPLOCLOMappings เพื่อรีเฟรชข้อมูล
+          fetchPLOCLOMappings();
         } else {
           alert(response.data?.message || "เกิดข้อผิดพลาด");
         }
         setLoading(false);
       })
       .catch((error) => {
-        console.error("เกิดข้อผิดพลาดในการอัปเดตข้อมูล:", error);
+        console.error("เกิดข้อผิดพลาดในการอัพเดตข้อมูล:", error);
         let errorMsg = `เกิดข้อผิดพลาด: ${error.message}`;
         if (error.response && error.response.data) {
           errorMsg += `\nรายละเอียด: ${JSON.stringify(error.response.data)}`;
@@ -1049,7 +1266,6 @@ export default function Course() {
         setLoading(false);
       });
   };
-
   // เปลี่ยนชื่อฟังก์ชันเดิมเป็น handlePatchCourseCloScores
   const handlePatchCourseCloScores = () => {
     if (Object.keys(scores).length === 0) {
@@ -1103,7 +1319,7 @@ export default function Course() {
 
     // ส่งข้อมูล plo_clo ก่อน
     axios
-      .patch("/plo_clo", ploCloPayload)
+      .patch("/api/plo_clo", ploCloPayload)
       .then(() => {
         // หลังจากปรับปรุง plo_clo สำเร็จ ให้ปรับปรุง course_clo ต่อ
         return axios.patch("/course_clo", courseCloPayload);
@@ -1531,30 +1747,81 @@ export default function Course() {
     }));
   };
 
+  // Improved fetchPLOCLOMappings function
   const fetchPLOCLOMappings = async () => {
     try {
-      // ทำให้แน่ใจว่า URL และพารามิเตอร์ถูกต้อง
-      const response = await axios.get("/plo_clo", {
+      if (
+        !selectedProgram ||
+        !selectedCourseId ||
+        !selectedSemesterId ||
+        !selectedYear
+      ) {
+        console.log("Missing required parameters for fetchPLOCLOMappings");
+        return;
+      }
+
+      // Show loading indicator if needed
+      // setLoading(true);
+
+      // Use the new endpoint to fetch PLO-CLO mappings
+      const response = await axios.get("/api/plo-clo-mapping", {
         params: {
           program_id: selectedProgram,
           course_id: selectedCourseId,
-          section_id: selectedSectionId,
           semester_id: selectedSemesterId,
           year: selectedYear,
         },
       });
 
-      // ตั้งค่า mappings
-      const formattedMappings = Array.isArray(response.data)
-        ? response.data
-        : [response.data].filter(Boolean);
+      // Check if response has data
+      if (
+        response.data &&
+        response.data.success &&
+        Array.isArray(response.data.data)
+      ) {
+        // Set mappings with the returned data
+        const formattedMappings = response.data.data;
 
-      setMappings(formattedMappings);
+        // Log for debugging
+        console.log("Received mappings data:", formattedMappings);
 
-      // อัพเดต weights จาก mappings
-      updateWeightsFromMappings(formattedMappings);
+        setMappings(formattedMappings);
+
+        // Update weights from mappings
+        const updatedWeights = {};
+        formattedMappings.forEach((mapping) => {
+          const ploId = mapping.PLO_id;
+          const cloId = mapping.CLO_id;
+
+          if (ploId && cloId) {
+            const key = `${ploId}-${cloId}`;
+            updatedWeights[key] = mapping.weight || 0;
+          }
+        });
+
+        setWeights(updatedWeights);
+
+        // If in editing mode, update scores as well
+        if (editingScores) {
+          setScores({ ...updatedWeights });
+        }
+
+        console.log(
+          "PLO-CLO mappings fetched successfully:",
+          formattedMappings.length
+        );
+      } else {
+        console.warn("No data returned from API or request was not successful");
+        setMappings([]);
+        setWeights({});
+      }
     } catch (error) {
-      console.error("เกิดข้อผิดพลาดใน fetchPLOCLOMappings:", error);
+      console.error("Error fetching PLO-CLO mappings:", error);
+      setMappings([]);
+      setWeights({});
+    } finally {
+      // Hide loading indicator if needed
+      // setLoading(false);
     }
   };
 
@@ -1690,6 +1957,29 @@ export default function Course() {
     } finally {
       // ปิดสถานะกำลังบันทึก
       setLoading(false);
+    }
+  };
+
+  // Part 3: Ensure the scores state is properly initialized when entering edit mode
+  // Add this to the handleEditToggle function
+  const handleEditToggle2 = () => {
+    // Toggle editing mode
+    const newEditingState = !editingScores;
+    setEditingScores(newEditingState);
+
+    // If entering edit mode, initialize scores based on existing mappings
+    if (newEditingState) {
+      const initialScores = {};
+      mappings.forEach((mapping) => {
+        const ploId = mapping.PLO_id || mapping.plo_id;
+        const cloId = mapping.CLO_id || mapping.clo_id;
+
+        if (ploId && cloId) {
+          const key = `${ploId}-${cloId}`; // Define the key
+          initialScores[key] = mapping.weight || 0;
+        }
+      });
+      setScores(initialScores);
     }
   };
 
@@ -3405,14 +3695,17 @@ export default function Course() {
                 className="form-select"
                 value={selectedCourseId || ""}
                 onChange={(e) => {
-                  // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
-                disabled={!selectedSemesterId}>
+                disabled={!newCourse.semester_id}>
                 <option value="" disabled>
                   Select Course
                 </option>
-                {courses.map((course) => (
+                {Array.from(
+                  new Map(
+                    courses.map((course) => [course.course_name, course]) // กรองชื่อซ้ำออก
+                  ).values()
+                ).map((course) => (
                   <option key={course.course_id} value={course.course_id}>
                     {`${course.course_id} - ${course.course_name} (${course.course_engname})`}
                   </option>
@@ -3845,29 +4138,13 @@ export default function Course() {
                 <option value="" disabled>
                   Select Course
                 </option>
-                {courses.map((course) => (
+                {Array.from(
+                  new Map(
+                    courses.map((course) => [course.course_name, course]) // กรองชื่อซ้ำออก
+                  ).values()
+                ).map((course) => (
                   <option key={course.course_id} value={course.course_id}>
                     {`${course.course_id} - ${course.course_name} (${course.course_engname})`}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-3">
-              <label className="form-label text-start">Choose a Section</label>
-              <select
-                className="form-select"
-                value={selectedSectionId || ""}
-                onChange={(e) => {
-                  // console.log("Selected Section:", e.target.value);
-                  setSelectedSectionId(e.target.value);
-                }}
-                disabled={!selectedCourseId}>
-                <option value="" disabled>
-                  Select Section
-                </option>
-                {allSections.map((section) => (
-                  <option key={section.section_id} value={section.section_id}>
-                    {section.section_id}
                   </option>
                 ))}
               </select>
@@ -3879,27 +4156,29 @@ export default function Course() {
               <h5>CLO-PLO Mapping Table</h5>
             </div>
             <div className="card-body">
-              <div className="mb-3">
+              <div className="mb-3 d-flex align-items-center">
+                {/* ปุ่มแก้ไข/ยกเลิก */}
                 <button
                   className="btn btn-primary me-2"
-                  onClick={handleEditToggle}>
-                  {editingScores ? "Cancel Edit" : "Edit PLO-CLO Mapping"}
+                  onClick={handleEditToggle2}>
+                  {editingScores ? "ยกเลิกการแก้ไข" : "แก้ไข PLO-CLO Mapping"}
                 </button>
+
+                {/* เพิ่มปุ่มบันทึกที่จะแสดงเมื่ออยู่ในโหมดแก้ไข */}
                 {editingScores && (
-                  <>
-                    <button
-                      className="btn btn-success me-2"
-                      onClick={handlePatchScores}
-                      disabled={!editingScores}>
-                      Save PLO-CLO Mapping
-                    </button>
-                    <button
-                      className="btn btn-success"
-                      onClick={handlePostScores}
-                      disabled={!editingScores}>
-                      Submit PLO-CLO Scores
-                    </button>
-                  </>
+                  <button
+                    className="btn btn-success me-2"
+                    onClick={handlePostPloCloScores}>
+                    บันทึกการแก้ไข
+                  </button>
+                )}
+
+                {/* แสดงคำอธิบายเพิ่มเติมเมื่ออยู่ในโหมดแก้ไข */}
+                {editingScores && (
+                  <span className="text-info ms-2">
+                    <i className="fas fa-info-circle me-1"></i>
+                    คลิกที่วงกลมเพื่อเลือก PLO สำหรับแต่ละ CLO และกำหนดน้ำหนัก
+                  </span>
                 )}
               </div>
 
@@ -3928,35 +4207,37 @@ export default function Course() {
                       </tr>
                     </thead>
                     <tbody>
-                      {/* วนลูปแสดงทุก CLO ที่มี */}
+                      {/* Map through each CLO */}
                       {CLOs.map((clo) => {
-                        // แต่ละ CLO ต้องเชื่อมโยงกับแค่ 1 PLO เท่านั้น
-                        // ค้นหา PLO ที่ CLO นี้เชื่อมโยงอยู่ (ถ้ามี)
-                        let selectedPlo = null;
-                        let cloTotal = 0;
+                        // Calculate total for this CLO
+                        let cloTotalWeight = 0;
+                        let mappedPloId = null;
 
-                        // เช็คว่า CLO นี้เชื่อมโยงกับ PLO ตัวไหน
+                        // Find which PLO this CLO is mapped to and get its weight
                         allPLOs.forEach((plo) => {
-                          const ploId = plo.PLO_id || plo.plo_id;
-                          const key = `${ploId}-${clo.CLO_id}`;
+                          const currentPloId = plo.PLO_id || plo.plo_id;
+                          const mappingKey = `${currentPloId}-${clo.CLO_id}`;
 
-                          // ถ้าอยู่ในโหมดแก้ไข ให้ดูจาก scores
+                          // If in edit mode, check scores
                           if (editingScores) {
-                            if (scores[key] > 0) {
-                              cloTotal = parseInt(scores[key]) || 0;
-                              selectedPlo = ploId;
+                            if (scores[mappingKey] > 0) {
+                              cloTotalWeight =
+                                parseInt(scores[mappingKey]) || 0;
+                              mappedPloId = currentPloId;
                             }
-                          } else {
-                            // ถ้าไม่อยู่ในโหมดแก้ไข ให้ดูจาก mappings
+                          }
+                          // Otherwise check existing mappings
+                          else {
                             const mapping = mappings.find(
                               (m) =>
-                                (m.PLO_id === ploId || m.plo_id === ploId) &&
+                                (m.PLO_id === currentPloId ||
+                                  m.plo_id === currentPloId) &&
                                 m.CLO_id === clo.CLO_id
                             );
 
                             if (mapping && mapping.weight > 0) {
-                              cloTotal = mapping.weight;
-                              selectedPlo = ploId;
+                              cloTotalWeight = mapping.weight;
+                              mappedPloId = currentPloId;
                             }
                           }
                         });
@@ -3965,23 +4246,25 @@ export default function Course() {
                           <tr key={`row-clo-${clo.CLO_id}`}>
                             <td>{clo.CLO_code}</td>
                             {allPLOs.map((plo) => {
-                              const ploId = plo.PLO_id || plo.plo_id;
-                              const key = `${ploId}-${clo.CLO_id}`;
+                              const currentPloId = plo.PLO_id || plo.plo_id;
+                              const mappingKey = `${currentPloId}-${clo.CLO_id}`;
 
                               return (
-                                <td key={`cell-${key}`} className="text-center">
+                                <td
+                                  key={`cell-${mappingKey}`}
+                                  className="text-center">
                                   {editingScores ? (
                                     <div className="form-check d-flex justify-content-center align-items-center">
                                       <input
                                         type="radio"
                                         className="form-check-input me-2"
                                         checked={
-                                          scores[key] > 0 ||
-                                          (selectedPlo === ploId &&
-                                            !scores[key])
+                                          scores[mappingKey] > 0 ||
+                                          (mappedPloId === currentPloId &&
+                                            !scores[mappingKey])
                                         }
                                         onChange={() => {
-                                          // ล้างค่าเดิมของ CLO นี้ทั้งหมด
+                                          // Clear previous selections for this CLO
                                           const newScores = { ...scores };
                                           allPLOs.forEach((p) => {
                                             const pId = p.PLO_id || p.plo_id;
@@ -3990,24 +4273,26 @@ export default function Course() {
                                             ];
                                           });
 
-                                          // ตั้งค่าใหม่
-                                          newScores[key] = cloTotal || 100;
+                                          // Set new selection with default weight of 100
+                                          newScores[mappingKey] =
+                                            cloTotalWeight || 100;
                                           setScores(newScores);
                                         }}
                                       />
-                                      {selectedPlo === ploId && (
+                                      {(mappedPloId === currentPloId ||
+                                        scores[mappingKey] > 0) && (
                                         <input
                                           type="number"
                                           min="0"
                                           max="100"
                                           value={
-                                            scores[key] !== undefined
-                                              ? scores[key]
-                                              : cloTotal || 100
+                                            scores[mappingKey] !== undefined
+                                              ? scores[mappingKey]
+                                              : cloTotalWeight || 100
                                           }
                                           onChange={(e) =>
-                                            handleInputChange(
-                                              ploId,
+                                            handleInputChange2(
+                                              currentPloId,
                                               clo.CLO_id,
                                               e.target.value
                                             )
@@ -4017,29 +4302,31 @@ export default function Course() {
                                         />
                                       )}
                                     </div>
-                                  ) : selectedPlo === ploId ? (
-                                    cloTotal
+                                  ) : mappedPloId === currentPloId ? (
+                                    cloTotalWeight
                                   ) : (
                                     "-"
                                   )}
                                 </td>
                               );
                             })}
-                            <td className="text-center">{cloTotal || "-"}</td>
+                            <td className="text-center">
+                              {cloTotalWeight || "-"}
+                            </td>
                           </tr>
                         );
                       })}
 
-                      {/* แถวผลรวม PLO */}
+                      {/* PLO Totals row */}
                       <tr className="table-secondary">
                         <td className="fw-bold">PLO Totals</td>
                         {allPLOs.map((plo) => {
-                          const ploId = plo.PLO_id || plo.plo_id;
-                          const ploTotal = calculateTotalForPLO(ploId);
+                          const currentPloId = plo.PLO_id || plo.plo_id;
+                          const ploTotal = calculateTotalForPLO(currentPloId);
 
                           return (
                             <td
-                              key={`ploTotal-${ploId}`}
+                              key={`ploTotal-${currentPloId}`}
                               className="text-center fw-bold">
                               {ploTotal || "-"}
                             </td>
@@ -4066,6 +4353,22 @@ export default function Course() {
                         : "ไม่พบข้อมูลการแมป PLO-CLO"}
                 </p>
               )}
+
+              {/* เพิ่มปุ่มบันทึกที่ด้านล่างของตารางเมื่ออยู่ในโหมดแก้ไข */}
+              {editingScores && (
+                <div className="mt-3 text-end">
+                  <button
+                    className="btn btn-secondary me-2"
+                    onClick={handleEditToggle2}>
+                    ยกเลิกการแก้ไข
+                  </button>
+                  <button
+                    className="btn btn-success"
+                    onClick={handlePostPloCloScores}>
+                    บันทึกการแก้ไข
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -4086,7 +4389,11 @@ export default function Course() {
                 <option value="" disabled>
                   Select Course
                 </option>
-                {courses.map((course) => (
+                {Array.from(
+                  new Map(
+                    courses.map((course) => [course.course_name, course]) // กรองชื่อซ้ำออก
+                  ).values()
+                ).map((course) => (
                   <option key={course.course_id} value={course.course_id}>
                     {`${course.course_id} - ${course.course_name} (${course.course_engname})`}
                   </option>
@@ -4122,19 +4429,21 @@ export default function Course() {
           <div className="row" style={{ padding: "0px 10px 0 10px" }}>
             <div className="col-md-3">
               <label className="form-label text-start">Choose a Course</label>
-
               <select
                 className="form-select"
                 value={selectedCourseId || ""}
                 onChange={(e) => {
-                  // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
                 disabled={!newCourse.semester_id}>
                 <option value="" disabled>
                   Select Course
                 </option>
-                {programCourseData.courses.map((course) => (
+                {Array.from(
+                  new Map(
+                    courses.map((course) => [course.course_name, course]) // กรองชื่อซ้ำออก
+                  ).values()
+                ).map((course) => (
                   <option key={course.course_id} value={course.course_id}>
                     {`${course.course_id} - ${course.course_name} (${course.course_engname})`}
                   </option>

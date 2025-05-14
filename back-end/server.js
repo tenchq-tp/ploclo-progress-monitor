@@ -20,6 +20,8 @@ import metaDataRoutes from "./routes/metadata.route.js";
 import cloMappingRoutes from "./routes/clo_mapping.route.js";
 import coursePloRoutes from "./routes/course_plo.route.js";
 import ploCloRoutes from "./routes/plo_clo.route.js";
+import ploCloMappingRoutes from "./routes/plo_clo_mapping.route.js";
+import accountRoutes from "./routes/account.route.js";
 
 dotenv.config();
 import pool from "./utils/db.js";
@@ -44,6 +46,8 @@ app.use("/api/metadata", metaDataRoutes);
 app.use("/api/clo-mapping", cloMappingRoutes);
 app.use("/api/course-plo", coursePloRoutes);
 app.use("/api/plo-clo", ploCloRoutes);
+app.use("/api/plo-clo-mapping", ploCloMappingRoutes);
+app.use("/api/accounts", accountRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
@@ -809,7 +813,9 @@ app.post("/program_course/excel", async (req, res) => {
       }
     }
 
-    res.status(201).json({ success: true, message: "All courses uploaded successfully!" });
+    res
+      .status(201)
+      .json({ success: true, message: "All courses uploaded successfully!" });
     conn.release();
   } catch (err) {
     console.error("Error adding courses from Excel:", err);
@@ -2643,7 +2649,11 @@ app.post("/api/program/excel", async (req, res) => {
         console.error("Error inserting into program:", error);
         await conn.rollback();
         conn.release();
-        return res.status(500).json({ success: false, message: "Database error inserting program", error: error.message });
+        return res.status(500).json({
+          success: false,
+          message: "Database error inserting program",
+          error: error.message,
+        });
       }
     }
 
@@ -2654,7 +2664,9 @@ app.post("/api/program/excel", async (req, res) => {
     await conn.rollback();
     conn.release();
     console.error("Error processing Excel upload:", err);
-    res.status(500).json({ success: false, message: "Database error", error: err.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Database error", error: err.message });
   }
 });
 
@@ -2732,7 +2744,9 @@ app.post("/api/course/excel", async (req, res) => {
            VALUES (?, ?, ?, ?, ?)`,
           [program_id, course_id, yearToUse, selectedSemester, section || 1]
         );
-        console.log(`Linked course ${course_id} to program ${program_id} in ${yearToUse}/${selectedSemester}`);
+        console.log(
+          `Linked course ${course_id} to program ${program_id} in ${yearToUse}/${selectedSemester}`
+        );
       } else {
         console.log("Program-Course link already exists, skipping insert.");
       }
@@ -2741,7 +2755,6 @@ app.post("/api/course/excel", async (req, res) => {
     await conn.commit();
     conn.release();
     res.json({ success: true, message: "All rows inserted successfully" });
-
   } catch (err) {
     await conn.rollback();
     conn.release();
