@@ -565,7 +565,7 @@ async function updateOneByCourseId(req, res) {
 }
 
 async function getManyCourseDetail(req, res) {
-  const { program_id, year } = req.query; // รับ parameter year เพิ่มเติม
+  const { program_id, year, semester_id } = req.query; // รับ parameter year เพิ่มเติม
 
   let conn;
   if (!program_id) {
@@ -599,6 +599,10 @@ async function getManyCourseDetail(req, res) {
     if (year) {
       query += " AND pc.year = ?";
       params.push(year);
+    }
+    if (semester_id) {
+      query += " AND pc.semester_id = ?";
+      params.push(semester_id);
     }
 
     const result = await conn.query(query, params);

@@ -28,7 +28,6 @@ export default function CloMapping({
     let total = 0;
     for (let i = 0; i < weightValues.length; i++) {
       total += parseInt(weightValues[i]);
-      console.log("log --> ", parseInt(weightValues[i]));
     }
     setTotalWeight(total);
   }
@@ -44,7 +43,6 @@ export default function CloMapping({
 
   useEffect(() => {
     calculateTotalWeight();
-    console.log("totalweight ---> ", totalWeight);
   }, [weightValues]);
 
   async function handleSubmit() {
@@ -70,8 +68,8 @@ export default function CloMapping({
 
   return (
     <>
-      <h2 className="mt-3">Course-CLO Mapping</h2>
-      <div className="action-buttons mb-3">
+      <h3 className="mt-3">Course-CLO Mapping</h3>
+      <div className="action-buttons mb-3" style={{ marginTop: "15px" }}>
         <button onClick={handleEditToggle} className="btn btn-primary me-2">
           {editingScores ? "Cancel Edit" : "Edit Course-CLO Mapping"}
         </button>

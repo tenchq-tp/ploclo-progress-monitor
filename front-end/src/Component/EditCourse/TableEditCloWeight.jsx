@@ -109,7 +109,8 @@ export default function TableEditCloWeight() {
             .filter((clo) => selectedCourseId === clo.course_id)
             .map((clo) => (
               <th
-                key={`header-${clo.CLO_id}`}
+                key={`header-${clo.CLO_id}-${clo.CLO_code}`}
+
                 style={{
                   border: "1px solid black",
                   padding: "10px",

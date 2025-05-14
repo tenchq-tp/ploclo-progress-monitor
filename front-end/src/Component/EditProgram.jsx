@@ -1254,7 +1254,6 @@ export default function Program() {
 
               <hr className="my-4" />
 
-              {/* PLO List Section */}
               <h5>{t('PLO List')}</h5>
 
               <div className="action-buttons">
@@ -1298,7 +1297,6 @@ export default function Program() {
                 <div className="alert alert-danger mb-3">{typeError}</div>
               )}
 
-              {/* แสดงข้อความแบบเดียวกับ Course-CLO Mapping เมื่อเลือกฟิลเตอร์ไม่ครบ */}
               {!allFiltersSelected ? (
                 <div style={{ marginTop: "20px", textAlign: "center" }}>
                   <p style={{ fontSize: "16px", color: "#666" }}>

@@ -354,16 +354,6 @@ export default function Course() {
     initializePage();
   }, []);
 
-  // ดึงข้อมูลรายวิชาเมื่อมีการเลือกโปรแกรม ภาคเรียน และปีการศึกษา
-  useEffect(() => {
-    // Reset course state before fetching new data
-    setCourse([]); // Clear old courses first
-
-    if (newCourse.program_id && newCourse.semester_id && selectedYear) {
-      fetchCourses(); // Fetch course data when program, semester, or year is selected
-    }
-  }, [newCourse.program_id, newCourse.semester_id, selectedYear]);
-
   useEffect(() => {
     const updatedWeights = {};
 
@@ -407,10 +397,8 @@ export default function Course() {
 
   // เพิ่มการตรวจสอบค่า PLO ID ใน useEffect เมื่อดึงข้อมูล
   useEffect(() => {
-    console.log(
-      `course Id ${selectedCourseId}\nsemester ${selectedSemesterId}`
-    );
     fetchAllCourseByProgram(selectedProgram);
+     fetchSelectCourse();
   }, [selectedSemesterId]);
 
   // ใช้ useEffect เพื่อโหลดข้อมูลตั้งต้นเมื่อเข้าสู่ Step 2
@@ -420,6 +408,19 @@ export default function Course() {
       fetchCourseWeights(selectedProgram);
     }
   }, [currentStep]);
+
+   useEffect(() => {
+    if (
+      selectedCourseId &&
+      selectedSemesterId &&
+      selectedYear &&
+      selectedProgram
+    ) {
+      if (activeTab == 2) {
+        fetchWeight();
+      }
+    }
+  }, [activeTab]);
 
   async function fetchWeight() {
     try {
@@ -1197,25 +1198,27 @@ export default function Course() {
         section_id: newCourse.section,
       });
 
-      // Update State to show new course
-      setCourse([...course, response.data.data]);
-
-      // Reset form
-      setNewCourse({
-        course_id: "",
-        course_name: "",
-        course_engname: "",
-        program_id: "",
-        year: "",
-        section: "",
-        semester_id: "",
-      });
-
       alert("Course added successfully!");
     } catch (err) {
       console.error("Error adding course:", err);
     }
+    fetchAllCourseByProgram(selectedProgram);
   };
+
+  async function fetchSelectCourse() {
+    try {
+      const response = await axios.get(`/api/program-course/detail`, {
+        params: {
+          program_id: selectedProgram,
+          year: selectedYear,
+        },
+      });
+      setCourses(response.data);
+    } catch (error) {
+      setCourses([]);
+      console.error(error);
+    }
+  }
 
   // ฟังก์ชันอัพเดตรายวิชา
   const updateCourse = async (updatedCourse) => {
@@ -1262,14 +1265,13 @@ export default function Course() {
           section_id: sectionId,
         },
       });
-      setCourse(
-        course.filter((courseItem) => courseItem.course_id !== courseId)
-      );
-
       alert("Course deleted successfully!");
     } catch (err) {
       console.error("Error deleting course:", err);
     }
+        fetchAllCourseByProgram(selectedProgram);
+
+
   };
 
   // ฟังก์ชันแก้ไขรายวิชา
@@ -1632,11 +1634,13 @@ export default function Course() {
         params: {
           program_id: selectedProgram,
           year: selectedYear,
+          semester_id: selectedSemesterId,
         },
       });
       setCourseList(response.data);
     } catch (error) {
       console.error("Error fetching program courses:", error);
+            setCourseList([]);
       setProgramCourseData({
         courses: [],
         sections: [],
@@ -1928,6 +1932,9 @@ export default function Course() {
           year: selectedYear,
         },
       });
+            console.log(response.data);
+
+
       setSelectedCourseClo(response.data);
     } catch (error) {
       console.error("Error refreshing CLOs: ", error);
@@ -1970,13 +1977,18 @@ export default function Course() {
       alert("Some rows are missing required fields. Please check your data.");
       return;
     }
+    let payload = [];
+    for (let i = 0; i < previousYearCLOs.length; i++) {
+      payload.push({
+        ...previousYearCLOs[i],
+        year: previousYearCLOs[i].year + 1,
+      });
+    }
 
     try {
-      const response = await axios.post(
-        "/api/clo-mapping/excel",
-        previousYearCLOs
-      );
-      console.log(response);
+    const response = await axios.post("/api/clo-mapping/excel", payload);
+
+
       if (
         selectedCourseId &&
         selectedSemesterId &&
@@ -2248,11 +2260,11 @@ export default function Course() {
         const updatedCLOs = CLOs.map((clo) =>
           clo.CLO_id === editClo.CLO_id
             ? {
-              ...clo,
-              CLO_name: editCloName.trim(),
-              CLO_engname: editCloEngName.trim(),
-              CLO_code: editCloCode.trim(), // เพิ่ม CLO_code ในการอัปเดตที่แสดงในตาราง
-            }
+                ...clo,
+                CLO_name: editCloName.trim(),
+                CLO_engname: editCloEngName.trim(),
+                CLO_code: editCloCode.trim(), // เพิ่ม CLO_code ในการอัปเดตที่แสดงในตาราง
+              }
             : clo
         );
 
@@ -2475,7 +2487,7 @@ export default function Course() {
           program_id: selectedProgram,
           course_id: selectedCourseId,
           semester_id: selectedSemesterId,
-          section_id: selectedSectionId,
+          section_id: 1,
           year: selectedYear - 1,
         },
       });
@@ -3475,7 +3487,7 @@ export default function Course() {
                   // console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
-                disabled={!newCourse.semester_id}>
+                disabled={!selectedSemesterId}>
                 <option value="" disabled>
                   Select Course
                 </option>
@@ -3750,62 +3762,83 @@ export default function Course() {
             </div>
           )}
 
-          <div className="card mt-3">
-            <div className="card-header">
-              <h5>CLOs</h5>
-            </div>
-            <div className="card-body">
-              {!(selectedCourseId && selectedSemesterId && selectedYear) ? (
-                <p className="text-warning">
-                  กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนแสดง CLO
-                </p>
-              ) : selectedCourseClo.length > 0 ? (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>CLO </th>
-                      <th>Detail</th>
-                      <th>Detail Eng</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedCourseClo.map((clo) => (
-                      <tr key={clo.CLO_id}>
-                        <td>{clo.CLO_code}</td>
-                        <td>{clo.CLO_name}</td>
-                        <td>{clo.CLO_engname}</td>
-                        <td>
-                          <button
-                            className="btn btn-warning me-2"
-                            onClick={() => handleEditClo(clo.CLO_id)}>
-                            Edit
-                          </button>
+          <div className="">
+  <div className="card-header">
+  </div>
+  <div className="card-body">
+    {!(selectedCourseId && selectedSemesterId && selectedYear) ? (
+      <p className="text-warning">
+        กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนแสดง CLO
+      </p>
+    ) : selectedCourseClo.length > 0 ? (
+      <div className="plo-table-container">
+        <table className="plo-table">
+          <thead>
+            <tr>
+              <th className="plo-code-col">{t("CLO Code")}</th>
+              <th className="plo-name-col">{t("CLO Name")}</th>
+              <th className="plo-actions-col">{t("Actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...selectedCourseClo]
+              .sort((a, b) => {
+                const numA = parseInt(a.CLO_code.replace(/\D/g, ""), 10) || 0;
+                const numB = parseInt(b.CLO_code.replace(/\D/g, ""), 10) || 0;
+                return numA - numB;
+              })
+              .map((clo) => (
+                <tr key={clo.CLO_id}>
+                  <td>
+                    <div className="plo-cell-content text-center">
+                      {clo.CLO_code}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="plo-cell-content">{clo.CLO_name}</div>
+                    {clo.CLO_engname && (
+                      <>
+                        <div className="my-1 border-t border-gray-300"></div>
+                        <div className="plo-cell-secondary">
+                          {clo.CLO_engname}
+                        </div>
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      className="plo-table-btn plo-edit-btn"
+                      onClick={() => handleEditClo(clo.CLO_id)}
+                    >
+                      {t("Edit")}
+                    </button>
+                    <button
+                      className="plo-table-btn plo-delete-btn"
+                      onClick={() =>
+                        handleDeleteClo(
+                          clo.CLO_id,
+                          selectedCourseId,
+                          selectedSemesterId,
+                          selectedYear
+                        )
+                      }
+                    >
+                      {t("Delete")}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <div className="text-center">
+        <p>{t("No CLO data available for the selected filters.")}</p>
+      </div>
+    )}
+  </div>
+</div>
 
-                          <button
-                            className="btn btn-danger"
-                            onClick={() => {
-                              handleDeleteClo(
-                                clo.CLO_id,
-                                selectedCourseId,
-                                selectedSemesterId,
-                                selectedYear
-                              );
-                            }}>
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <>
-                  <p>No CLO data available</p>
-                </>
-              )}
-            </div>
-          </div>
 
           {showEditModal && (
             <div className="modal show" style={{ display: "block" }}>
@@ -3881,19 +3914,18 @@ export default function Course() {
           <div className="row" style={{ padding: "0px 10px 0 10px" }}>
             <div className="col-md-3">
               <label className="form-label text-start">Choose a Course</label>
-
               <select
                 className="form-select"
                 value={selectedCourseId || ""}
                 onChange={(e) => {
-                  // console.log("Selected Course:", e.target.value);
+                  console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
                 disabled={!newCourse.semester_id}>
                 <option value="" disabled>
                   Select Course
                 </option>
-                {programCourseData.courses.map((course) => (
+                {courses.map((course) => (
                   <option key={course.course_id} value={course.course_id}>
                     {`${course.course_id} - ${course.course_name} (${course.course_engname})`}
                   </option>
@@ -3922,7 +3954,7 @@ export default function Course() {
             </div>
           </div>
 
-          <div className="card mt-3">
+          <div className="">
             <div className="card-header">
               <h5>CLO-PLO Mapping Table</h5>
             </div>
