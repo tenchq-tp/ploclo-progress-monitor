@@ -398,7 +398,6 @@ export default function Course() {
   // เพิ่มการตรวจสอบค่า PLO ID ใน useEffect เมื่อดึงข้อมูล
   useEffect(() => {
     fetchAllCourseByProgram(selectedProgram);
-    // fetchCourses();
     fetchSelectCourse();
   }, [selectedSemesterId]);
 
@@ -1634,6 +1633,7 @@ export default function Course() {
         params: {
           program_id: selectedProgram,
           year: selectedYear,
+          semester_id: selectedSemesterId,
         },
       });
       setCourseList(response.data);
