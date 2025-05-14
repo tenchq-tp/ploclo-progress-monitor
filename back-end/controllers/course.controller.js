@@ -1,5 +1,5 @@
 import pool from "../utils/db.js";
-import mysql from 'mysql2/promise';
+import mysql from "mysql2/promise";
 
 async function getAll(req, res) {
   try {
@@ -9,6 +9,17 @@ async function getAll(req, res) {
     conn.release();
   } catch (err) {
     console.error(err);
+    res.status(500).send("Error fetching course");
+  }
+}
+
+async function getOneById(req, res) {
+  const { course_id } = req.params;
+  try {
+    const query = `SELECT * FROM course WHERE course_id = ?`;
+    const result = await pool.query(query, [course_id]);
+    res.status(200).json(result);
+  } catch (error) {
     res.status(500).send("Error fetching course");
   }
 }
@@ -128,10 +139,9 @@ async function importCoursesFromExcel(req, res) {
       );
 
       if (!existingSection || existingSection.length === 0) {
-        await conn.query(
-          `INSERT INTO section (section_id) VALUES (?)`,
-          [section_id]
-        );
+        await conn.query(`INSERT INTO section (section_id) VALUES (?)`, [
+          section_id,
+        ]);
       }
 
       const [existingProgramCourse] = await conn.query(
@@ -170,5 +180,12 @@ async function importCoursesFromExcel(req, res) {
   }
 }
 
-
-export { getAll, createOne, updateOneById, deleteOneById, getManyByFilter, importCoursesFromExcel };
+export {
+  getAll,
+  createOne,
+  getOneById,
+  updateOneById,
+  deleteOneById,
+  getManyByFilter,
+  importCoursesFromExcel,
+};

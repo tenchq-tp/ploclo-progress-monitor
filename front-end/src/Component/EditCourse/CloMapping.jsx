@@ -10,9 +10,10 @@ export default function CloMapping({
   weightEachCourse,
   handleEditWeightEachCourse,
 }) {
-  const id_array = useState(initCourseClo());
+  const [id_array, setId_array] = useState();
   const [weightValues, setWeightValues] = useState(weightEachCourse);
   const [totalWeight, setTotalWeight] = useState(0);
+  const [courseItem, setCourseItem] = useState({});
   function handleOnChange(newValue, index) {
     const updatedWeights = [...weightValues]; // สร้าง copy ใหม่แบบ shallow
     updatedWeights[index] = parseFloat(newValue) || 0; // ตรวจสอบค่า
@@ -28,13 +29,32 @@ export default function CloMapping({
     setTotalWeight(total);
   }
 
-  function initCourseClo() {
+  useEffect(() => {
+    fetchCourseById();
+  }, []);
+
+  useEffect(() => {
+    normalizeCourseClo();
+    setWeightValues(weightEachCourse);
+  }, [weightEachCourse]);
+
+  async function fetchCourseById() {
+    try {
+      const response = await axios.get(`/api/course/${selectedCourseId}`);
+      setCourseItem(response.data[0]);
+    } catch (error) {
+      setCourseItem({});
+      console.error(error);
+    }
+  }
+
+  function normalizeCourseClo() {
     let result = [];
     const copyClo = courseClo;
     copyClo.map((data) => {
       result.push(data.course_clo_id);
     });
-    return result;
+    setId_array(result);
   }
 
   useEffect(() => {
@@ -52,7 +72,7 @@ export default function CloMapping({
     }
 
     try {
-      const response = await axios.put("/api/clo-mapping/weight", {
+      await axios.put("/api/clo-mapping/weight", {
         updates: [...updates],
       });
     } catch (error) {
@@ -133,59 +153,56 @@ export default function CloMapping({
           </tr>
         </thead>
         <tbody>
-          {courses.map(
-            (courseItem) =>
-              courseItem.course_id == selectedCourseId && (
-                <tr key={courseItem.course_id}>
-                  <td
-                    style={{
-                      border: "1px solid black",
-                      padding: "10px",
-                    }}>
-                    {courseItem.course_id} {courseItem.course_name}
-                  </td>
-                  {weightValues &&
-                    weightValues.map((weight, index) => {
-                      return (
-                        <td
-                          key={index}
+          {courseItem && (
+            <tr key={courseItem.course_id}>
+              <td
+                style={{
+                  border: "1px solid black",
+                  padding: "10px",
+                }}>
+                {courseItem.course_id} {courseItem.course_name}
+              </td>
+              {weightValues &&
+                weightValues.map((weight, index) => {
+                  return (
+                    <td
+                      key={index}
+                      style={{
+                        border: "1px solid black",
+                        padding: "10px",
+                        textAlign: "center",
+                      }}>
+                      {editingScores ? (
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={weight || 0}
                           style={{
-                            border: "1px solid black",
-                            padding: "10px",
+                            width: "60px",
+                            padding: "5px",
                             textAlign: "center",
-                          }}>
-                          {editingScores ? (
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={weight || 0}
-                              style={{
-                                width: "60px",
-                                padding: "5px",
-                                textAlign: "center",
-                              }}
-                              onChange={(e) =>
-                                handleOnChange(e.target.value, index)
-                              }
-                            />
-                          ) : (
-                            weight || 0
-                          )}
-                        </td>
-                      );
-                    })}
-                  <td
-                    style={{
-                      border: "1px solid black",
-                      padding: "10px",
-                      textAlign: "center",
-                      fontWeight: "bold",
-                    }}>
-                    {totalWeight}
-                  </td>
-                </tr>
-              )
+                          }}
+                          onChange={(e) =>
+                            handleOnChange(e.target.value, index)
+                          }
+                        />
+                      ) : (
+                        weight || 0
+                      )}
+                    </td>
+                  );
+                })}
+              <td
+                style={{
+                  border: "1px solid black",
+                  padding: "10px",
+                  textAlign: "center",
+                  fontWeight: "bold",
+                }}>
+                {totalWeight}
+              </td>
+            </tr>
           )}
         </tbody>
       </table>

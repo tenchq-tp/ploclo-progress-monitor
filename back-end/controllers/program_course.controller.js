@@ -600,6 +600,10 @@ async function getManyCourseDetail(req, res) {
       query += " AND pc.year = ?";
       params.push(year);
     }
+    if (semester_id) {
+      query += " AND pc.semester_id = ?";
+      params.push(semester_id);
+    }
 
     if (semester_id) {
       query += " AND pc.semester_id = ?";

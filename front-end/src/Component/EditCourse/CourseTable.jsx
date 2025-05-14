@@ -7,7 +7,7 @@ export default function CourseTable({
   deleteCourse,
   onCourseUpdated,
 }) {
-        const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState({
@@ -113,32 +113,32 @@ export default function CourseTable({
           </tr>
         </thead>
         <tbody>
-  {course_list && course_list.length > 0 &&
-    course_list.map((courseItem) => (
-      <tr key={`${courseItem.course_id}_${courseItem.section_id}`}>
-        <td>{courseItem.course_id}</td>
-        <td>{courseItem.course_name}</td>
-        <td>{courseItem.course_engname}</td>
-        <td>{courseItem.section_id}</td>
-        <td>
-          <button
-            onClick={() => openEditModal(courseItem)}
-            className="btn btn-warning btn-sm me-2"
-          >
-            {t('Edit')}
-          </button>
-          <button
-            onClick={() =>
-              deleteCourse(courseItem.course_id, courseItem.section_id)
-            }
-            className="btn btn-danger btn-sm"
-          >
-            {t('Delete')}
-          </button>
-        </td>
-      </tr>
-    ))}
-</tbody>
+          {course_list && course_list.length > 0 &&
+            course_list.map((courseItem) => (
+              <tr key={`${courseItem.course_id}_${courseItem.section_id}`}>
+                <td>{courseItem.course_id}</td>
+                <td>{courseItem.course_name}</td>
+                <td>{courseItem.course_engname}</td>
+                <td>{courseItem.section_id}</td>
+                <td>
+                  <button
+                    onClick={() => openEditModal(courseItem)}
+                    className="btn btn-warning btn-sm me-2"
+                  >
+                    {t('Edit')}
+                  </button>
+                  <button
+                    onClick={() =>
+                      deleteCourse(courseItem.course_id, courseItem.section_id)
+                    }
+                    className="btn btn-danger btn-sm"
+                  >
+                    {t('Delete')}
+                  </button>
+                </td>
+              </tr>
+            ))}
+        </tbody>
 
       </table>
 
