@@ -371,6 +371,8 @@ export default function Course() {
       } else if (activeTab === 3) {
         fetchFilteredCourseClo();
         fetchAllSectionByCourse();
+      } else if (activeTab === 4) {
+        fetchAllSectionByCourse();
       }
     } else {
       setCLOs([]);
@@ -4463,9 +4465,9 @@ export default function Course() {
                 <option value="" disabled>
                   Select Section
                 </option>
-                {programCourseData.sections.map((section) => (
-                  <option key={section} value={section}>
-                    {section}
+                {allSections.map((section) => (
+                  <option key={section.section_id} value={section.section_id}>
+                    {section.section_id}
                   </option>
                 ))}
               </select>
