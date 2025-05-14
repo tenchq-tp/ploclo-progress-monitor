@@ -344,6 +344,10 @@ export default function Course() {
     }
   }, [selectedCourseId]);
 
+  useEffect(() => {
+    if (!selectedYear) return;
+  }, [selectedYear]);
+
   // ดึงข้อมูลหลักสูตรและภาคเรียนเมื่อเริ่มต้นใช้งาน
   useEffect(() => {
     const initializePage = async () => {
@@ -397,8 +401,16 @@ export default function Course() {
 
   // เพิ่มการตรวจสอบค่า PLO ID ใน useEffect เมื่อดึงข้อมูล
   useEffect(() => {
+    if (!selectedSemesterId) {
+      setSelectedCourseId();
+      setCourseList([]);
+      return;
+    }
     fetchAllCourseByProgram(selectedProgram);
      fetchSelectCourse();
+         setSelectedCourseId();
+
+
   }, [selectedSemesterId]);
 
   // ใช้ useEffect เพื่อโหลดข้อมูลตั้งต้นเมื่อเข้าสู่ Step 2
@@ -410,17 +422,19 @@ export default function Course() {
   }, [currentStep]);
 
    useEffect(() => {
-    if (
-      selectedCourseId &&
-      selectedSemesterId &&
-      selectedYear &&
-      selectedProgram
-    ) {
-      if (activeTab == 2) {
-        fetchWeight();
-      }
+  if (
+    selectedCourseId &&
+    selectedSemesterId &&
+    selectedYear &&
+    selectedProgram
+  ) {
+    if (activeTab === 2) {
+      // เรียกใช้ fetchWeight เมื่อเข้าแท็บ Course-CLO Mapping
+      fetchWeight();
     }
-  }, [activeTab]);
+  }
+}, [selectedCourseId, selectedSemesterId, selectedYear, activeTab]);
+
 
   async function fetchWeight() {
     try {
@@ -439,6 +453,8 @@ export default function Course() {
       });
       setAllWeights(weight_array);
     } catch (error) {
+      setCourseClo([]);
+      setAllWeights([]);
       console.error(error);
     }
   }
@@ -690,8 +706,6 @@ export default function Course() {
   // ตรวจสอบฟังก์ชัน handleInputChange
   const handleInputChange = (courseId, cloId, value, weight) => {
     const key = `${courseId}_${cloId}`;
-    //  console.log(`Setting score for course ${courseId}, CLO ${cloId}: ${value}`);
-    console.log("weight display -----> ", weightDisplay);
     setScores({ weight, [key]: value });
   };
 
@@ -725,7 +739,6 @@ export default function Course() {
   };
 
   const handlePostPloCloScores = () => {
-    console.log("กำลังบันทึกข้อมูลลงตาราง plo_clo");
 
     // ตรวจสอบว่าตอนนี้อยู่ที่แท็บ CLO-PLO Mapping จริงๆ
     if (activeTab !== 3) {
@@ -804,8 +817,6 @@ export default function Course() {
       scores: ploCloData, // เปลี่ยนจาก mappings เป็น scores
     };
 
-    // แสดงข้อมูลที่จะส่งในคอนโซล
-    console.log("กำลังส่งข้อมูล plo_clo:", JSON.stringify(payload, null, 2));
 
     // หลังจากบันทึกข้อมูลเรียบร้อยแล้ว ให้เรียกใช้ฟังก์ชันรีเฟรชข้อมูล
     axios.post("/plo_clo", payload).then((response) => {
@@ -819,7 +830,6 @@ export default function Course() {
   };
 
   const handlePostCourseCloScores = () => {
-    console.log("กำลังบันทึกข้อมูลลงตาราง course_clo");
 
     // ตรวจสอบว่าตอนนี้อยู่ที่แท็บ Course-CLO Mapping จริงๆ
     if (activeTab !== 2) {
@@ -890,17 +900,10 @@ export default function Course() {
       year: parseInt(selectedYear, 10),
       scores: courseCloData,
     };
-
-    console.log(
-      "Sending course_clo payload:",
-      JSON.stringify(payload, null, 2)
-    );
-
     // ใช้ PATCH method เพื่อทำการอัพเดทเท่านั้น
     axios
       .patch("/course_clo/weight", payload)
       .then((response) => {
-        console.log("API response for course_clo:", response.data);
 
         if (response.data && response.data.success) {
           // อัปเดตสถานะ
@@ -935,7 +938,6 @@ export default function Course() {
         selectedSemesterId &&
         selectedYear
       ) {
-        console.log("รีเฟรชข้อมูล CLO...");
 
         const response = await axios.get("/course_clo", {
           params: {
@@ -947,18 +949,15 @@ export default function Course() {
           },
         });
 
-        console.log("CLO data refreshed:", response.data);
         const formattedCLOs = Array.isArray(response.data)
           ? response.data
           : [response.data].filter(Boolean);
         setCLOs(formattedCLOs);
 
         // 2. ดึงข้อมูล PLO-CLO mappings ใหม่
-        console.log("รีเฟรชข้อมูล PLO-CLO mappings...");
         await fetchPLOCLOMappings();
 
         // 3. ดึงข้อมูล weights ใหม่ (ถ้าจำเป็น)
-        console.log("รีเฟรชข้อมูล weights...");
         if (selectedProgram) {
           await fetchCourseWeights(selectedProgram);
         }
@@ -1019,7 +1018,6 @@ export default function Course() {
     axios
       .patch("/plo_clo", ploCloPayload)
       .then((response) => {
-        console.log("ผลลัพธ์การอัพเดต plo_clo:", response.data);
 
         if (response.data && response.data.success) {
           alert("อัปเดตการเชื่อมโยง PLO-CLO สำเร็จ!");
@@ -1100,8 +1098,6 @@ export default function Course() {
         return axios.patch("/course_clo", courseCloPayload);
       })
       .then((response) => {
-        console.log("API response:", response.data);
-
         if (response.data && response.data.success) {
           alert("อัปเดตคะแนนสำเร็จ!");
           setEditingScores(false);
@@ -1164,13 +1160,11 @@ export default function Course() {
       });
     }
 
-    console.log("ข้อมูล PLO-CLO ที่จะส่ง:", ploCloData);
 
     // ส่งข้อมูลไปยัง API
     axios
       .post("/plo_clo", { mappings: ploCloData })
       .then((response) => {
-        console.log("ผลลัพธ์การบันทึก PLO-CLO:", response.data);
         alert("บันทึกการเชื่อมโยง PLO-CLO สำเร็จ!");
 
         // ออกจากโหมดแก้ไข
@@ -1211,9 +1205,11 @@ export default function Course() {
         params: {
           program_id: selectedProgram,
           year: selectedYear,
+          semester_id: selectedSemesterId,
         },
       });
       setCourses(response.data);
+      setSelectedCourseId();
     } catch (error) {
       setCourses([]);
       console.error(error);
@@ -1431,9 +1427,6 @@ export default function Course() {
 
       total = ploMappings.reduce((sum, mapping) => {
         const value = Number(mapping.weight || 0);
-        console.log(
-          `    mapping: CLO_id=${mapping.CLO_id || mapping.clo_id}, weight=${value}`
-        );
         return sum + value;
       }, 0);
     }
@@ -1478,7 +1471,6 @@ export default function Course() {
           parseInt(editData.university_id) || assignment.university_id,
       };
 
-      console.log("ข้อมูลที่จะส่งไปอัพเดต:", updateData);
 
       // เรียกใช้ API สำหรับอัปเดตข้อมูล
       const response = await axios.put(
@@ -1486,7 +1478,6 @@ export default function Course() {
         updateData
       );
 
-      console.log("ผลการอัปเดต Assignment:", response.data);
 
       if (response.data) {
         // อัปเดตข้อมูลใน state
@@ -1535,14 +1526,6 @@ export default function Course() {
   };
 
   const fetchPLOCLOMappings = async () => {
-    // เพิ่มการล็อกข้อมูลที่ส่งไปยัง API
-    console.log("กำลังเรียกใช้ fetchPLOCLOMappings ด้วยพารามิเตอร์:", {
-      program_id: selectedProgram,
-      course_id: selectedCourseId,
-      section_id: selectedSectionId,
-      semester_id: selectedSemesterId,
-      year: selectedYear,
-    });
 
     try {
       // ทำให้แน่ใจว่า URL และพารามิเตอร์ถูกต้อง
@@ -1555,16 +1538,6 @@ export default function Course() {
           year: selectedYear,
         },
       });
-
-      // ตรวจสอบข้อมูลที่ได้รับ
-      console.log("ข้อมูล PLO-CLO mappings จาก API:", response.data);
-
-      // ตรวจสอบโครงสร้างข้อมูล
-      if (Array.isArray(response.data) && response.data.length > 0) {
-        console.log("ตัวอย่างข้อมูล mapping แรก:", response.data[0]);
-      } else {
-        console.log("ไม่พบข้อมูล mappings จาก API");
-      }
 
       // ตั้งค่า mappings
       const formattedMappings = Array.isArray(response.data)
@@ -1580,26 +1553,8 @@ export default function Course() {
     }
   };
 
-  useEffect(() => {
-    // ตรวจสอบว่ามีข้อมูลใน mappings หรือไม่
-    if (mappings.length > 0) {
-      // สร้างข้อมูลสำหรับแสดงผลในตาราง
-      console.log("จำนวน mappings:", mappings.length);
-
-      // ตรวจสอบว่ามี PLO_id และ CLO_id ในแต่ละ mapping หรือไม่
-      mappings.forEach((mapping, index) => {
-        console.log(`Mapping ${index}:`, {
-          PLO_id: mapping.PLO_id || mapping.plo_id,
-          CLO_id: mapping.CLO_id || mapping.clo_id,
-          weight: mapping.weight,
-        });
-      });
-    }
-  }, [mappings]);
 
   const updateWeightsFromMappings = (mappingData) => {
-    console.log("กำลังอัพเดต weights จาก mappings:", mappingData);
-
     const updatedWeights = {};
 
     mappingData.forEach((mapping) => {
@@ -1610,15 +1565,12 @@ export default function Course() {
       if (ploId && cloId) {
         const key = `${ploId}-${cloId}`;
         updatedWeights[key] = mapping.weight || 0;
-        console.log(
-          `กำหนดค่า weight สำหรับ key=${key} เป็น ${mapping.weight || 0}`
-        );
+      
       } else {
         console.error("ไม่พบ PLO_id หรือ CLO_id ในข้อมูล mapping:", mapping);
       }
     });
 
-    console.log("weights ที่อัพเดตแล้ว:", updatedWeights);
     setWeights(updatedWeights);
 
     // อัพเดต scores ด้วยถ้าอยู่ในโหมดแก้ไข
@@ -1691,16 +1643,11 @@ export default function Course() {
         university_id: parseInt(selectedUniversity, 10),
       };
 
-      console.log("ข้อมูลที่จะส่งไปอัพเดต:", updateData);
-
       // Call the API to update the assignment
       const response = await axios.put(
         `/api/update_assignment/${currentAssignmentId}`,
         updateData
       );
-
-      console.log("ผลการอัพเดต Assignment:", response.data);
-
       if (response.data) {
         // แสดงข้อความสำเร็จ
         alert("บันทึกการแก้ไขข้อมูล Assignment สำเร็จ!");
@@ -1828,8 +1775,6 @@ export default function Course() {
 
       // อัปเดต excelData state
       setExcelData(parsedData);
-      console.log("Pasted Data:", parsedData);
-
       // แสดงข้อความแจ้งเตือนว่าวางข้อมูลสำเร็จ
       alert(`วางข้อมูลสำเร็จ: พบ ${parsedData.length} รายการ`);
     } catch (err) {
@@ -1917,10 +1862,8 @@ export default function Course() {
         setTypeError("Please select only Excel file types");
         alert("Please select only Excel file types");
       }
-    } else {
-      console.log("Please select your file");
-    }
-  };
+
+  }}
 
   async function fetchFilteredCourseClo() {
     try {
@@ -2044,7 +1987,6 @@ export default function Course() {
     axios
       .post("/api/clo-mapping/excel", excelData)
       .then((response) => {
-        console.log("Success:", response.data);
         alert("Data Uploaded Successfully!");
         setExcelData(null); // ล้างข้อมูลหลังจากอัปโหลดสำเร็จ
 
@@ -2115,8 +2057,6 @@ export default function Course() {
         scores: scoreData,
       });
 
-      console.log("ผลการบันทึกคะแนน:", response.data);
-
       if (response.data && response.data.success) {
         alert("บันทึกคะแนนเรียบร้อยแล้ว");
       } else {
@@ -2144,7 +2084,6 @@ export default function Course() {
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-        console.log("ข้อมูลที่นำเข้าจาก Excel:", jsonData);
 
         // ตรวจสอบรูปแบบข้อมูล
         if (jsonData.length === 0) {
@@ -2636,7 +2575,6 @@ export default function Course() {
     axios
       .post("/api/add_assignment", newAssignment)
       .then((response) => {
-        console.log("Assignment API response:", response.data);
         if (
           response.data &&
           (response.data.success ||
@@ -2744,9 +2682,7 @@ export default function Course() {
       try {
         const dataToSend = prepareDataForApi();
 
-        console.log("ข้อมูลที่จะส่งไป API:", {
-          data: dataToSend,
-        });
+        
 
         // แสดงสถานะกำลังบันทึก
         setLoading(true);
@@ -2755,7 +2691,6 @@ export default function Course() {
           data: dataToSend,
         });
 
-        console.log("ผลการบันทึก:", response.data);
 
         // แสดงข้อความสำเร็จ
         alert("บันทึกคะแนน CLO สำเร็จ!");
@@ -3069,10 +3004,7 @@ export default function Course() {
       if (homeworks.length > 0 && homeworks[0].id) {
         // ใช้ id จาก homework แรก
         setCurrentAssignmentId(homeworks[0].id);
-        console.log(
-          "Setting current assignment ID from homework:",
-          homeworks[0].id
-        );
+        
       } else {
         setImportErrors([
           "ไม่พบข้อมูลการบ้านที่จะบันทึก กรุณาเลือกการบ้านอีกครั้ง",
@@ -3084,8 +3016,6 @@ export default function Course() {
     // ใช้ค่า currentAssignmentId ที่เป็นปัจจุบัน
     const assignmentIdToUse =
       currentAssignmentId || (homeworks.length > 0 ? homeworks[0].id : null);
-
-    console.log("Using assignment ID:", assignmentIdToUse);
 
     if (!assignmentIdToUse) {
       setImportErrors([
@@ -3106,18 +3036,13 @@ export default function Course() {
       // ไม่ต้องส่ง assignment_clo_id เพราะ backend จะดึงข้อมูลทั้งหมดจาก assignment_id
       // และทำการเชื่อมโยงกับ CLO ทั้งหมดให้อัตโนมัติ
     }));
-
-    console.log("Data being sent to API:", {
-      students: studentsData,
-    });
-
+ 
     // ส่งข้อมูลไป API
     axios
       .post("/api/add_students_to_assignment", {
         students: studentsData,
       })
       .then((response) => {
-        console.log("Response from server:", response.data);
         setImportSuccess(
           `บันทึกรายชื่อนักเรียนสำเร็จ: ${response.data?.message || `จำนวน ${importedStudents.length} คน`}`
         );
@@ -3427,7 +3352,7 @@ export default function Course() {
                 name="semester_id"
                 value={newCourse.semester_id}
                 onChange={handleCourseChange}
-                disabled={!selectedProgram}>
+                disabled={!selectedYear}>
                 <option value="">{t('Select Semester')}</option>
                 {semesters && semesters.length > 0 ? (
                   semesters.map((semester) => (
@@ -3918,7 +3843,6 @@ export default function Course() {
                 className="form-select"
                 value={selectedCourseId || ""}
                 onChange={(e) => {
-                  console.log("Selected Course:", e.target.value);
                   setSelectedCourseId(e.target.value);
                 }}
                 disabled={!newCourse.semester_id}>
@@ -4189,6 +4113,7 @@ export default function Course() {
               calculateTotal={calculateTotal}
               selectedSemesterId={selectedSemesterId}
               selectedYear={selectedYear}
+              
             />
           ) : (
             <div style={{ marginTop: "20px", textAlign: "center" }}>
