@@ -138,48 +138,6 @@ CREATE TABLE `program_plo` (
   CONSTRAINT `program_plo_ibfk_2` FOREIGN KEY (`plo_id`) REFERENCES `plo` (`PLO_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=79 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `studentdata` (
-  `student_id` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  PRIMARY KEY (`student_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `assignments` (
-  `assignment_id` int NOT NULL AUTO_INCREMENT,
-  `program_id` int(11) COLLATE utf8mb4_general_ci NOT NULL,
-  `course_name` varchar(30) COLLATE utf8mb4_general_ci NOT NULL,
-  `section_id` int NOT NULL,
-  `semester_id` int NOT NULL,
-  `year` int NOT NULL,
-  `assignment_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `faculty_id` int(11) NOT NULL,
-  `university_id` int(11) NOT NULL,
-  PRIMARY KEY (`assignment_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `assignments_students` (
-  `student_id` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
-  `assignment_id` int NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`student_id`,`assignment_id`),
-  KEY `FK_assignments_students_assignment` (`assignment_id`),
-  CONSTRAINT `FK_assignments_students_assignment` FOREIGN KEY (`assignment_id`) REFERENCES `assignments` (`assignment_id`),
-  CONSTRAINT `FK_assignments_students_student` FOREIGN KEY (`student_id`) REFERENCES `studentdata` (`student_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `assignment_clo_selection` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `clo_id` int NOT NULL,
-  `assignment_id` int NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `score` int DEFAULT NULL,
-  `weight` int NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-
-
 CREATE TABLE university (
     university_id INT(11) AUTO_INCREMENT PRIMARY KEY,
     university_name_en VARCHAR(255) NOT NULL, -- ชื่อมหาวิทยาลัยภาษาอังกฤษ
@@ -218,6 +176,46 @@ CREATE TABLE program_faculty (
     faculty_id INT(11) NOT NULL,
     PRIMARY KEY (program_id, faculty_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `studentdata` (
+  `student_id` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  PRIMARY KEY (`student_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `assignments` (
+  `assignment_id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `program_course_id` INT NOT NULL,
+  `assignment_name` VARCHAR(255) NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `faculty_id` INT NOT NULL,
+  `university_id` INT NOT NULL,
+  FOREIGN KEY (`program_course_id`) REFERENCES `program_course`(`program_course_id`),
+  FOREIGN KEY (`faculty_id`) REFERENCES `faculty`(`faculty_id`),
+  FOREIGN KEY (`university_id`) REFERENCES `university`(`university_id`)
+);
+ ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `assignments_students` (
+  `student_id` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
+  `assignment_id` int NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`student_id`,`assignment_id`),
+  KEY `FK_assignments_students_assignment` (`assignment_id`),
+  CONSTRAINT `FK_assignments_students_assignment` FOREIGN KEY (`assignment_id`) REFERENCES `assignments` (`assignment_id`),
+  CONSTRAINT `FK_assignments_students_student` FOREIGN KEY (`student_id`) REFERENCES `studentdata` (`student_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `assignment_clo_selection` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `clo_id` int NOT NULL,
+  `assignment_id` int NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `score` int DEFAULT NULL,
+  `weight` int NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 CREATE TABLE student_assignment_scores (
   id INT AUTO_INCREMENT PRIMARY KEY,

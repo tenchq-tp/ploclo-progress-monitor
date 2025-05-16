@@ -916,6 +916,44 @@ async function updateOneByCourseSectionId(req, res) {
   }
 }
 
+export async function getManyCourseByProgram(req, res) {
+  const { program_id, semester_id, year } = req.query;
+  let query = `
+  SELECT pc.course_id, c.course_name, c.course_engName, pc.section_id, pc.program_id, pc.year, pc.semester_id
+  FROM program_course AS pc
+  LEFT JOIN course AS c ON pc.course_id=c.course_id`;
+
+  let conditions = [];
+  let params = [];
+
+  if (program_id) {
+    conditions.push("pc.program_id = ?");
+    params.push(program_id);
+  }
+
+  if (semester_id) {
+    conditions.push("pc.semester_id = ?");
+    params.push(semester_id);
+  }
+
+  if (year) {
+    conditions.push("pc.year = ?");
+    params.push(year);
+  }
+
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  try {
+    const rows = await pool.query(query, params);
+    res.status(200).json({ data: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error while fetching many course" });
+  }
+}
+
 export {
   importExcel,
   getOneById,
