@@ -65,6 +65,218 @@ export default function Program() {
     year: "",
   });
   const [showPopup, setShowPopup] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [showEditStudentModal, setShowEditStudentModal] = useState(false);
+  const [newStudent, setNewStudent] = useState({
+    student_id: "",
+    first_name: "",
+    last_name: "",
+  });
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [studentExcelData, setStudentExcelData] = useState(null);
+  const [studentTypeError, setStudentTypeError] = useState(null);
+
+  async function fetchStudents() {
+    try {
+      if (!allFiltersSelected) return;
+
+      const result = await axios.get(
+        `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
+      );
+      const response = await axios.get(
+        `/api/students/program?program_id=${result.data.program_id}&year=${selectedYear}`
+      );
+
+      setStudents(
+        Array.isArray(response.data) ? response.data : [response.data]
+      );
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      setStudents([]);
+    }
+  }
+
+  const handleAddStudent = async () => {
+    try {
+      const result = await axios.get(
+        `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
+      );
+
+      const response = await axios.post("/api/students/program", {
+        student_id: newStudent.student_id,
+        first_name: newStudent.first_name,
+        last_name: newStudent.last_name,
+        program_id: result.data.program_id,
+        year: parseInt(selectedYear),
+        university_id: selectedUniversity,
+        faculty_id: selectedFaculty,
+      });
+
+      if (response.data) {
+        setStudents([...students, response.data]);
+        setShowAddStudentModal(false);
+        setNewStudent({
+          student_id: "",
+          first_name: "",
+          last_name: "",
+        });
+        showAlert("เพิ่มนักศึกษาเรียบร้อยแล้ว", "success");
+      }
+    } catch (error) {
+      console.error("Error adding student:", error);
+      showAlert("เกิดข้อผิดพลาดในการเพิ่มนักศึกษา", "danger");
+    }
+  };
+
+  const handleEditStudent = async () => {
+    try {
+      const result = await axios.get(
+        `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
+      );
+
+      const response = await axios.put(
+        `/api/students/program/${selectedStudent.id}`,
+        {
+          student_id: newStudent.student_id,
+          first_name: newStudent.first_name,
+          last_name: newStudent.last_name,
+          program_id: result.data.program_id,
+          year: parseInt(selectedYear),
+          university_id: selectedUniversity,
+          faculty_id: selectedFaculty,
+        }
+      );
+
+      if (response.data) {
+        const updatedStudents = students.map((student) =>
+          student.id === selectedStudent.id ? response.data : student
+        );
+        setStudents(updatedStudents);
+        setShowEditStudentModal(false);
+        showAlert("แก้ไขข้อมูลนักศึกษาเรียบร้อยแล้ว", "success");
+      }
+    } catch (error) {
+      console.error("Error editing student:", error);
+      showAlert("เกิดข้อผิดพลาดในการแก้ไขข้อมูลนักศึกษา", "danger");
+    }
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    if (!window.confirm("คุณต้องการลบนักศึกษาคนนี้ใช่หรือไม่?")) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/api/students/program/${studentId}`);
+      const updatedStudents = students.filter(
+        (student) => student.id !== studentId
+      );
+      setStudents(updatedStudents);
+      showAlert("ลบนักศึกษาเรียบร้อยแล้ว", "success");
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      showAlert("เกิดข้อผิดพลาดในการลบนักศึกษา", "danger");
+    }
+  };
+
+  const handleStudentFileUpload = (e) => {
+    let fileTypes = [
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "text/csv",
+    ];
+    let selectedFile = e.target.files[0];
+
+    // รีเซ็ตค่าของอินพุตไฟล์เพื่อให้สามารถเลือกไฟล์เดิมซ้ำได้
+    e.target.value = "";
+
+    if (selectedFile) {
+      if (fileTypes.includes(selectedFile.type)) {
+        setStudentTypeError(null);
+        let reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = event.target.result;
+            const workbook = XLSX.read(data, { type: "binary" });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+            setStudentExcelData(jsonData);
+            console.log(jsonData);
+          } catch (error) {
+            console.error("Error reading file:", error);
+            alert("Error reading Excel file. Please check the file format.");
+          }
+        };
+        reader.onerror = (error) => {
+          console.error("Error reading file:", error);
+          alert("Error reading file. Please try again.");
+        };
+        reader.readAsBinaryString(selectedFile);
+      } else {
+        setStudentTypeError("Please select only Excel file types");
+        setStudentExcelData(null);
+      }
+    } else {
+      console.log("Please select your file");
+    }
+  };
+
+  const handleStudentUploadButtonClick = async () => {
+    if (studentExcelData && studentExcelData.length > 0) {
+      // ตรวจสอบว่าได้เลือกฟิลเตอร์ครบหรือไม่
+      if (!allFiltersSelected) {
+        window.alert(
+          "กรุณาเลือกมหาวิทยาลัย คณะ โปรแกรม และปีการศึกษาก่อนอัปโหลดข้อมูล"
+        );
+        return;
+      }
+
+      // แสดง confirmation dialog
+      if (
+        !window.confirm(
+          `คุณต้องการอัปโหลดข้อมูลนักศึกษาจำนวน ${studentExcelData.length} รายการใช่หรือไม่?`
+        )
+      ) {
+        return;
+      }
+
+      try {
+        const result = await axios.get(
+          `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
+        );
+
+        // เพิ่มข้อมูลพื้นฐานให้กับแต่ละรายการในไฟล์ Excel
+        const dataToUpload = studentExcelData.map((item) => ({
+          student_id: item.student_id || item["รหัสนักศึกษา"] || "",
+          first_name: item.first_name || item["ชื่อ"] || "",
+          last_name: item.last_name || item["นามสกุล"] || "",
+          program_id: result.data.program_id,
+          year: parseInt(selectedYear),
+          university_id: selectedUniversity,
+          faculty_id: selectedFaculty,
+        }));
+
+        const response = await axios.post(
+          "/api/students/program/excel",
+          dataToUpload
+        );
+
+        if (response.data) {
+          window.alert("อัปโหลดข้อมูลนักศึกษาสำเร็จ");
+          setStudentExcelData(null);
+          fetchStudents(); // รีเฟรชข้อมูลนักศึกษา
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        window.alert(`เกิดข้อผิดพลาด: ${error.message}`);
+      }
+    } else {
+      window.alert("ไม่มีข้อมูลที่จะอัปโหลด กรุณาอัปโหลดไฟล์ก่อน");
+    }
+  };
 
   // ---------* Function *-----------
   async function fetchUniversity() {
@@ -215,7 +427,7 @@ export default function Program() {
       setSelectedProgramName("all");
       fetchAllProgram();
     }
-    console.log("selectedProgram ",);
+    console.log("selectedProgram ");
   }, [selectedFaculty]);
 
   useEffect(() => {
@@ -239,6 +451,7 @@ export default function Program() {
   useEffect(() => {
     if (allFiltersSelected) {
       fetchPlo();
+      fetchStudents();
     }
   }, [allFiltersSelected]);
 
@@ -273,13 +486,13 @@ export default function Program() {
         const updatedProgram = program.map((p) =>
           p.program_id === editProgram.program_id
             ? {
-              ...p,
-              program_name: editFormData.program_name,
-              program_name_th: editFormData.program_name_th,
-              year: editFormData.year,
-              program_shortname_en: editFormData.program_shortname_en,
-              program_shortname_th: editFormData.program_shortname_th,
-            }
+                ...p,
+                program_name: editFormData.program_name,
+                program_name_th: editFormData.program_name_th,
+                year: editFormData.year,
+                program_shortname_en: editFormData.program_shortname_en,
+                program_shortname_th: editFormData.program_shortname_th,
+              }
             : p
         );
         setProgram(updatedProgram);
@@ -305,7 +518,11 @@ export default function Program() {
 
   const handleDeleteProgram = (program_id) => {
     // Confirm before deleting
-    if (!window.confirm("Are you sure you want to delete this program?\nคุณต้องการลบหลักสูตรนี้ใช่หรือไม่?")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this program?\nคุณต้องการลบหลักสูตรนี้ใช่หรือไม่?"
+      )
+    ) {
       return;
     }
 
@@ -345,7 +562,11 @@ export default function Program() {
     setShowLoadPreviousPLOModal(false); // ปิด modal เมื่อเปลี่ยนแท็บ
   };
   const handleDeletePlo = async (ploId) => {
-    if (window.confirm("Are you sure you want to delete this PLO?\nคุณต้องการลบ PLO นี้ใช่หรือไม่?")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this PLO?\nคุณต้องการลบ PLO นี้ใช่หรือไม่?"
+      )
+    ) {
       try {
         const result = await axios.get(
           `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
@@ -627,12 +848,12 @@ export default function Program() {
       if (
         !window.confirm(
           "Do you want to upload " +
-          excelData.length +
-          " PLO records?" +
-          "\n" +
-          "คุณต้องการอัปโหลดข้อมูล PLO จำนวน " +
-          excelData.length +
-          " รายการใช่หรือไม่?"
+            excelData.length +
+            " PLO records?" +
+            "\n" +
+            "คุณต้องการอัปโหลดข้อมูล PLO จำนวน " +
+            excelData.length +
+            " รายการใช่หรือไม่?"
         )
       ) {
         return;
@@ -777,8 +998,7 @@ export default function Program() {
     }
   };
 
-  useEffect(() => {
-  }, [showLoadPreviousPLOModal]);
+  useEffect(() => {}, [showLoadPreviousPLOModal]);
 
   const handleLoadPreviousPLO = async () => {
     try {
@@ -1044,7 +1264,11 @@ export default function Program() {
               onClick={() => handleTabClick(1)}>
               {t("Program Learning Outcomes (PLO)")}
             </li>
-            {/* <li className={`tab-item ${activeTab === 2 ? 'active' : ''}`} onClick={() => handleTabClick(2)}>{t('PLO-Course Mapping')}</li> */}
+            <li
+              className={`tab-item ${activeTab === 2 ? "active" : ""}`}
+              onClick={() => handleTabClick(2)}>
+              {t("Add Student to Program")}
+            </li>
           </ul>
 
           {/* จัดให้ 4 element อยู่ในแถวเดียวกัน */}
@@ -1052,13 +1276,13 @@ export default function Program() {
             className="d-flex flex-row"
             style={{ flexWrap: "nowrap", marginTop: "0px" }}>
             <div className="mb-3 me-2" style={{ width: "380px" }}>
-              <label className="form-label">{t('Choose a university')}</label>
+              <label className="form-label">{t("Choose a university")}</label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "320px" }} // ใช้ style inline แทน
                 value={selectedUniversity}
                 onChange={handleUniversityChange}>
-                <option value="all">{t('All Universities')}</option>
+                <option value="all">{t("All Universities")}</option>
                 {universities.map((university) => (
                   <option
                     key={university.university_id}
@@ -1071,14 +1295,16 @@ export default function Program() {
             </div>
 
             <div className="mb-3 me-2" style={{ width: "380px" }}>
-              <label className="form-label text-start">{t('Choose a Faculty')}</label>
+              <label className="form-label text-start">
+                {t("Choose a Faculty")}
+              </label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "350px" }} // ใช้ style inline แทน
                 value={selectedFaculty}
                 onChange={handleFacultyChange}
                 disabled={!selectedUniversity}>
-                <option value="all">{t('All Facultys')}</option>
+                <option value="all">{t("All Facultys")}</option>
                 {facultys.map((faculty) => (
                   <option key={faculty.faculty_id} value={faculty.faculty_id}>
                     {faculty.faculty_name_th} ({faculty.faculty_name_en})
@@ -1088,14 +1314,16 @@ export default function Program() {
             </div>
 
             <div className="mb-3 me-2" style={{ width: "380px" }}>
-              <label className="form-label text-start">{t('Choose a Program')}</label>
+              <label className="form-label text-start">
+                {t("Choose a Program")}
+              </label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "380px" }} // ใช้ style inline แทน
                 value={selectedProgramName || "all"}
                 onChange={(e) => setSelectedProgramName(e.target.value)}
                 disabled={!selectedFaculty}>
-                <option value="all">{t('All Programs')}</option>
+                <option value="all">{t("All Programs")}</option>
                 {program
                   .filter(
                     (item, index, self) =>
@@ -1115,14 +1343,14 @@ export default function Program() {
             </div>
 
             <div className="mb-3" style={{ width: "120px" }}>
-              <label className="form-label text-start">{t('Year')}</label>
+              <label className="form-label text-start">{t("Year")}</label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "120px" }} // ใช้ style inline แทน
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 disabled={!selectedProgram}>
-                <option value="all">{t('All Years')}</option>
+                <option value="all">{t("All Years")}</option>
                 {years.map((year) => (
                   <option key={year} value={year}>
                     {year}
@@ -1144,7 +1372,7 @@ export default function Program() {
         <div
           className={`tab-content ${activeTab === 0 ? "active" : ""}`}
           style={{ marginTop: 10, marginBottom: 50, width: "75vw" }}>
-          <h3>{t('Program Management')}</h3>
+          <h3>{t("Program Management")}</h3>
           <hr className="my-4" />
 
           {/* Alert notification */}
@@ -1160,64 +1388,69 @@ export default function Program() {
             </div>
           )}
 
-          <h5>{t('Program')}</h5>
-          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <h5>{t("Program")}</h5>
+          <div style={{ maxHeight: "300px", overflowY: "auto" }}>
             <table className="table table-bordered mt-3">
-              <thead style={{ position: 'sticky', top: 0, backgroundColor: '#fff', zIndex: 1 }}>
+              <thead
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "#fff",
+                  zIndex: 1,
+                }}>
                 <tr>
-                  <th>{t('Program Code')}</th>
-                  <th>{t('Program Name')}</th>
-                  <th>{t('ชื่อหลักสูตร (ไทย)')}</th>
-                  <th>{t('Short Name')}</th>
-                  <th>{t('ชื่อย่อ (ไทย)')}</th>
-                  <th>{t('Year')}</th>
-                  <th>{t('Actions')}</th>
+                  <th>{t("Program Code")}</th>
+                  <th>{t("Program Name")}</th>
+                  <th>{t("ชื่อหลักสูตร (ไทย)")}</th>
+                  <th>{t("Short Name")}</th>
+                  <th>{t("ชื่อย่อ (ไทย)")}</th>
+                  <th>{t("Year")}</th>
+                  <th>{t("Actions")}</th>
                 </tr>
               </thead>
               <tbody>
-  {filteredProgram
-    .sort((a, b) => (a.year || 0) - (b.year || 0)) // เรียงจาก year น้อย → มาก
-    .map((p) => (
-      <tr key={p.program_id}>
-        <td>{p.code}</td>
-        <td>{p.program_name}</td>
-        <td>{p.program_name_th || "-"}</td>
-        <td>{p.program_shortname_en || "-"}</td>
-        <td>{p.program_shortname_th || "-"}</td>
-        <td>{p.year || "-"}</td>
-        <td>
-          <div className="d-flex justify-content-center" style={{ gap: "5px" }}>
-            <button
-              className="btn btn-primary btn-sm ms-2"
-              onClick={() => {
-                setInitialProgramValue({
-                  program_id: p.program_id,
-                  code: p.code,
-                  program_name: p.program_name,
-                  program_name_th: p.program_name_th,
-                  program_shortname_en: p.program_shortname_en,
-                  program_shortname_th: p.program_shortname_th,
-                  year: p.year,
-                });
-                setShowPopup(true);
-              }}>
-              Edit
-            </button>
-            <button
-              className="btn btn-danger btn-sm"
-              onClick={() => handleDeleteProgram(p.program_id)}>
-              Delete
-            </button>
-          </div>
-        </td>
-      </tr>
-    ))}
-</tbody>
-
+                {filteredProgram
+                  .sort((a, b) => (a.year || 0) - (b.year || 0)) // เรียงจาก year น้อย → มาก
+                  .map((p) => (
+                    <tr key={p.program_id}>
+                      <td>{p.code}</td>
+                      <td>{p.program_name}</td>
+                      <td>{p.program_name_th || "-"}</td>
+                      <td>{p.program_shortname_en || "-"}</td>
+                      <td>{p.program_shortname_th || "-"}</td>
+                      <td>{p.year || "-"}</td>
+                      <td>
+                        <div
+                          className="d-flex justify-content-center"
+                          style={{ gap: "5px" }}>
+                          <button
+                            className="btn btn-primary btn-sm ms-2"
+                            onClick={() => {
+                              setInitialProgramValue({
+                                program_id: p.program_id,
+                                code: p.code,
+                                program_name: p.program_name,
+                                program_name_th: p.program_name_th,
+                                program_shortname_en: p.program_shortname_en,
+                                program_shortname_th: p.program_shortname_th,
+                                year: p.year,
+                              });
+                              setShowPopup(true);
+                            }}>
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDeleteProgram(p.program_id)}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
             </table>
           </div>
-
-
 
           {showPopup && (
             <EditProgramModal
@@ -1250,11 +1483,11 @@ export default function Program() {
               width: "75vw",
             }}>
             <div className="plo-management-container ">
-              <h3>{t('PLO Management')}</h3>
+              <h3>{t("PLO Management")}</h3>
 
               <hr className="my-4" />
 
-              <h5>{t('PLO List')}</h5>
+              <h5>{t("PLO List")}</h5>
 
               <div className="action-buttons">
                 <div className="button-group">
@@ -1263,14 +1496,14 @@ export default function Program() {
                     className="btn"
                     style={{ backgroundColor: "#FF8C00", color: "white" }}
                     disabled={!allFiltersSelected}>
-                    {t('Add PLO')}
+                    {t("Add PLO")}
                   </button>
 
                   <button
                     onClick={handleLoadPreviousPLO}
                     className="btn btn-secondary"
                     disabled={!allFiltersSelected}>
-                    {t('Load Previous Year PLOs')}
+                    {t("Load Previous Year PLOs")}
                   </button>
                 </div>
 
@@ -1281,7 +1514,7 @@ export default function Program() {
                     }
                     className="btn btn-secondary"
                     disabled={!allFiltersSelected}>
-                    {t('Upload Excel')}
+                    {t("Upload Excel")}
                   </button>
                   <input
                     type="file"
@@ -1310,16 +1543,17 @@ export default function Program() {
                 <>
                   {/* แสดงข้อความเมื่อเลือกฟิลเตอร์ครบแล้ว แต่ไม่มีข้อมูล */}
                   {selectedYear !== "all" && !plos.length && (
-                    <div className="alert alert-info mt-4" style={{ textAlign: "center" }}>
+                    <div
+                      className="alert alert-info mt-4"
+                      style={{ textAlign: "center" }}>
                       {!plos.length ? (
                         <>
-                          No PLO data found for the academic year {selectedYear}.<br />
+                          No PLO data found for the academic year {selectedYear}
+                          .<br />
                           ไม่พบข้อมูล PLO สำหรับปีการศึกษา {selectedYear}
                         </>
                       ) : null}
                     </div>
-
-
                   )}
 
                   {/* PLO Table - แสดงเฉพาะเมื่อเลือก filters ครบแล้ว และมีข้อมูล */}
@@ -1330,60 +1564,73 @@ export default function Program() {
                         <table className="plo-table">
                           <thead>
                             <tr>
-                              <th className="plo-code-col">{t('PLO Code')}</th>
-                              <th className="plo-name-col">{t('PLO Name')}</th>
-                              <th className="plo-actions-col">{t('Actions')}</th>
+                              <th className="plo-code-col">{t("PLO Code")}</th>
+                              <th className="plo-name-col">{t("PLO Name")}</th>
+                              <th className="plo-actions-col">
+                                {t("Actions")}
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
-  {plos.length > 0 ? (
-    [...plos]
-      .sort((a, b) => {
-        const numA = parseInt(a.PLO_code.replace(/\D/g, ""), 10) || 0;
-        const numB = parseInt(b.PLO_code.replace(/\D/g, ""), 10) || 0;
-        return numA - numB;
-      })
-      .map((plo) => (
-        <tr key={plo.PLO_id}>
-          <td>
-            <div className="plo-cell-content text-center">
-              {plo.PLO_code}
-            </div>
-          </td>
-          <td>
-            <div className="plo-cell-content">{plo.PLO_name}</div>
-            {plo.PLO_engname && (
-              <>
-                <div className="my-1 border-t border-gray-300"></div>
-                <div className="plo-cell-secondary">{plo.PLO_engname}</div>
-              </>
-            )}
-          </td>
-          <td>
-            <button
-              className="plo-table-btn plo-edit-btn"
-              onClick={() => handleEditPlo(plo)}
-            >
-              {t("Edit")}
-            </button>
-            <button
-              className="plo-table-btn plo-delete-btn"
-              onClick={() => handleDeletePlo(plo.PLO_id)}
-            >
-              {t("Delete")}
-            </button>
-          </td>
-        </tr>
-      ))
-  ) : (
-    <tr>
-      <td colSpan="3" className="text-center">
-        No PLO data found for the selected filters.
-      </td>
-    </tr>
-  )}
-</tbody>
-
+                            {plos.length > 0 ? (
+                              [...plos]
+                                .sort((a, b) => {
+                                  const numA =
+                                    parseInt(
+                                      a.PLO_code.replace(/\D/g, ""),
+                                      10
+                                    ) || 0;
+                                  const numB =
+                                    parseInt(
+                                      b.PLO_code.replace(/\D/g, ""),
+                                      10
+                                    ) || 0;
+                                  return numA - numB;
+                                })
+                                .map((plo) => (
+                                  <tr key={plo.PLO_id}>
+                                    <td>
+                                      <div className="plo-cell-content text-center">
+                                        {plo.PLO_code}
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <div className="plo-cell-content">
+                                        {plo.PLO_name}
+                                      </div>
+                                      {plo.PLO_engname && (
+                                        <>
+                                          <div className="my-1 border-t border-gray-300"></div>
+                                          <div className="plo-cell-secondary">
+                                            {plo.PLO_engname}
+                                          </div>
+                                        </>
+                                      )}
+                                    </td>
+                                    <td>
+                                      <button
+                                        className="plo-table-btn plo-edit-btn"
+                                        onClick={() => handleEditPlo(plo)}>
+                                        {t("Edit")}
+                                      </button>
+                                      <button
+                                        className="plo-table-btn plo-delete-btn"
+                                        onClick={() =>
+                                          handleDeletePlo(plo.PLO_id)
+                                        }>
+                                        {t("Delete")}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))
+                            ) : (
+                              <tr>
+                                <td colSpan="3" className="text-center">
+                                  No PLO data found for the selected filters.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
                         </table>
                       </div>
                     )}
@@ -1392,6 +1639,394 @@ export default function Program() {
             </div>
           </div>
         </div>
+        <div
+          className={`tab-content ${activeTab === 2 ? "active" : ""}`}
+          style={{ marginTop: 10, marginBottom: 50 }}>
+          <div
+            style={{
+              backgroundColor: "#F0F0F0",
+              minHeight: "0vh",
+              paddingTop: "0px",
+              width: "75vw",
+            }}>
+            <div className="student-management-container">
+              <h3>{t("Student Management")}</h3>
+
+              <hr className="my-4" />
+
+              <h5>{t("Student List")}</h5>
+
+              <div className="action-buttons">
+                <div className="button-group">
+                  <button
+                    onClick={() => setShowAddStudentModal(true)}
+                    className="btn"
+                    style={{ backgroundColor: "#FF8C00", color: "white" }}
+                    disabled={!allFiltersSelected}>
+                    {t("Add Student")}
+                  </button>
+                </div>
+
+                <div className="button-group ms-auto">
+                  <button
+                    onClick={() =>
+                      document.getElementById("uploadStudentFile").click()
+                    }
+                    className="btn btn-secondary"
+                    disabled={!allFiltersSelected}>
+                    {t("Upload Excel")}
+                  </button>
+                  <input
+                    type="file"
+                    id="uploadStudentFile"
+                    style={{ display: "none" }}
+                    accept=".xlsx, .xls"
+                    onChange={handleStudentFileUpload}
+                  />
+                </div>
+              </div>
+
+              {studentTypeError && (
+                <div className="alert alert-danger mb-3">
+                  {studentTypeError}
+                </div>
+              )}
+
+              {!allFiltersSelected ? (
+                <div style={{ marginTop: "20px", textAlign: "center" }}>
+                  <p style={{ fontSize: "16px", color: "#666" }}>
+                    Please select all options to display student data.
+                  </p>
+                  <p style={{ fontSize: "16px", color: "#666" }}>
+                    กรุณาเลือกตัวเลือกให้ครบเพื่อแสดงข้อมูลนักศึกษา
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* แสดงข้อความเมื่อเลือกฟิลเตอร์ครบแล้ว แต่ไม่มีข้อมูล */}
+                  {selectedYear !== "all" && !students.length && (
+                    <div
+                      className="alert alert-info mt-4"
+                      style={{ textAlign: "center" }}>
+                      {!students.length ? (
+                        <>
+                          No student data found for the academic year{" "}
+                          {selectedYear}.<br />
+                          ไม่พบข้อมูลนักศึกษาสำหรับปีการศึกษา {selectedYear}
+                        </>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {/* Student Table - แสดงเฉพาะเมื่อเลือก filters ครบแล้ว */}
+                  {selectedYear !== "all" && (
+                    <div className="student-table-container">
+                      <table className="table table-bordered mt-3">
+                        <thead
+                          style={{
+                            position: "sticky",
+                            top: 0,
+                            backgroundColor: "#fff",
+                            zIndex: 1,
+                          }}>
+                          <tr>
+                            <th>{t("Student ID")}</th>
+                            <th>{t("First Name")}</th>
+                            <th>{t("Last Name")}</th>
+                            <th>{t("Actions")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {students.length > 0 ? (
+                            students.map((student) => (
+                              <tr key={student.id}>
+                                <td>{student.student_id}</td>
+                                <td>{student.first_name}</td>
+                                <td>{student.last_name}</td>
+                                <td>
+                                  <div
+                                    className="d-flex justify-content-center"
+                                    style={{ gap: "5px" }}>
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      onClick={() => {
+                                        setSelectedStudent(student);
+                                        setNewStudent({
+                                          student_id: student.student_id,
+                                          first_name: student.first_name,
+                                          last_name: student.last_name,
+                                        });
+                                        setShowEditStudentModal(true);
+                                      }}>
+                                      {t("Edit")}
+                                    </button>
+                                    <button
+                                      className="btn btn-danger btn-sm"
+                                      onClick={() =>
+                                        handleDeleteStudent(student.id)
+                                      }>
+                                      {t("Delete")}
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="4" className="text-center">
+                                No student data found for the selected filters.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Add Student Modal */}
+        {showAddStudentModal && (
+          <div
+            className="modal show d-block"
+            tabIndex="-1"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">
+                    {t("Add New Student")} ({t("Year")} {selectedYear})
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Close"
+                    onClick={() => setShowAddStudentModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="mb-2">
+                    <label>{t("Student ID")}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newStudent.student_id}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          student_id: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label>{t("First Name")}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newStudent.first_name}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          first_name: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label>{t("Last Name")}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newStudent.last_name}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          last_name: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleAddStudent}>
+                    {t("Add")}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setShowAddStudentModal(false)}>
+                    {t("Cancel")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Student Modal */}
+        {showEditStudentModal && (
+          <div
+            className="modal show d-block"
+            tabIndex="-1"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">
+                    Edit Student (ปี {selectedYear})
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Close"
+                    onClick={() => setShowEditStudentModal(false)}></button>
+                </div>
+
+                <div className="modal-body">
+                  <div className="mb-2">
+                    <label className="form-label">{t("Student ID")}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newStudent.student_id}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          student_id: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label">{t("First Name")}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newStudent.first_name}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          first_name: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label">{t("Last Name")}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newStudent.last_name}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          last_name: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="modal-footer">
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleEditStudent}>
+                    {t("Save")}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setShowEditStudentModal(false)}>
+                    {t("Cancel")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Student Excel Preview Modal */}
+        {studentExcelData !== null && studentExcelData.length > 0 && (
+          <div>
+            <div
+              className="modal show d-block"
+              tabIndex="-1"
+              style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+              <div className="modal-dialog modal-lg modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">{t("Excel Data Preview")}</h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      aria-label="Close"
+                      onClick={() => setStudentExcelData(null)}></button>
+                  </div>
+                  <div className="modal-body">
+                    {studentExcelData.length > 0 ? (
+                      <>
+                        <p>
+                          {t("Found")} {studentExcelData.length}{" "}
+                          {t("student records from Excel file.")}
+                        </p>
+                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                          <table className="table table-bordered table-striped">
+                            <thead
+                              className="table-light"
+                              style={{ position: "sticky", top: 0, zIndex: 1 }}>
+                              <tr>
+                                <th>{t("Student ID")}</th>
+                                <th>{t("First Name")}</th>
+                                <th>{t("Last Name")}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {studentExcelData.map((item, index) => (
+                                <tr key={index}>
+                                  <td>
+                                    {item.student_id ||
+                                      item["รหัสนักศึกษา"] ||
+                                      "-"}
+                                  </td>
+                                  <td>
+                                    {item.first_name || item["ชื่อ"] || "-"}
+                                  </td>
+                                  <td>
+                                    {item.last_name || item["นามสกุล"] || "-"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    ) : (
+                      <p>{t("No data found in the Excel file.")}</p>
+                    )}
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setStudentExcelData(null)}>
+                      {t("Cancel")}
+                    </button>
+                    {studentExcelData.length > 0 && (
+                      <button
+                        className="btn btn-success"
+                        onClick={handleStudentUploadButtonClick}>
+                        {t("Save")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showAddModal && (
           <div
             className="modal show d-block"
@@ -1401,7 +2036,7 @@ export default function Program() {
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title">
-                    {t('Add New PLO')} ({t('Year')} {selectedYear})
+                    {t("Add New PLO")} ({t("Year")} {selectedYear})
                   </h5>
                   <button
                     type="button"
@@ -1411,7 +2046,7 @@ export default function Program() {
                 </div>
                 <div className="modal-body">
                   <div className="mb-2">
-                    <label>{t('PLO Code')}</label>
+                    <label>{t("PLO Code")}</label>
                     <input
                       type="text"
                       className="form-control"
@@ -1422,7 +2057,7 @@ export default function Program() {
                     />
                   </div>
                   <div className="mb-2">
-                    <label>{t('PLO Name (TH)')}</label>
+                    <label>{t("PLO Name (TH)")}</label>
                     <input
                       type="text"
                       className="form-control"
@@ -1433,7 +2068,7 @@ export default function Program() {
                     />
                   </div>
                   <div className="mb-2">
-                    <label>{t('PLO Name (EN)')}</label>
+                    <label>{t("PLO Name (EN)")}</label>
                     <input
                       type="text"
                       className="form-control"
@@ -1446,12 +2081,12 @@ export default function Program() {
                 </div>
                 <div className="modal-footer">
                   <button className="btn btn-primary" onClick={handleAddPlo}>
-                    {t('Add')}
+                    {t("Add")}
                   </button>
                   <button
                     className="btn btn-secondary"
                     onClick={() => setShowAddModal(false)}>
-                    {t('Cancel')}
+                    {t("Cancel")}
                   </button>
                 </div>
               </div>
@@ -1477,7 +2112,7 @@ export default function Program() {
 
                 <div className="modal-body">
                   <div className="mb-2">
-                    <label className="form-label">{('PLO Code')}</label>
+                    <label className="form-label">{"PLO Code"}</label>
                     <input
                       type="text"
                       className="form-control"
@@ -1488,7 +2123,7 @@ export default function Program() {
                     />
                   </div>
                   <div className="mb-2">
-                    <label className="form-label">{t('PLO Name (TH)')}</label>
+                    <label className="form-label">{t("PLO Name (TH)")}</label>
                     <input
                       type="text"
                       className="form-control"
@@ -1499,7 +2134,7 @@ export default function Program() {
                     />
                   </div>
                   <div className="mb-2">
-                    <label className="form-label">{t('PLO Name (EN)')}</label>
+                    <label className="form-label">{t("PLO Name (EN)")}</label>
                     <input
                       type="text"
                       className="form-control"
@@ -1515,15 +2150,13 @@ export default function Program() {
                 </div>
 
                 <div className="modal-footer">
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleSaveEdit}>
-                    {t('Save')}
+                  <button className="btn btn-primary" onClick={handleSaveEdit}>
+                    {t("Save")}
                   </button>
                   <button
                     className="btn btn-secondary"
                     onClick={() => setShowEditModal(false)}>
-                    {t('Cancel')}
+                    {t("Cancel")}
                   </button>
                 </div>
               </div>
@@ -1531,104 +2164,113 @@ export default function Program() {
           </div>
         )}
 
-
         {excelData !== null && excelData.length > 0 && (
-          <div>{excelData && (
-            <div
-              className="modal show d-block"
-              tabIndex="-1"
-              style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-            >
-              <div className="modal-dialog modal-lg modal-dialog-centered">
-                <div className="modal-content">
-                  <div className="modal-header">
-                    <h5 className="modal-title">{t("Excel Data Preview")}</h5>
-                    <button
-                      type="button"
-                      className="btn-close"
-                      aria-label="Close"
-                      onClick={() => setExcelData(null)}
-                    ></button>
-                  </div>
-                  <div className="modal-body">
-                    {excelData.length > 0 ? (
-                      <>
-                        <p>{t("Found")} {excelData.length} {t("PLO records from Excel file.")}</p>
-                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
-                          <table className="table table-bordered table-striped">
-                            <thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 1 }}>
-                              <tr>
-                                <th>{t("PLO Code")}</th>
-                                <th>{t("PLO Name")}</th>
-                                <th>{t("PLO Name (EN)")}</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {excelData.map((item, index) => (
-                                <tr key={index}>
-                                  <td>{item.PLO_code || "-"}</td>
-                                  <td>{item.PLO_name || "-"}</td>
-                                  <td>{item.PLO_engname || "-"}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
-                    ) : (
-                      <p>{t("No data found in the Excel file.")}</p>
-                    )}
-                  </div>
-                  <div className="modal-footer">
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setExcelData(null)}
-                    >
-                      {t("Cancel")}
-                    </button>
-                    {excelData.length > 0 && (
+          <div>
+            {excelData && (
+              <div
+                className="modal show d-block"
+                tabIndex="-1"
+                style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+                <div className="modal-dialog modal-lg modal-dialog-centered">
+                  <div className="modal-content">
+                    <div className="modal-header">
+                      <h5 className="modal-title">{t("Excel Data Preview")}</h5>
                       <button
-                        className="btn btn-success"
-                        onClick={handleUploadButtonClick}
-                      >
-                        {t("Save")}
+                        type="button"
+                        className="btn-close"
+                        aria-label="Close"
+                        onClick={() => setExcelData(null)}></button>
+                    </div>
+                    <div className="modal-body">
+                      {excelData.length > 0 ? (
+                        <>
+                          <p>
+                            {t("Found")} {excelData.length}{" "}
+                            {t("PLO records from Excel file.")}
+                          </p>
+                          <div
+                            style={{ maxHeight: "300px", overflowY: "auto" }}>
+                            <table className="table table-bordered table-striped">
+                              <thead
+                                className="table-light"
+                                style={{
+                                  position: "sticky",
+                                  top: 0,
+                                  zIndex: 1,
+                                }}>
+                                <tr>
+                                  <th>{t("PLO Code")}</th>
+                                  <th>{t("PLO Name")}</th>
+                                  <th>{t("PLO Name (EN)")}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {excelData.map((item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.PLO_code || "-"}</td>
+                                    <td>{item.PLO_name || "-"}</td>
+                                    <td>{item.PLO_engname || "-"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      ) : (
+                        <p>{t("No data found in the Excel file.")}</p>
+                      )}
+                    </div>
+                    <div className="modal-footer">
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => setExcelData(null)}>
+                        {t("Cancel")}
                       </button>
-                    )}
+                      {excelData.length > 0 && (
+                        <button
+                          className="btn btn-success"
+                          onClick={handleUploadButtonClick}>
+                          {t("Save")}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
+            )}
           </div>
         )}
         {showLoadPreviousPLOModal && (
-          <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.3)" }}>
+          <div
+            className="modal show d-block"
+            tabIndex="-1"
+            style={{ backgroundColor: "rgba(0,0,0,0.3)" }}>
             <div className="modal-dialog modal-lg modal-dialog-centered">
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title">
-                    {t('PLOs from previous year')} ({parseInt(selectedYear) - 1})
+                    {t("PLOs from previous year")} ({parseInt(selectedYear) - 1}
+                    )
                   </h5>
                   <button
                     type="button"
                     className="btn-close"
-                    onClick={() => setShowLoadPreviousPLOModal(false)}
-                  ></button>
+                    onClick={() => setShowLoadPreviousPLOModal(false)}></button>
                 </div>
                 <div className="modal-body">
                   {previousYearPLOs.length > 0 ? (
                     <>
                       <p>
-                        {t('Found')} {previousYearPLOs.length} {t('PLOs from previous year')}
+                        {t("Found")} {previousYearPLOs.length}{" "}
+                        {t("PLOs from previous year")}
                       </p>
                       <div style={{ maxHeight: "300px", overflowY: "auto" }}>
                         <table className="table table-bordered">
                           <thead className="table-light">
                             <tr>
-                              <th>{t('PLO Code')}</th>
-                              <th>{t('PLO Name')}</th>
-                              <th>{t('PLO Name (EN)')}</th>
+                              <th>{t("PLO Code")}</th>
+                              <th>{t("PLO Name")}</th>
+                              <th>{t("PLO Name (EN)")}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1644,19 +2286,20 @@ export default function Program() {
                       </div>
                     </>
                   ) : (
-                    <p>{t('No PLO records found from the previous year.')}</p>
+                    <p>{t("No PLO records found from the previous year.")}</p>
                   )}
                 </div>
                 <div className="modal-footer">
                   <button
                     className="btn btn-secondary"
-                    onClick={() => setShowLoadPreviousPLOModal(false)}
-                  >
-                    {t('Cancel')}
+                    onClick={() => setShowLoadPreviousPLOModal(false)}>
+                    {t("Cancel")}
                   </button>
                   {previousYearPLOs.length > 0 && (
-                    <button className="btn btn-success" onClick={handleMergePLOs}>
-                      {t('Import PLOs')}
+                    <button
+                      className="btn btn-success"
+                      onClick={handleMergePLOs}>
+                      {t("Import PLOs")}
                     </button>
                   )}
                 </div>
@@ -1664,7 +2307,6 @@ export default function Program() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

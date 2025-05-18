@@ -661,7 +661,7 @@ li.nav-item .dropdown-menu a:not(.active) {
 
 /* PLO Table */
 .plo-table-container {
-    max-height: 400px; /* ประมาณ 5 แถว */
+  max-height: 400px; /* ประมาณ 5 แถว */
   overflow-y: auto;
   overflow-x: auto;
   margin: 20px 0;
@@ -891,12 +891,6 @@ select:disabled,
   color: #6c757d !important;
 }
 
-/* แก้ไขสีของไอคอนลูกศร dropdown เมื่อ disable */
-select:disabled,
-.form-select:disabled {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
-}
-
 /* Login Page Specific Styles */
 .login-container {
   display: flex;
@@ -1091,14 +1085,14 @@ tr {
 }
 
 .version-section h2::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
   width: 4px;
   height: 18px;
-  background-color: #FF8C00;
+  background-color: #ff8c00;
   border-radius: 2px;
 }
 
@@ -1164,4 +1158,3 @@ tr {
   color: #666;
   font-weight: 400;
 }
-

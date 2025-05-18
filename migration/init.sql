@@ -7,7 +7,7 @@ CREATE TABLE `clo` (
   `CLO_engname` varchar(1000) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `timestamp` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`CLO_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `course` (
   `course_id` int NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE `plo` (
   `PLO_engname` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`PLO_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=91 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `program` (
   `code` VARCHAR(50),
@@ -36,26 +36,26 @@ CREATE TABLE `program` (
   `program_shortname_th` VARCHAR(50),
   `Timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`program_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `role` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `role` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `section` (
   `section_id` int NOT NULL AUTO_INCREMENT,
   PRIMARY KEY (`section_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `semester` (
   `semester_id` int NOT NULL AUTO_INCREMENT,
   `semester_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `Timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`semester_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `course_clo` (
   `course_clo_id` int NOT NULL AUTO_INCREMENT,
@@ -74,7 +74,7 @@ CREATE TABLE `course_clo` (
   CONSTRAINT `course_clo_ibfk_2` FOREIGN KEY (`clo_id`) REFERENCES `clo` (`CLO_id`) ON DELETE CASCADE,
   CONSTRAINT `course_clo_ibfk_3` FOREIGN KEY (`semester_id`) REFERENCES `semester` (`semester_id`) ON DELETE CASCADE,
   CONSTRAINT `course_clo_ibfk_4` FOREIGN KEY (`section_id`) REFERENCES `section` (`section_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `course_plo` (
   `course_plo_id` int NOT NULL AUTO_INCREMENT,
@@ -86,7 +86,7 @@ CREATE TABLE `course_plo` (
   KEY `course_id` (`course_id`),
   CONSTRAINT `course_plo_ibfk_1` FOREIGN KEY (`plo_id`) REFERENCES `plo` (`PLO_id`),
   CONSTRAINT `course_plo_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `course` (`course_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `plo_clo` (
   `PLO_CLO_id` int NOT NULL AUTO_INCREMENT,
@@ -108,7 +108,7 @@ CREATE TABLE `plo_clo` (
   CONSTRAINT `plo_clo_ibfk_3` FOREIGN KEY (`section_id`) REFERENCES `section` (`section_id`),
   CONSTRAINT `plo_clo_ibfk_4` FOREIGN KEY (`PLO_id`) REFERENCES `plo` (`PLO_id`),
   CONSTRAINT `plo_clo_ibfk_5` FOREIGN KEY (`CLO_id`) REFERENCES `clo` (`CLO_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `program_course` (
   `program_course_id` int NOT NULL AUTO_INCREMENT,
@@ -125,7 +125,7 @@ CREATE TABLE `program_course` (
   CONSTRAINT `program_course_ibfk_1` FOREIGN KEY (`semester_id`) REFERENCES `semester` (`semester_id`),
   CONSTRAINT `program_course_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `course` (`course_id`),
   CONSTRAINT `program_course_ibfk_3` FOREIGN KEY (`section_id`) REFERENCES `section` (`section_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `program_plo` (
   `program_PLO_id` int NOT NULL AUTO_INCREMENT,
@@ -136,7 +136,7 @@ CREATE TABLE `program_plo` (
   KEY `plo_id` (`plo_id`),
   CONSTRAINT `program_plo_ibfk_1` FOREIGN KEY (`program_id`) REFERENCES `program` (`program_id`) ON DELETE CASCADE,
   CONSTRAINT `program_plo_ibfk_2` FOREIGN KEY (`plo_id`) REFERENCES `plo` (`PLO_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=79 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE university (
     university_id INT(11) AUTO_INCREMENT PRIMARY KEY,
@@ -170,106 +170,71 @@ CREATE TABLE university_faculty (
     FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-
 CREATE TABLE program_faculty (
     program_id INT(11) NOT NULL,
     faculty_id INT(11) NOT NULL,
     PRIMARY KEY (program_id, faculty_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE `studentdata` (
+CREATE TABLE `student` (
   `student_id` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`student_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `student_program` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `student_id` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `program_id` INT,
+  FOREIGN KEY (`student_id`) REFERENCES `student`(`student_id`),
+  FOREIGN KEY (`program_id`) REFERENCES `program`(`program_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `assignments` (
   `assignment_id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `program_course_id` INT NOT NULL,
   `assignment_name` VARCHAR(255) NOT NULL,
+  `description` TEXT,
+  `total_score` INT,
+  `due_date` DATE,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `faculty_id` INT NOT NULL,
   `university_id` INT NOT NULL,
   FOREIGN KEY (`program_course_id`) REFERENCES `program_course`(`program_course_id`),
   FOREIGN KEY (`faculty_id`) REFERENCES `faculty`(`faculty_id`),
   FOREIGN KEY (`university_id`) REFERENCES `university`(`university_id`)
-);
- ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `assignments_students` (
-  `student_id` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
-  `assignment_id` int NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`student_id`,`assignment_id`),
-  KEY `FK_assignments_students_assignment` (`assignment_id`),
-  CONSTRAINT `FK_assignments_students_assignment` FOREIGN KEY (`assignment_id`) REFERENCES `assignments` (`assignment_id`),
-  CONSTRAINT `FK_assignments_students_student` FOREIGN KEY (`student_id`) REFERENCES `studentdata` (`student_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `assignment_clo_selection` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `clo_id` int NOT NULL,
+CREATE TABLE `assignment_clo` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `assignment_id` int NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `score` int DEFAULT NULL,
-  `weight` int NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `clo_id` int NOT NULL,
+  `weight` DECIMAL NOT NULL,
+  FOREIGN KEY (`clo_id`) REFERENCES `clo`(`CLO_id`),
+  FOREIGN KEY (`assignment_id`) REFERENCES `assignments`(`assignment_id`)
+);
 
+CREATE TABLE `assignment_student` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `assignment_id` INT NOT NULL,
+  `student_id` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `assigned_date` DATE,
+  `submitted_at` DATETIME,
+  `is_submitted` BOOLEAN,
+  FOREIGN KEY (`assignment_id`) REFERENCES `assignments`(`assignment_id`),
+  FOREIGN KEY (`student_id`) REFERENCES `student`(`student_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE student_assignment_scores (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  student_id VARCHAR(20) NOT NULL,
-  assignment_id INT NOT NULL,
-  assignment_clo_id INT NOT NULL,
-  score DECIMAL(5,2) DEFAULT 0 NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (student_id) REFERENCES studentdata(student_id),
-  FOREIGN KEY (assignment_id) REFERENCES assignments(assignment_id),
-  FOREIGN KEY (assignment_clo_id) REFERENCES assignment_clo_selection(id),
-  UNIQUE KEY unique_score (student_id, assignment_id, assignment_clo_id)
-) COLLATE utf8mb4_general_ci;
-
--- Add the id column from assignment_clo_selection to assignments_students table
-ALTER TABLE assignments_students
-ADD COLUMN assignment_clo_id int(11) AFTER assignment_id;
-
--- If you already have data in the table and want to copy id values from assignment_clo_selection 
--- based on matching assignment_id values, you could run:
-UPDATE assignments_students AS as_std
-JOIN assignment_clo_selection AS a_clo ON as_std.assignment_id = a_clo.assignment_id
-SET as_std.assignment_clo_id = a_clo.id;
-
-
--- ลบ Foreign Key Constraints ก่อน 
-ALTER TABLE assignments_students DROP FOREIGN KEY FK_assignments_students_assignment;
-
--- สร้าง UNIQUE INDEX เพิ่มเติม
-ALTER TABLE assignments_students ADD UNIQUE INDEX idx_unique_student_assignment_clo 
-(student_id, assignment_id, assignment_clo_id);
-
--- 1. ลบ Foreign Key ก่อน
-ALTER TABLE assignments_students
-DROP FOREIGN KEY FK_assignments_students_student;
-
--- 2. ลบ Primary Key และ Unique Index
-ALTER TABLE assignments_students
-DROP PRIMARY KEY,
-DROP INDEX idx_unique_student_assignment_clo;
-
--- 3. เพิ่ม ID และตั้งเป็น Primary Key ใหม่
-ALTER TABLE assignments_students
-ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST;
-
--- 4. สร้าง Index เพื่อประสิทธิภาพในการค้นหา
-CREATE INDEX idx_student_id ON assignments_students (student_id);
-CREATE INDEX idx_student_assignment ON assignments_students (student_id, assignment_id);
-CREATE INDEX idx_assignment_clo ON assignments_students (assignment_clo_id);
-
--- 5. สร้าง Foreign Key กลับคืน
-ALTER TABLE assignments_students
-ADD CONSTRAINT FK_assignments_students_student FOREIGN KEY (student_id) REFERENCES studentdata (student_id);
+CREATE TABLE `assignment_grade` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `assignment_student_id` INT NOT NULL,
+  `score` INT,
+  `graded_at` DATETIME,
+  FOREIGN KEY (`assignment_student_id`) REFERENCES `assignment_student`(`id`)
+);
 
 -- ข้อมูลเทส
 SET NAMES 'utf8mb4';

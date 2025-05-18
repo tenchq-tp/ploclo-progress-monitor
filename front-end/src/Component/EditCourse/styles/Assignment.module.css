@@ -1,0 +1,13 @@
+.filter_container {
+  display: grid;
+  width: 20%;
+  margin-left: 20px;
+}
+
+.container {
+  display: flex;
+}
+
+.selector {
+  padding: 6px 20px;
+}

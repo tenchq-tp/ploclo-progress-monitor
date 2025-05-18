@@ -45,21 +45,8 @@ export default function Assignment({
 
   return (
     <>
-      <h1>Assignment</h1>
       <SelectorCourses courses={availableCourses} />
-
-      <dl>
-        <dt>University</dt>
-        <dd>{selectedUniversity}</dd>
-        <dt>Faculty</dt>
-        <dd>{selectedFaculty}</dd>
-        <dt>Program</dt>
-        <dd>{selectedProgram}</dd>
-        <dt>Year</dt>
-        <dd>{selectedYear}</dd>
-        <dt>Semester</dt>
-        <dd>{selectedSemester}</dd>
-      </dl>
+      <AssignmentTable />
     </>
   );
 }
@@ -87,7 +74,6 @@ function SelectorCourses({ courses }) {
       }
     });
     setCourseWithSections(groupedCourses);
-    console.log(selectedCourseName);
   }, [courses]);
 
   const handleCourseChange = (e) => {
@@ -102,29 +88,62 @@ function SelectorCourses({ courses }) {
 
   return (
     <>
-      <div>
-        <label htmlFor="courseSelection">Choose a course</label>
-        <select id="courseSelection" onChange={handleCourseChange}>
-          <option value="">-- Select Course --</option>
-          {courseWithSections.map((course, index) => (
-            <option key={index} value={course.course_name}>
-              {course.course_name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className={styles.container}>
+        <div className={styles.filter_container}>
+          <label htmlFor="courseSelection">Choose a Course</label>
+          <select
+            id="courseSelection"
+            onChange={handleCourseChange}
+            className={styles.selector}>
+            <option value="Test">-- Select Course --</option>
+            {/* {courseWithSections.map((course, index) => (
+              <option key={index} value={course.course_name}>
+                {course.course_name}
+              </option>
+            ))} */}
+            <option>แคลคูลัส 1</option>
+            <option>ฟิสิกส์ 1</option>
+          </select>
+        </div>
 
-      <div>
-        <label htmlFor="sectionSelection">Choose a section</label>
-        <select id="sectionSelection" disabled={!availableSections.length}>
-          <option value="">-- Select Section --</option>
-          {availableSections.map((sec, index) => (
-            <option key={index} value={sec}>
-              Section {sec}
-            </option>
-          ))}
-        </select>
+        <div className={styles.filter_container}>
+          <label htmlFor="sectionSelection">Choose a Section</label>
+          <select id="sectionSelection" className={styles.selector}>
+            <option value="Test">Select section</option>
+            {/* {availableSections.map((sec, index) => (
+              <option key={index} value={sec}>
+                Section {sec}
+              </option>
+            ))} */}
+            <option>1</option>
+            <option>2</option>
+            <option>3</option>
+          </select>
+        </div>
       </div>
+    </>
+  );
+}
+
+function AssignmentTable({ assignments }) {
+  return (
+    <>
+      <section className={styles.table_header}>
+        <h1>Assignments</h1>
+      </section>
+      <section className={styles.table_body}>
+        <table>
+          <thead>
+            <tr>
+              <th> id </th>
+              <th> name </th>
+              <th>  </th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+        </table>
+      </section>
     </>
   );
 }
