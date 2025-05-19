@@ -2,6 +2,8 @@ import axios from "./../../axios";
 import { useEffect, useState } from "react";
 import styles from "./styles/Assignment.module.css";
 import EditAssignmentModal from "./assignment/EditAssignment";
+import * as XLSX from "xlsx";
+import StudentExcel from "./assignment/StudentExcel";
 
 export default function Assignment({
   selectedUniversity,
@@ -21,6 +23,9 @@ export default function Assignment({
   const [assignments, setAssignments] = useState([]);
   const [clos, setClos] = useState([]);
   const [editingAssignment, setEditingAssignment] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [showStudents, setShowStudents] = useState(false);
+  const [selectedAssignmentStudent, setSelectedAssignmentStudent] = useState();
 
   async function fetchCourses() {
     try {
@@ -106,6 +111,9 @@ export default function Assignment({
         assignments={assignments}
         onEdit={(assignment) => setEditingAssignment(assignment)}
         fetchAssignments={fetchAssignments}
+        setStudents={setStudents}
+        setShowStudents={setShowStudents}
+        setSelectedAssignmentStudent={setSelectedAssignmentStudent}
       />
       {editingAssignment && (
         <EditAssignmentModal
@@ -113,6 +121,14 @@ export default function Assignment({
           clos={clos}
           setModal={() => setEditingAssignment(null)}
           refresh={fetchAssignments} // รีเฟรชข้อมูลหลังแก้ไข
+        />
+      )}
+
+      {showStudents && (
+        <StudentExcel
+          students={students}
+          selectedAssignmentStudent={selectedAssignmentStudent }
+          onClose={() => setShowStudents(false)}
         />
       )}
     </>
@@ -206,8 +222,16 @@ function SelectorCourses({
   );
 }
 
-function AssignmentTable({ assignments, onEdit, fetchAssignments }) {
+function AssignmentTable({
+  assignments,
+  onEdit,
+  fetchAssignments,
+  setStudents,
+  setShowStudents,
+  setSelectedAssignmentStudent,
+}) {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [studentData, setStudentData] = useState(null);
 
   async function deleteAssignment(id) {
     try {
@@ -225,9 +249,36 @@ function AssignmentTable({ assignments, onEdit, fetchAssignments }) {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "text/csv",
     ];
+    let selectedFile = e.target.files[0];
+    e.target.value = "";
 
-    setSelectedFile(e.target.files[0]);
-    console.log(e.target.files[0]);
+    if (selectedFile) {
+      if (fileTypes.includes(selectedFile.type)) {
+        let reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = event.target.result;
+            const workbook = XLSX.read(data, { type: "binary" });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+            console.log(jsonData);
+            setStudents(jsonData);
+            setShowStudents(true);
+            setStudentData(jsonData);
+          } catch (error) {
+            console.error("Error reading file: ", error);
+            alert("Error reading file. Please try again");
+          }
+        };
+        reader.readAsArrayBuffer(selectedFile);
+      } else {
+        setStudentData(null);
+      }
+    } else {
+      console.log("Please select your file");
+    }
   }
 
   return (
@@ -259,9 +310,10 @@ function AssignmentTable({ assignments, onEdit, fetchAssignments }) {
                   <td>
                     {/* <button onClick={() => onEdit(assignment)}>Edit</button> */}
                     <button
-                      onClick={() =>
-                        document.getElementById("uploadStudentFile").click()
-                      }>
+                      onClick={() => {
+                        setSelectedAssignmentStudent(assignment.assignment_id);
+                        document.getElementById("uploadStudentFile").click();
+                      }}>
                       มอบหมายงาน
                     </button>
                     <input

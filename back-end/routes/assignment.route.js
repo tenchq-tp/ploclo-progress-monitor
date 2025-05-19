@@ -11,5 +11,6 @@ router.get("/", getAll);
 router.post("/", createOne);
 router.delete("/:assignment_id", deleteOneById);
 router.get("/:program_course_id", getManyByProgramCourse);
+router.post();
 
 export default router;

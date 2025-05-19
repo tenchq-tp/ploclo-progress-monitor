@@ -102,6 +102,12 @@ export async function deleteOneById(req, res) {
     res.status(500).json({ message: "Error while delete assignment" });
   }
 }
+
+export async function assignStudent(req, res) {
+  const { assignment_id, students } = req.body;
+
+  console.log(req.body);
+}
 // export async function getManyBy(req, res) {
 //   const { program_course_id}
 
