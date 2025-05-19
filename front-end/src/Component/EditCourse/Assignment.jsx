@@ -4,6 +4,7 @@ import styles from "./styles/Assignment.module.css";
 import EditAssignmentModal from "./assignment/EditAssignment";
 import * as XLSX from "xlsx";
 import StudentExcel from "./assignment/StudentExcel";
+import StudentScore from "./assignment/StudentScore";
 
 export default function Assignment({
   selectedUniversity,
@@ -26,6 +27,7 @@ export default function Assignment({
   const [students, setStudents] = useState([]);
   const [showStudents, setShowStudents] = useState(false);
   const [selectedAssignmentStudent, setSelectedAssignmentStudent] = useState();
+  const [showScores, setShowScores] = useState(false);
 
   async function fetchCourses() {
     try {
@@ -114,6 +116,7 @@ export default function Assignment({
         setStudents={setStudents}
         setShowStudents={setShowStudents}
         setSelectedAssignmentStudent={setSelectedAssignmentStudent}
+        setShowScores={setShowScores}
       />
       {editingAssignment && (
         <EditAssignmentModal
@@ -127,8 +130,18 @@ export default function Assignment({
       {showStudents && (
         <StudentExcel
           students={students}
-          selectedAssignmentStudent={selectedAssignmentStudent }
+          selectedAssignmentStudent={selectedAssignmentStudent}
           onClose={() => setShowStudents(false)}
+        />
+      )}
+      {/* <StudentScore
+        assignment_id={selectedAssignmentStudent}
+        onClose={() => setShowScores(false)}
+      /> */}
+      {showScores && (
+        <StudentScore
+          assignment_id={selectedAssignmentStudent}
+          onClose={() => setShowScores(false)}
         />
       )}
     </>
@@ -229,6 +242,7 @@ function AssignmentTable({
   setStudents,
   setShowStudents,
   setSelectedAssignmentStudent,
+  setShowScores,
 }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [studentData, setStudentData] = useState(null);
@@ -261,7 +275,10 @@ function AssignmentTable({
             const workbook = XLSX.read(data, { type: "binary" });
             const sheetName = workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(sheet);
+            const jsonData = XLSX.utils.sheet_to_json(sheet, {
+              header: ["student_id", "firstname", "lastname"], // กำหนดชื่อคอลัมน์เอง
+              range: 1, // ข้าม header แถวแรกใน Excel ถ้ามี
+            });
 
             console.log(jsonData);
             setStudents(jsonData);
@@ -308,7 +325,13 @@ function AssignmentTable({
                   <td> {assignment.total_score} </td>
                   <td> {assignment.due_date ? assignment.due_date : "-"} </td>
                   <td>
-                    {/* <button onClick={() => onEdit(assignment)}>Edit</button> */}
+                    <button
+                      onClick={() => {
+                        setSelectedAssignmentStudent(assignment.assignment_id);
+                        setShowScores(true);
+                      }}>
+                      กรอกคะแนน
+                    </button>
                     <button
                       onClick={() => {
                         setSelectedAssignmentStudent(assignment.assignment_id);

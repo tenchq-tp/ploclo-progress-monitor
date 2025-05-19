@@ -46,7 +46,6 @@ export async function createOne(req, res) {
       university_id,
       faculty_id,
     ]);
-    console.log(due_date);
 
     const assignmentId = Number(result.insertId);
 
@@ -105,9 +104,94 @@ export async function deleteOneById(req, res) {
 
 export async function assignStudent(req, res) {
   const { assignment_id, students } = req.body;
+  try {
+    if (!assignment_id || !students || !Array.isArray(students)) {
+      return res.status(400).json({ message: "Invalid input" });
+    }
 
-  console.log(req.body);
+    for (const student of students) {
+      // เช็กว่า student มีอยู่แล้วไหม
+      const [exists] = await pool.query(
+        "SELECT 1 FROM student WHERE student_id = ?",
+        [student.student_id]
+      );
+
+      // ถ้าไม่มี ให้ insert นักเรียนใหม่เข้าไป
+      if (exists.length === 0) {
+        await pool.query(
+          "INSERT INTO student (student_id, firstname, lastname) VALUES (?, ?, ?)",
+          [student.student_id, student.firstname, student.lastname]
+        );
+      }
+    }
+
+    // สร้าง values string และ params array
+    const values = [];
+    const params = [];
+
+    students.forEach((student, index) => {
+      values.push(`(?, ?)`);
+      params.push(assignment_id);
+      params.push(student.student_id);
+    });
+
+    const query = `
+      INSERT INTO assignment_student (assignment_id, student_id)
+      VALUES ${values.join(", ")}
+    `;
+    // ใส่ assignment_id เป็นพารามิเตอร์ตัวแรก
+    await pool.query(query, params);
+
+    res.status(200).json({ message: "Students assigned successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error while assigning students", error });
+  }
 }
+
+export async function getManyWithScore(req, res) {
+  const { assignment_id } = req.params;
+
+  try {
+    const query = `
+      SELECT ass_st.id, a.assignment_id, a.assignment_name, s.first_name, s.last_name, ass_g.score
+      FROM assignment_student AS ass_st
+      LEFT JOIN student AS s ON ass_st.student_id=s.student_id
+      LEFT JOIN assignments AS a ON a.assignment_id=ass_st.assignment_id
+      LEFT JOIN assignment_grade AS ass_g ON ass_st.id=ass_g.assignment_student_id WHERE a.assignment_id=?`;
+    const result = await pool.query(query, [assignment_id]);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Error while update score" });
+  }
+}
+
+export async function updateScore(req, res) {
+  const { student_scores } = req.body;
+  const conn = await pool.getConnection();
+  await conn.beginTransaction();
+
+  try {
+    student_scores.map(async (student_score) => {
+      const queryCheckExist = `SELECT assignment_student_id FROM assignment_grade WHERE assignment_student_id=?`;
+      const exists = await conn.query(queryCheckExist, [student_score.id]);
+      console.log(student_score);
+      console.log(exists);
+      if (exists.length > 0) {
+        const updateQuery = `UPDATE assignment_grade SET score=? WHERE assignment_student_id=?`;
+        await conn.query(updateQuery, [student_score.score, student_score.id]);
+      } else {
+        const query = `INSERT INTO assignment_grade (assignment_student_id, score) VALUES (?, ?)`;
+        await conn.query(query, [student_score.id, student_score.score || 0]);
+      }
+    });
+    conn.commit();
+    conn.release();
+    res.status(200).json({ message: "test" });
+  } catch (error) {
+    res.status(500).json({ messsage: "Test" });
+  }
+}
+
 // export async function getManyBy(req, res) {
 //   const { program_course_id}
 

@@ -221,17 +221,17 @@ CREATE TABLE `assignment_student` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `assignment_id` INT NOT NULL,
   `student_id` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `assigned_date` DATE,
+  `assigned_date` timestamp DEFAULT CURRENT_TIMESTAMP,
   `submitted_at` DATETIME,
-  `is_submitted` BOOLEAN,
-  FOREIGN KEY (`assignment_id`) REFERENCES `assignments`(`assignment_id`),
-  FOREIGN KEY (`student_id`) REFERENCES `student`(`student_id`)
+  `is_submitted` BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (`assignment_id`) REFERENCES `assignments`(`assignment_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`student_id`) REFERENCES `student`(`student_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `assignment_grade` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `assignment_student_id` INT NOT NULL,
-  `score` INT,
+  `score` INT DEFAULT 0,
   `graded_at` DATETIME,
   FOREIGN KEY (`assignment_student_id`) REFERENCES `assignment_student`(`id`)
 );
