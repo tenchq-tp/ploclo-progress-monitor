@@ -194,26 +194,24 @@ async function saveScore(req, res) {
 
 async function getStudentsByProgram(req, res) {
   try {
-    const { program_id, year } = req.query;
+    const { program_id } = req.query;
 
     // ตรวจสอบว่ามีการส่งค่าที่จำเป็นมาหรือไม่
-    if (!program_id || !year) {
+    if (!program_id) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const conn = await pool.getConnection();
-
     // ดึงข้อมูลนักศึกษาจากฐานข้อมูล
     const query = `
-      SELECT id, student_id, first_name, last_name, program_id, year, university_id, faculty_id
-      FROM students 
-      WHERE program_id = ? AND year = ?
-      ORDER BY student_id ASC
+      SELECT s.student_id, s.first_name, s.last_name, sp.program_id
+      FROM student_program AS sp
+      LEFT JOIN student AS s ON s.student_id = sp.student_id
+      WHERE sp.program_id = ?
+      ORDER BY s.student_id ASC
     `;
 
-    const result = await conn.query(query, [program_id, year]);
+    const result = await pool.query(query, [program_id]);
     res.json(result);
-    conn.release();
   } catch (error) {
     console.error("Error fetching students:", error);
     res
@@ -311,34 +309,18 @@ async function addStudent(req, res) {
 // 3. อัปเดตข้อมูลนักศึกษา
 async function updateStudent(req, res) {
   try {
-    const studentId = req.params.id;
-    const {
-      student_id,
-      first_name,
-      last_name,
-      program_id,
-      year,
-      university_id,
-      faculty_id,
-    } = req.body;
+    const student_id = req.params.id;
+    const { first_name, last_name } = req.body;
 
     // ตรวจสอบข้อมูลที่จำเป็น
-    if (
-      !student_id ||
-      !first_name ||
-      !last_name ||
-      !program_id ||
-      !year ||
-      !university_id ||
-      !faculty_id
-    ) {
+    if (!student_id || !first_name || !last_name) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     const conn = await pool.getConnection();
 
     // ตรวจสอบว่ามีนักศึกษาคนนี้หรือไม่
-    const checkQuery = "SELECT id FROM students WHERE id = ?";
+    const checkQuery = "SELECT student_id FROM student WHERE student_id = ?";
     const checkResult = await conn.query(checkQuery, [studentId]);
 
     if (!checkResult || checkResult.length === 0) {
@@ -348,27 +330,17 @@ async function updateStudent(req, res) {
 
     // อัปเดตข้อมูลนักศึกษา
     const query = `
-      UPDATE students
-      SET student_id = ?, first_name = ?, last_name = ?, 
-          program_id = ?, year = ?, university_id = ?, faculty_id = ?
-      WHERE id = ?
+      UPDATE student
+      SET student_id = ?, first_name = ?, last_name = ?
+      WHERE student_id = ?
     `;
 
-    const values = [
-      student_id,
-      first_name,
-      last_name,
-      program_id,
-      year,
-      university_id,
-      faculty_id,
-      studentId,
-    ];
+    const values = [student_id, first_name, last_name];
     await conn.query(query, values);
 
     // ดึงข้อมูลนักศึกษาที่อัปเดตแล้ว
     const updatedStudent = await conn.query(
-      "SELECT * FROM students WHERE id = ?",
+      "SELECT * FROM students WHERE student_id = ?",
       [studentId]
     );
 
@@ -443,7 +415,7 @@ async function importStudentsFromExcel(req, res) {
           const { student_id, first_name, last_name, program_id } = student;
 
           if (!student_id || !first_name || !last_name || !program_id) {
-            console.log(`${student}`);
+            console.log(program_id);
             errorCount++;
             continue;
           }
@@ -454,7 +426,6 @@ async function importStudentsFromExcel(req, res) {
             WHERE student_id = ?
           `;
           const checkResult = await conn.query(checkQuery, [student_id]);
-
           if (checkResult && checkResult.length > 0) {
             // อัปเดตข้อมูลที่มีอยู่แล้ว
             const updateQuery = `
@@ -480,6 +451,16 @@ async function importStudentsFromExcel(req, res) {
             SELECT student_id FROM student_program WHERE student_id = ?
           `;
           const hasProgram = await conn.query(checkProgramQuery, [student_id]);
+          if (hasProgram[0]) {
+            const updateProgramQuery = `UPDATE student_program SET program_id = ? WHERE student_id = ?`;
+            await conn.query(updateProgramQuery, [program_id, student_id]);
+          } else {
+            const insertProgramQuery = `INSERT INTO student_program (student_id, program_id) VALUES (?, ?)`;
+            const insertProgramResult = await conn.query(insertProgramQuery, [
+              student_id,
+              program_id,
+            ]);
+          }
 
           // ดึงข้อมูลนักศึกษาที่เพิ่ม/อัปเดต
           const studentData = await conn.query(
@@ -505,6 +486,7 @@ async function importStudentsFromExcel(req, res) {
       });
     } catch (error) {
       // Rollback transaction ในกรณีที่เกิดข้อผิดพลาด
+      console.log(error);
       await conn.rollback();
       throw error;
     } finally {

@@ -18,6 +18,14 @@ export async function getAll(req, res) {
   }
 }
 
+export async function createOne(req, res) {
+  const { program_course_id}
+
+  try {
+
+  }
+}
+
 // export async function getManyBy(req, res) {
 //   const { program_course_id}
 

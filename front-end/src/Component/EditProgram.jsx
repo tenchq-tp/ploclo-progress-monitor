@@ -108,9 +108,6 @@ export default function Program() {
         first_name: newStudent.first_name,
         last_name: newStudent.last_name,
         program_id: result.data.program_id,
-        year: parseInt(selectedYear),
-        university_id: selectedUniversity,
-        faculty_id: selectedFaculty,
       });
 
       if (response.data) {
@@ -136,15 +133,11 @@ export default function Program() {
       );
 
       const response = await axios.put(
-        `/api/students/program/${selectedStudent.id}`,
+        `/api/students/program/${newStudent.student_id}`,
         {
-          student_id: newStudent.student_id,
           first_name: newStudent.first_name,
           last_name: newStudent.last_name,
           program_id: result.data.program_id,
-          year: parseInt(selectedYear),
-          university_id: selectedUniversity,
-          faculty_id: selectedFaculty,
         }
       );
 
@@ -250,13 +243,10 @@ export default function Program() {
 
         // เพิ่มข้อมูลพื้นฐานให้กับแต่ละรายการในไฟล์ Excel
         const dataToUpload = studentExcelData.map((item) => ({
-          student_id: item.student_id || item["รหัสนักศึกษา"] || "",
+          student_id: item.student_id || item["รหัสนิสิต"] || "",
           first_name: item.first_name || item["ชื่อ"] || "",
           last_name: item.last_name || item["นามสกุล"] || "",
           program_id: result.data.program_id,
-          year: parseInt(selectedYear),
-          university_id: selectedUniversity,
-          faculty_id: selectedFaculty,
         }));
 
         const response = await axios.post(
@@ -1984,21 +1974,24 @@ export default function Program() {
                               </tr>
                             </thead>
                             <tbody>
-                              {studentExcelData.map((item, index) => (
-                                <tr key={index}>
-                                  <td>
-                                    {item.student_id ||
-                                      item["รหัสนักศึกษา"] ||
-                                      "-"}
-                                  </td>
-                                  <td>
-                                    {item.first_name || item["ชื่อ"] || "-"}
-                                  </td>
-                                  <td>
-                                    {item.last_name || item["นามสกุล"] || "-"}
-                                  </td>
-                                </tr>
-                              ))}
+                              {studentExcelData.map((item, index) => {
+                                console.log(item);
+                                return (
+                                  <tr key={index}>
+                                    <td>
+                                      {item.student_id ||
+                                        item["รหัสนิสิต"] ||
+                                        "-"}
+                                    </td>
+                                    <td>
+                                      {item.first_name || item["ชื่อ"] || "-"}
+                                    </td>
+                                    <td>
+                                      {item.last_name || item["นามสกุล"] || "-"}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
