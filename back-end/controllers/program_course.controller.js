@@ -919,7 +919,7 @@ async function updateOneByCourseSectionId(req, res) {
 export async function getManyCourseByProgram(req, res) {
   const { program_id, semester_id, year } = req.query;
   let query = `
-  SELECT pc.course_id, c.course_name, c.course_engName, pc.section_id, pc.program_id, pc.year, pc.semester_id
+  SELECT pc.program_course_id, pc.course_id, c.course_name, c.course_engName, pc.section_id, pc.program_id, pc.year, pc.semester_id
   FROM program_course AS pc
   LEFT JOIN course AS c ON pc.course_id=c.course_id`;
 

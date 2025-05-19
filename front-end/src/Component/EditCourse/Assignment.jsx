@@ -16,6 +16,8 @@ export default function Assignment({
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedCourseName, setSelectedCourseName] = useState("");
   const [selectedCourseSection, setSelectedCourseSection] = useState();
+  const [selectedProgramCourse, setSelectedProgramCourse] = useState();
+  const [assignments, setAssignments] = useState([]);
 
   async function fetchCourses() {
     try {
@@ -33,6 +35,18 @@ export default function Assignment({
     }
   }
 
+  async function fetchAssignments() {
+    try {
+      const response = await axios.get(
+        `/api/assignment/${selectedProgramCourse}`
+      );
+      console.log("assignment ----> ", response);
+      setAssignments(response.data);
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
   useEffect(() => {
     if (
       activeTab === 4 &&
@@ -46,21 +60,41 @@ export default function Assignment({
     }
   }, [activeTab, selectedSemester]);
 
+  useEffect(() => {
+    fetchAssignments();
+  }, [selectedProgramCourse]);
+
   return (
     <>
       <SelectorCourses
         courses={availableCourses}
         setCourse={setSelectedCourseName}
         setSection={setSelectedCourseSection}
+        setProgramCourse={setSelectedProgramCourse}
+        programCourseId={selectedProgramCourse}
       />
       <button onClick={() => setShowAddModal(true)}>Add Assignment</button>
-      {showAddModal && <AddAssignmentModal setModal={setShowAddModal} />}
-      <AssignmentTable />
+      {showAddModal && (
+        <AddAssignmentModal
+          setModal={setShowAddModal}
+          programCourseId={selectedProgramCourse}
+          programCourse={selectedProgramCourse}
+          faculty={selectedFaculty}
+          university={selectedUniversity}
+        />
+      )}
+      <AssignmentTable assignments={assignments} />
     </>
   );
 }
 
-function SelectorCourses({ courses, setCourse, setSection }) {
+function SelectorCourses({
+  courses,
+  setCourse,
+  setSection,
+  setProgramCourse,
+  programCourseId,
+}) {
   const [courseWithSections, setCourseWithSections] = useState([]);
   const [availableSections, setAvailableSections] = useState([]);
 
@@ -72,12 +106,17 @@ function SelectorCourses({ courses, setCourse, setSection }) {
         (c) => c.course_id === course.course_id
       );
       if (existing) {
-        existing.section.push(course.section_id);
+        existing.section.push({
+          section: course.section_id,
+          id: course.program_course_id,
+        });
       } else {
         groupedCourses.push({
           course_id: course.course_id,
           course_name: course.course_name,
-          section: [course.section_id],
+          section: [
+            { section: course.section_id, id: course.program_course_id },
+          ],
         });
       }
     });
@@ -88,6 +127,7 @@ function SelectorCourses({ courses, setCourse, setSection }) {
     const selectedName = e.target.value;
     setCourse(selectedName);
     setSection();
+    setProgramCourse("default");
     const course = courseWithSections.find(
       (c) => c.course_name === selectedName
     );
@@ -117,11 +157,15 @@ function SelectorCourses({ courses, setCourse, setSection }) {
           <select
             id="sectionSelection"
             className={styles.selector}
-            onChange={(e) => setSection(e.target.value)}>
-            <option value="">Select section</option>
+            onChange={(e) => {
+              setSection(e.target.value);
+              setProgramCourse(e.target.value);
+            }}
+            value={programCourseId}>
+            <option value="default">Select section</option>
             {availableSections.map((sec, index) => (
-              <option key={index} value={sec}>
-                Section {sec}
+              <option key={index} value={sec.id}>
+                Section {sec.section}
               </option>
             ))}
           </select>
@@ -131,45 +175,42 @@ function SelectorCourses({ courses, setCourse, setSection }) {
   );
 }
 
-function AssignmentTable({ assignments }) {
+function AssignmentTable({ assignments, programCourseId }) {
   return (
     <>
       <section className={styles.table_header}>
-        <h1>Assignments</h1>
+        <h1>Assignments {programCourseId}</h1>
       </section>
       <section className={styles.table_body}>
         <table>
           <thead>
             <tr>
-              <th> id </th>
-              <th> name </th>
-              <th> description </th>
-              <th> total score </th>
-              <th> due date </th>
+              <th> Id </th>
+              <th> Name </th>
+              <th> Description </th>
+              <th> Total score </th>
+              <th> Due date </th>
+              <th> Action</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td> 1 </td>
-              <td> การบ้าน 1 </td>
-              <td> แก้โจทย์ปัญหาในห้องเรียน </td>
-              <td> 10 </td>
-              <td> 1/1/2029 </td>
-            </tr>
-            <tr>
-              <td> 1 </td>
-              <td> การบ้าน 1 </td>
-              <td> แก้โจทย์ปัญหาในห้องเรียน </td>
-              <td> 10 </td>
-              <td> 1/1/2029 </td>
-            </tr>
-            <tr>
-              <td> 1 </td>
-              <td> การบ้าน 1 </td>
-              <td> แก้โจทย์ปัญหาในห้องเรียน </td>
-              <td> 10 </td>
-              <td> 1/1/2029 </td>
-            </tr>
+            {assignments.length > 0 ? (
+              assignments.map((assignment, index) => (
+                <tr key={index}>
+                  <td> {assignment.assignment_id} </td>
+                  <td> {assignment.assignment_name} </td>
+                  <td> {assignment.description} </td>
+                  <td> {assignment.total_score} </td>
+                  <td> {assignment.due_date ? assignment.due_date : "-"} </td>
+                  <td>
+                    <button>Edit</button>
+                    <button>Delete</button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <p>ยังไม่มีข้อมูลแสดง</p>
+            )}
           </tbody>
         </table>
       </section>
@@ -177,20 +218,25 @@ function AssignmentTable({ assignments }) {
   );
 }
 
-function AddAssignmentModal({
-  course,
-  section,
-  faculty,
-  university,
-  setModal,
-}) {
+function AddAssignmentModal({ programCourse, faculty, university, setModal }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [maxScore, setMaxScore] = useState(0);
   const [dueDate, setDueDate] = useState("");
+  const [activeTab, setActiveTab] = useState("assignment");
   async function addAssignment() {
     try {
-      const respones = await axios.post();
+      const respones = await axios.post("/api/assignment", {
+        program_course_id: programCourse,
+        name,
+        description,
+        max_score: maxScore,
+        due_data: dueDate,
+        faculty_id: faculty,
+        university_id: university,
+      });
+      alert("เพิ่มงานสำเร็จ!");
+      setModal(false);
     } catch (error) {
       console.error(error);
     }
@@ -201,52 +247,78 @@ function AddAssignmentModal({
       <div className={styles.modal}>
         <h2 className={styles.modal_title}>เพิ่มงานใหม่</h2>
 
-        <div className={styles.input_text_section}>
-          <label className={styles.input_label}>ชื่อ</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            type="text"
-            name="title"
-            placeholder="ชื่องาน"
-            className={styles.input_field}
-          />
+        <div className={styles.tab_menu}>
+          <button
+            className={activeTab === "assignment" ? styles.active_tab : ""}
+            onClick={() => setActiveTab("assignment")}>
+            รายละเอียดการบ้าน
+          </button>
+          <button
+            className={activeTab === "clo" ? styles.active_tab : ""}
+            onClick={() => setActiveTab("clo")}>
+            จัดการ CLO
+          </button>
         </div>
 
-        <div className={styles.input_text_section}>
-          <label className={styles.input_label}>รายละเอียด</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            name="description"
-            placeholder="รายละเอียดของงาน"
-            className={styles.input_field}
-            rows="3"
-          />
-        </div>
+        {activeTab === "assignment" && (
+          <div>
+            <div className={styles.input_text_section}>
+              <label className={styles.input_label}>ชื่อ</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                type="text"
+                name="title"
+                placeholder="ชื่องาน"
+                className={styles.input_field}
+              />
+            </div>
 
-        <div className={styles.input_text_section}>
-          <label className={styles.input_label}>คะแนนเต็ม</label>
-          <input
-            value={maxScore}
-            onChange={(e) => setMaxScore(e.target.value)}
-            type="number"
-            name="score"
-            placeholder="เช่น 100"
-            className={styles.input_field}
-          />
-        </div>
+            <div className={styles.input_text_section}>
+              <label className={styles.input_label}>รายละเอียด</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                name="description"
+                placeholder="รายละเอียดของงาน"
+                className={styles.input_field}
+                rows="3"
+              />
+            </div>
 
-        <div className={styles.input_text_section}>
-          <label className={styles.input_label}>กำหนดส่ง</label>
-          <input
-            type="date"
-            name="due_date"
-            className={styles.input_field}
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
-        </div>
+            <div className={styles.input_text_section}>
+              <label className={styles.input_label}>คะแนนเต็ม</label>
+              <input
+                value={maxScore}
+                onChange={(e) => setMaxScore(e.target.value)}
+                type="number"
+                name="score"
+                placeholder="เช่น 100"
+                className={styles.input_field}
+              />
+            </div>
+
+            <div className={styles.input_text_section}>
+              <label className={styles.input_label}>กำหนดส่ง</label>
+              <input
+                type="date"
+                name="due_date"
+                className={styles.input_field}
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === "clo" && (
+          <div>
+            <div>
+              <input type="checkbox" value={"CLO1"} />
+              <label>CLO1 การทำงานเป็นทีม</label>
+            </div>
+          </div>
+        )}
 
         <div className={styles.button_group}>
           <button className={styles.modal_save_btn} onClick={addAssignment}>

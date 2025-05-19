@@ -10,6 +10,7 @@ import CourseTable from "./EditCourse/CourseTable";
 import TableEditCloWeight from "./EditCourse/TableEditCloWeight";
 import CloMapping from "./EditCourse/CloMapping";
 import Assignment from "./EditCourse/Assignment";
+import AddAssignmentModal from "./EditCourse/assignment/AddAssignment";
 
 export default function Course() {
   const [selectedPlo, setSelectedPlo] = useState(null);
@@ -138,6 +139,8 @@ export default function Course() {
   const [sections, setSections] = useState([]);
   const [allWeights, setAllWeights] = useState([]);
   const [courseList, setCourseList] = useState([]);
+  const [selectedProgramCourse, setSelectedProgramCourse] = useState();
+  const [showAddAssignmentModal, setShowAddAssignmentModal] = useState();
 
   useEffect(() => {
     const fetchUniversities = async () => {

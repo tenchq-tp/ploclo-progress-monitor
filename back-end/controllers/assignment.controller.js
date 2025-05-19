@@ -19,13 +19,47 @@ export async function getAll(req, res) {
 }
 
 export async function createOne(req, res) {
-  const { program_course_id}
-
+  const {
+    program_course_id,
+    name,
+    description,
+    max_score,
+    due_date,
+    university_id,
+    faculty_id,
+  } = req.body;
   try {
-
+    const query = `
+      INSERT INTO assignments (program_course_id, assignment_name, description, total_score, due_date, faculty_id, university_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    await pool.query(query, [
+      program_course_id,
+      name,
+      description,
+      max_score,
+      due_date,
+      university_id,
+      faculty_id,
+    ]);
+    res.status(200).json({ body: req.body });
+  } catch (error) {
+    res.status(500).json({ message: "Error while create assignment" });
   }
 }
 
+export async function getManyByProgramCourse(req, res) {
+  const { program_course_id } = req.params;
+  try {
+    const query = `
+      SELECT * FROM assignments WHERE program_course_id=?;
+    `;
+    const result = await pool.query(query, [program_course_id]);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Error while fetch assignment" });
+  }
+}
 // export async function getManyBy(req, res) {
 //   const { program_course_id}
 
