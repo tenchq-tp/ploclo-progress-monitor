@@ -8,6 +8,7 @@ import {
   updateByFilter,
   deleteByFilter,
   getWeightManyWithFilter,
+  getManyByCourseId,
 } from "../controllers/course_clo.controller.js";
 const router = express.Router();
 
@@ -19,5 +20,6 @@ router.get("/filter", getManyByFilter);
 router.put("/filter", updateByFilter);
 router.delete("/filter", deleteByFilter);
 router.get("/weight/filter", getWeightManyWithFilter);
+router.get("/clo", getManyByCourseId);
 
 export default router;

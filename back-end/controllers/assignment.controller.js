@@ -27,13 +27,17 @@ export async function createOne(req, res) {
     due_date,
     university_id,
     faculty_id,
+    clos,
   } = req.body;
+  const conn = await pool.getConnection();
+  await conn.beginTransaction();
+
   try {
-    const query = `
+    const assignmentQuery = `
       INSERT INTO assignments (program_course_id, assignment_name, description, total_score, due_date, faculty_id, university_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    await pool.query(query, [
+    const result = await conn.query(assignmentQuery, [
       program_course_id,
       name,
       description,
@@ -42,9 +46,36 @@ export async function createOne(req, res) {
       university_id,
       faculty_id,
     ]);
-    res.status(200).json({ body: req.body });
+    console.log(due_date);
+
+    const assignmentId = Number(result.insertId);
+
+    if (clos && clos.length > 0) {
+      const cloInsertQuery = `
+    INSERT INTO assignment_clo (assignment_id, clo_id, weight)
+    VALUES ${clos.map(() => "(?, ?, ?)").join(", ")}
+  `;
+
+      const cloValues = clos.flatMap((clo) => [
+        assignmentId,
+        clo.id,
+        parseFloat(clo.weight),
+      ]);
+
+      await conn.query(cloInsertQuery, cloValues);
+    }
+
+    await conn.commit();
+    res
+      .status(200)
+      .json({ message: "Assignment created successfully", assignmentId });
   } catch (error) {
-    res.status(500).json({ message: "Error while create assignment" });
+    conn.rollback();
+    res
+      .status(500)
+      .json({ message: "Error while create assignment", error: error.message });
+  } finally {
+    conn.release();
   }
 }
 
@@ -58,6 +89,17 @@ export async function getManyByProgramCourse(req, res) {
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: "Error while fetch assignment" });
+  }
+}
+
+export async function deleteOneById(req, res) {
+  const { assignment_id } = req.params;
+  try {
+    const query = `DELETE FROM assignments WHERE assignment_id = ?`;
+    await pool.query(query, [assignment_id]);
+    res.status(200).json({ message: "delete successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error while delete assignment" });
   }
 }
 // export async function getManyBy(req, res) {

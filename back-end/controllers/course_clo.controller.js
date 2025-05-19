@@ -8,12 +8,11 @@ async function getAll(req, res) {
         LEFT JOIN course_clo AS course
         ON c.CLO_id = course.clo_id WHERE course.course_id IS NOT NULL;`;
     const clos = await conn.query(query);
+    conn.release();
     res.json(clos);
   } catch (err) {
     console.error("Error fetching CLOs:", err);
     res.status(500).json({ success: false, message: "Database error" });
-  } finally {
-    if (conn) conn.release();
   }
 }
 
@@ -499,6 +498,21 @@ async function getWeightManyWithFilter(req, res) {
     res.status(500).json({ message: "Database error" });
   } finally {
     if (conn) conn.release();
+  }
+}
+
+export async function getManyByCourseId(req, res) {
+  const { course_id, year } = req.query;
+  console.log(req.query);
+  try {
+    const query = `SELECT cc.course_clo_id, cc.weight, c.CLO_code, c.CLO_name
+FROM course_clo AS cc
+LEFT JOIN clo AS c ON c.clo_id=cc.clo_id WHERE cc.course_id=? AND cc.year=?`;
+
+    const result = await pool.query(query, [course_id, year]);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Error while fetch clo by courseId" });
   }
 }
 

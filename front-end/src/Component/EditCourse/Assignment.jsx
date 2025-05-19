@@ -1,6 +1,7 @@
 import axios from "./../../axios";
 import { useEffect, useState } from "react";
 import styles from "./styles/Assignment.module.css";
+import EditAssignmentModal from "./assignment/EditAssignment";
 
 export default function Assignment({
   selectedUniversity,
@@ -18,6 +19,8 @@ export default function Assignment({
   const [selectedCourseSection, setSelectedCourseSection] = useState();
   const [selectedProgramCourse, setSelectedProgramCourse] = useState();
   const [assignments, setAssignments] = useState([]);
+  const [clos, setClos] = useState([]);
+  const [editingAssignment, setEditingAssignment] = useState(null);
 
   async function fetchCourses() {
     try {
@@ -40,8 +43,21 @@ export default function Assignment({
       const response = await axios.get(
         `/api/assignment/${selectedProgramCourse}`
       );
-      console.log("assignment ----> ", response);
       setAssignments(response.data);
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+  async function fetchClo() {
+    try {
+      const response = await axios.get("/api/course-clo/clo", {
+        params: {
+          course_id: selectedCourseName,
+          year: selectedYear,
+        },
+      });
+      setClos(response.data);
     } catch (error) {
       setError(error.message);
     }
@@ -62,6 +78,7 @@ export default function Assignment({
 
   useEffect(() => {
     fetchAssignments();
+    fetchClo();
   }, [selectedProgramCourse]);
 
   return (
@@ -73,7 +90,7 @@ export default function Assignment({
         setProgramCourse={setSelectedProgramCourse}
         programCourseId={selectedProgramCourse}
       />
-      <button onClick={() => setShowAddModal(true)}>Add Assignment</button>
+      <button onClick={() => setShowAddModal(true)}>เพิ่ม</button>
       {showAddModal && (
         <AddAssignmentModal
           setModal={setShowAddModal}
@@ -81,9 +98,23 @@ export default function Assignment({
           programCourse={selectedProgramCourse}
           faculty={selectedFaculty}
           university={selectedUniversity}
+          clos={clos}
+          fetchAssignments={fetchAssignments}
         />
       )}
-      <AssignmentTable assignments={assignments} />
+      <AssignmentTable
+        assignments={assignments}
+        onEdit={(assignment) => setEditingAssignment(assignment)}
+        fetchAssignments={fetchAssignments}
+      />
+      {editingAssignment && (
+        <EditAssignmentModal
+          assignment={editingAssignment}
+          clos={clos}
+          setModal={() => setEditingAssignment(null)}
+          refresh={fetchAssignments} // รีเฟรชข้อมูลหลังแก้ไข
+        />
+      )}
     </>
   );
 }
@@ -128,9 +159,9 @@ function SelectorCourses({
     setCourse(selectedName);
     setSection();
     setProgramCourse("default");
-    const course = courseWithSections.find(
-      (c) => c.course_name === selectedName
-    );
+    const course = courseWithSections.find((c) => {
+      return c.course_id == selectedName;
+    });
     setAvailableSections(course ? course.section : []);
   };
 
@@ -145,7 +176,7 @@ function SelectorCourses({
             className={styles.selector}>
             <option value="">-- Select Course --</option>
             {courseWithSections.map((course, index) => (
-              <option key={index} value={course.course_name}>
+              <option key={index} value={course.course_id}>
                 {course.course_name}
               </option>
             ))}
@@ -175,11 +206,34 @@ function SelectorCourses({
   );
 }
 
-function AssignmentTable({ assignments, programCourseId }) {
+function AssignmentTable({ assignments, onEdit, fetchAssignments }) {
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  async function deleteAssignment(id) {
+    try {
+      const response = await axios.delete(`/api/assignment/${id}`);
+      alert("ลบงานเสร็จสิ้น");
+    } catch (error) {
+      console.log(error.message);
+    }
+    fetchAssignments();
+  }
+
+  function handleFileUpload(e) {
+    let fileTypes = [
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "text/csv",
+    ];
+
+    setSelectedFile(e.target.files[0]);
+    console.log(e.target.files[0]);
+  }
+
   return (
     <>
       <section className={styles.table_header}>
-        <h1>Assignments {programCourseId}</h1>
+        <h1>Assignments</h1>
       </section>
       <section className={styles.table_body}>
         <table>
@@ -203,8 +257,26 @@ function AssignmentTable({ assignments, programCourseId }) {
                   <td> {assignment.total_score} </td>
                   <td> {assignment.due_date ? assignment.due_date : "-"} </td>
                   <td>
-                    <button>Edit</button>
-                    <button>Delete</button>
+                    {/* <button onClick={() => onEdit(assignment)}>Edit</button> */}
+                    <button
+                      onClick={() =>
+                        document.getElementById("uploadStudentFile").click()
+                      }>
+                      มอบหมายงาน
+                    </button>
+                    <input
+                      type="file"
+                      id="uploadStudentFile"
+                      style={{ display: "none" }}
+                      accept=".xlsx, .xls"
+                      onChange={handleFileUpload}
+                    />
+                    <button
+                      onClick={() =>
+                        deleteAssignment(assignment.assignment_id)
+                      }>
+                      ลบ
+                    </button>
                   </td>
                 </tr>
               ))
@@ -218,28 +290,59 @@ function AssignmentTable({ assignments, programCourseId }) {
   );
 }
 
-function AddAssignmentModal({ programCourse, faculty, university, setModal }) {
+function AddAssignmentModal({
+  programCourse,
+  faculty,
+  university,
+  setModal,
+  clos,
+  fetchAssignments,
+}) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [maxScore, setMaxScore] = useState(0);
   const [dueDate, setDueDate] = useState("");
   const [activeTab, setActiveTab] = useState("assignment");
+  const [selectedClos, setSelectedClos] = useState([]);
+  const [cloWeights, setCloWeights] = useState({});
+
   async function addAssignment() {
     try {
+      const closPayload = selectedClos.map((id) => ({
+        id,
+        weight: parseFloat(cloWeights[id] || 0),
+      }));
+
       const respones = await axios.post("/api/assignment", {
         program_course_id: programCourse,
         name,
         description,
         max_score: maxScore,
-        due_data: dueDate,
+        due_date: dueDate,
         faculty_id: faculty,
         university_id: university,
+        clos: closPayload,
       });
       alert("เพิ่มงานสำเร็จ!");
       setModal(false);
+      fetchAssignments();
     } catch (error) {
       console.error(error);
     }
+  }
+
+  function toggleClo(id) {
+    console.log(selectedClos);
+    setSelectedClos((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  }
+
+  function onWeightChange(id, value) {
+    setCloWeights((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
   }
 
   return (
@@ -313,10 +416,29 @@ function AddAssignmentModal({ programCourse, faculty, university, setModal }) {
 
         {activeTab === "clo" && (
           <div>
-            <div>
-              <input type="checkbox" value={"CLO1"} />
-              <label>CLO1 การทำงานเป็นทีม</label>
-            </div>
+            {clos.map((clo, index) => (
+              <div key={index}>
+                <input
+                  type="checkbox"
+                  value={clo.course_clo_id}
+                  checked={selectedClos.includes(clo.course_clo_id)}
+                  onChange={() => toggleClo(clo.course_clo_id)}
+                />
+                <label>{`${clo.CLO_code} ${clo.CLO_name}`}</label>
+
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  placeholder="น้ำหนัก"
+                  value={cloWeights[clo.course_clo_id] || ""}
+                  onChange={(e) =>
+                    onWeightChange(clo.course_clo_id, e.target.value)
+                  }
+                  disabled={!selectedClos.includes(clo.course_clo_id)}
+                />
+              </div>
+            ))}
           </div>
         )}
 

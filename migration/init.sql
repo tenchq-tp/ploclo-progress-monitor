@@ -212,7 +212,7 @@ CREATE TABLE `assignment_clo` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `assignment_id` int NOT NULL,
   `clo_id` int NOT NULL,
-  `weight` DECIMAL NOT NULL,
+  `weight` DECIMAL(10,2) NOT NULL,
   FOREIGN KEY (`clo_id`) REFERENCES `clo`(`CLO_id`),
   FOREIGN KEY (`assignment_id`) REFERENCES `assignments`(`assignment_id`)
 );
