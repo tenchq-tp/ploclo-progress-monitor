@@ -214,7 +214,7 @@ CREATE TABLE `assignment_clo` (
   `clo_id` int NOT NULL,
   `weight` DECIMAL(10,2) NOT NULL,
   FOREIGN KEY (`clo_id`) REFERENCES `clo`(`CLO_id`),
-  FOREIGN KEY (`assignment_id`) REFERENCES `assignments`(`assignment_id`)
+  FOREIGN KEY (`assignment_id`) REFERENCES `assignments`(`assignment_id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `assignment_student` (
@@ -233,7 +233,7 @@ CREATE TABLE `assignment_grade` (
   `assignment_student_id` INT NOT NULL,
   `score` INT DEFAULT 0,
   `graded_at` DATETIME,
-  FOREIGN KEY (`assignment_student_id`) REFERENCES `assignment_student`(`id`)
+  FOREIGN KEY (`assignment_student_id`) REFERENCES `assignment_student`(`id`) ON DELETE CASCADE
 );
 
 -- ข้อมูลเทส

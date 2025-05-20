@@ -134,10 +134,6 @@ export default function Assignment({
           onClose={() => setShowStudents(false)}
         />
       )}
-      {/* <StudentScore
-        assignment_id={selectedAssignmentStudent}
-        onClose={() => setShowScores(false)}
-      /> */}
       {showScores && (
         <StudentScore
           assignment_id={selectedAssignmentStudent}

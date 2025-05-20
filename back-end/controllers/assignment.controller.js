@@ -98,7 +98,7 @@ export async function deleteOneById(req, res) {
     await pool.query(query, [assignment_id]);
     res.status(200).json({ message: "delete successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error while delete assignment" });
+    res.status(500).json({ message: "Error while delete assignment", error });
   }
 }
 
