@@ -500,6 +500,35 @@ async function importStudentsFromExcel(req, res) {
   }
 }
 
+export async function getOneById(req, res) {
+  const { student_id } = req.params;
+
+  const query = `SELECT
+      s.student_id,
+      s.first_name,
+        s.last_name,
+        p.program_name,
+        p.program_name_th,
+        p.year,
+        f.faculty_name_th,
+        f.faculty_name_en
+    FROM student_program AS st
+    LEFT JOIN student AS s ON s.student_id=st.student_id
+    LEFT JOIN program AS p ON p.program_id=st.program_id
+    LEFT JOIN program_faculty AS pf ON pf.program_id=p.program_id
+    LEFT JOIN faculty AS f ON f.faculty_id=pf.faculty_id
+    WHERE s.student_id=?`;
+  try {
+    const result = await pool.query(query, [student_id]);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({
+      message: "Error while get a student by student id",
+      error: error.message,
+    });
+  }
+}
+
 export {
   insertStudent,
   getAll,
