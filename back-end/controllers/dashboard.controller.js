@@ -168,3 +168,128 @@ export async function getStudentCLOReport(req, res) {
     });
   }
 }
+
+export async function getAvgReport(req, res) {
+  const { program_id } = req.params;
+
+  const query_clo = `WITH assignment_details AS (
+  SELECT
+    c.course_id,
+    c.course_name,
+    clo.CLO_id,
+    clo.CLO_code,
+    ac.weight AS clo_weight,
+    a.total_score,
+    ag.score,
+    (ag.score / a.total_score) * ac.weight AS clo_contribution_score,
+    pc.program_id
+  FROM clo
+  JOIN assignment_clo ac ON clo.CLO_id = ac.clo_id
+  JOIN assignments a ON ac.assignment_id = a.assignment_id
+  JOIN program_course pc ON a.program_course_id = pc.program_course_id
+  JOIN course c ON pc.course_id = c.course_id
+  LEFT JOIN assignment_student ast ON ast.assignment_id = a.assignment_id
+  LEFT JOIN assignment_grade ag ON ag.assignment_student_id = ast.id
+  WHERE pc.program_id = ?
+),
+
+clo_summary AS (
+  SELECT
+    course_id,
+    course_name,
+    CLO_id,
+    CLO_code,
+    SUM(clo_contribution_score) AS total_score,
+    SUM(clo_weight) AS total_weight,
+    (SUM(clo_contribution_score) / SUM(clo_weight)) * 100 AS avg_clo_score_percent
+  FROM assignment_details
+  GROUP BY course_id, CLO_id, CLO_code, course_name
+)
+
+SELECT
+  course_id,
+  course_name,
+  CLO_id,
+  CLO_code,
+  ROUND(avg_clo_score_percent, 2) AS avg_clo_score_percent
+FROM clo_summary
+ORDER BY course_id, CLO_id;
+    `;
+  const query_plo = `WITH assignment_details AS (
+      SELECT
+        c.course_id,
+        c.course_name,
+        clo.CLO_id,
+        clo.CLO_code,
+        ac.weight AS clo_weight,
+        a.total_score,
+        ag.score,
+        (ag.score / a.total_score) * ac.weight AS clo_contribution_score,
+        pc.program_id
+      FROM clo
+      JOIN assignment_clo ac ON clo.CLO_id = ac.clo_id
+      JOIN assignments a ON ac.assignment_id = a.assignment_id
+      JOIN program_course pc ON a.program_course_id = pc.program_course_id
+      JOIN course c ON pc.course_id = c.course_id
+      LEFT JOIN assignment_student ast ON ast.assignment_id = a.assignment_id
+      LEFT JOIN assignment_grade ag ON ag.assignment_student_id = ast.id
+      WHERE pc.program_id = ?
+    ),
+
+    clo_summary AS (
+      SELECT
+        course_id,
+        CLO_id,
+        SUM(clo_contribution_score) AS total_score,
+        SUM(clo_weight) AS total_weight,
+        (SUM(clo_contribution_score) / SUM(clo_weight)) AS clo_score_ratio
+      FROM assignment_details
+      GROUP BY course_id, CLO_id
+    ),
+
+    plo_mapping AS (
+      SELECT
+        pc.course_id,
+        p.PLO_id,
+        p.PLO_code,
+        clo.CLO_id,
+        pm.weight
+      FROM plo p
+      JOIN plo_clo pm ON p.PLO_id = pm.PLO_id
+      JOIN clo ON clo.CLO_id = pm.CLO_id
+      JOIN program_course pc ON pm.course_id = pc.course_id
+      WHERE pc.program_id = ?
+    ),
+
+    plo_summary AS (
+      SELECT
+        pm.PLO_id,
+        pm.PLO_code,
+        SUM(cs.clo_score_ratio * pm.weight) AS weighted_score,
+        SUM(pm.weight) AS total_weight,
+        (SUM(cs.clo_score_ratio * pm.weight) / SUM(pm.weight)) * 100 AS avg_plo_score_percent
+      FROM plo_mapping pm
+      LEFT JOIN clo_summary cs ON pm.course_id = cs.course_id AND pm.CLO_id = cs.CLO_id
+      GROUP BY pm.PLO_id, pm.PLO_code
+    )
+
+    SELECT
+      PLO_id,
+      PLO_code,
+      ROUND(avg_plo_score_percent, 2) AS avg_plo_score_percent
+    FROM plo_summary
+    ORDER BY PLO_id;
+
+    `;
+
+  try {
+    const clo = await pool.query(query_clo, [program_id]);
+
+    const plo = await pool.query(query_plo, [program_id, program_id]);
+    res.status(200).json({ clo, plo });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error while fetch report", error: error.message });
+  }
+}

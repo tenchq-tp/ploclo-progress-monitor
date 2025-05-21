@@ -16,7 +16,6 @@ import EditCourse from "./Component/EditCourse.jsx";
 import StudentData from "./Component/StudentData.jsx";
 import React, { useState, useEffect } from "react";
 import ManageAccount from "./Component/manageAccount.jsx";
-import Dashboard from "./Dashboard.jsx";
 
 function App() {
   const [role, setRole] = useState(null);
