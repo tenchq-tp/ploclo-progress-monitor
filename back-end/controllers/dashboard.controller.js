@@ -4,7 +4,7 @@ export async function getStudentCLOReport(req, res) {
   const { student_id } = req.params;
 
   try {
-    const query = `-- รายละเอียดคะแนนต่อ CLO แยกรายวิชา
+    const query = `
     WITH assignment_details AS (
       SELECT
         s.student_id,
@@ -96,8 +96,71 @@ export async function getStudentCLOReport(req, res) {
     ORDER BY course_id, record_type DESC, clo_id, assignment_id;
   `;
 
-    const result = await pool.query(query, [student_id]);
-    res.status(200).json(result);
+    const query_plo = `WITH assignment_details AS (
+      SELECT
+        s.student_id,
+        CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+        a.assignment_id,
+        a.total_score,
+        ag.score AS student_score,
+        ac.clo_id,
+        clo.CLO_code,
+        ac.weight AS clo_weight,
+        (ag.score / a.total_score) * ac.weight AS clo_contribution_score
+      FROM student s
+      JOIN assignment_student ast ON s.student_id = ast.student_id
+      JOIN assignment_grade ag ON ag.assignment_student_id = ast.id
+      JOIN assignments a ON ast.assignment_id = a.assignment_id
+      JOIN assignment_clo ac ON a.assignment_id = ac.assignment_id
+      JOIN clo ON ac.clo_id = clo.CLO_id
+      WHERE s.student_id = ?
+    ),
+
+    clo_summary AS (
+      SELECT
+        student_id,
+        clo_id,
+        SUM(clo_contribution_score) AS clo_score,
+        SUM(clo_weight) AS total_weight,
+        (SUM(clo_contribution_score) / SUM(clo_weight)) AS clo_score_ratio
+      FROM assignment_details
+      GROUP BY student_id, clo_id
+    ),
+
+    plo_summary AS (
+      SELECT
+        cs.student_id,
+        p.PLO_id,
+        p.PLO_code,
+        p.PLO_name,
+        SUM(cs.clo_score_ratio * pc.weight) / SUM(pc.weight) AS plo_score_ratio,
+        (SUM(cs.clo_score_ratio * pc.weight) / SUM(pc.weight)) * 100 AS plo_score_percent,
+        CASE
+          WHEN (SUM(cs.clo_score_ratio * pc.weight) / SUM(pc.weight)) * 100 >= 50 THEN 'PASS'
+          ELSE 'FAIL'
+        END AS plo_status
+      FROM clo_summary cs
+      JOIN plo_clo pc ON cs.clo_id = pc.CLO_id
+      JOIN plo p ON pc.PLO_id = p.PLO_id
+      GROUP BY cs.student_id, p.PLO_id
+    )
+
+    SELECT
+      student_id,
+      PLO_id,
+      PLO_code,
+      PLO_name,
+      plo_score_percent,
+      plo_status
+    FROM plo_summary
+    ORDER BY PLO_id;
+    `;
+
+    const clo = await pool.query(query, [student_id]);
+
+    const plo = await pool.query(query, [student_id]);
+
+    res.status(200).json({ clo, plo });
   } catch (error) {
     res.status(500).json({
       message: "Failed while get student CLO Report",
