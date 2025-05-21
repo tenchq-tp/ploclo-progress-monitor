@@ -1,352 +1,107 @@
 import pool from "../utils/db.js";
 
-export async function getPloScoresByStudent(req, res) {
+export async function getStudentCLOReport(req, res) {
   const { student_id } = req.params;
-  const year = req.query.year || 2025; // ใส่ default ปีไว้ ถ้าไม่ส่ง query string
 
   try {
-    const rows = await pool.query(
-      `
-      WITH student_clo_score AS (
-        SELECT
-            astu.student_id,
-            ac.clo_id,
-            SUM((ag.score / a.total_score) * ac.weight * a.total_score) AS clo_score
-        FROM
-            assignments a
-        JOIN assignment_clo ac ON a.assignment_id = ac.assignment_id
-        JOIN assignment_student astu ON a.assignment_id = astu.assignment_id
-        JOIN assignment_grade ag ON ag.assignment_student_id = astu.id
-        WHERE
-            astu.student_id = ?
-        GROUP BY
-            astu.student_id, ac.clo_id
-      )
+    const query = `-- รายละเอียดคะแนนต่อ CLO แยกรายวิชา
+    WITH assignment_details AS (
       SELECT
-          p.PLO_id,
-          SUM(sc.clo_score * (p.weight / 100)) AS plo_score
-      FROM
-          student_clo_score sc
-      JOIN
-          plo_clo p ON sc.clo_id = p.CLO_id
-      WHERE
-          p.year = ?
-      GROUP BY
-          p.PLO_id
-      ORDER BY
-          p.PLO_id
-      `,
-      [student_id, year]
-    );
+        s.student_id,
+        CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+        c.course_id,
+        c.course_name,
+        a.assignment_id,
+        a.assignment_name,
+        a.total_score,
+        ag.score AS student_score,
+        ac.clo_id,
+        clo.CLO_code,
+        clo.CLO_name,
+        ac.weight AS clo_weight,
+        (ag.score / a.total_score) * ac.weight AS clo_contribution_score
+      FROM student s
+      JOIN assignment_student ast ON s.student_id = ast.student_id
+      JOIN assignment_grade ag ON ag.assignment_student_id = ast.id
+      JOIN assignments a ON ast.assignment_id = a.assignment_id
+      JOIN program_course pc ON a.program_course_id = pc.program_course_id
+      JOIN course c ON pc.course_id = c.course_id
+      JOIN assignment_clo ac ON a.assignment_id = ac.assignment_id
+      JOIN clo ON ac.clo_id = clo.CLO_id
+      WHERE s.student_id = ?
+    ),
 
-    if (!rows || rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No PLO scores found for this student." });
-    }
+    clo_summary AS (
+      SELECT
+        student_id,
+        course_id,
+        course_name,
+        clo_id,
+        CLO_code,
+        CLO_name,
+        SUM(clo_contribution_score) AS clo_score,
+        SUM(clo_weight) AS total_weight,
+        (SUM(clo_contribution_score) / SUM(clo_weight)) * 100 AS clo_score_percent,
+        CASE 
+          WHEN (SUM(clo_contribution_score) / SUM(clo_weight)) * 100 >= 50 THEN 'PASS'
+          ELSE 'FAIL'
+        END AS clo_status
+      FROM assignment_details
+      GROUP BY student_id, course_id, clo_id
+    )
 
-    res.status(200).json(rows);
-  } catch (err) {
-    console.error("Database error:", err);
+    -- รวมทั้งรายละเอียด Assignment และสรุป CLO
+    SELECT
+      'DETAIL' AS record_type,
+      ad.student_id,
+      ad.student_name,
+      ad.course_id,
+      ad.course_name,
+      ad.assignment_id,
+      ad.assignment_name,
+      ad.total_score,
+      ad.student_score,
+      ad.clo_id,
+      ad.CLO_code,
+      ad.CLO_name,
+      ad.clo_weight,
+      ad.clo_contribution_score,
+      NULL AS clo_score,
+      NULL AS clo_score_percent,
+      NULL AS clo_status
+    FROM assignment_details ad
+
+    UNION ALL
+
+    SELECT
+      'SUMMARY' AS record_type,
+      cs.student_id,
+      NULL AS student_name,
+      cs.course_id,
+      cs.course_name,
+      NULL AS assignment_id,
+      NULL AS assignment_name,
+      NULL AS total_score,
+      NULL AS student_score,
+      cs.clo_id,
+      cs.CLO_code,
+      cs.CLO_name,
+      NULL AS clo_weight,
+      NULL AS clo_contribution_score,
+      cs.clo_score,
+      cs.clo_score_percent,
+      cs.clo_status
+    FROM clo_summary cs
+
+    ORDER BY course_id, record_type DESC, clo_id, assignment_id;
+  `;
+
+    const result = await pool.query(query, [student_id]);
+    res.status(200).json(result);
+  } catch (error) {
     res.status(500).json({
-      message: "Database error",
-      error: err.message || err,
+      message: "Failed while get student CLO Report",
+      error: error.message,
     });
   }
 }
-
-export const getCloScoresByStudent = async (req, res) => {
-  const { student_id } = req.params;
-
-  try {
-    const rows = await pool.query(
-      `
-      SELECT
-          astu.student_id,
-          ac.clo_id,
-          SUM((ag.score / a.total_score) * ac.weight * a.total_score) AS total_score_clo
-      FROM
-          assignments a
-      JOIN
-          assignment_clo ac ON a.assignment_id = ac.assignment_id
-      JOIN
-          assignment_student astu ON a.assignment_id = astu.assignment_id
-      JOIN
-          assignment_grade ag ON ag.assignment_student_id = astu.id
-      WHERE
-          astu.student_id = ?
-      GROUP BY
-          astu.student_id,
-          ac.clo_id
-      ORDER BY
-          ac.clo_id
-      `,
-      [student_id]
-    );
-
-    if (!rows || rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No CLO scores found for this student." });
-    }
-
-    res.status(200).json(rows);
-  } catch (err) {
-    console.error("Database error:", err);
-    res.status(500).json({
-      message: "Database error",
-      error: err.message || err,
-    });
-  }
-};
-
-export const getCloAndPloScoresByStudent = async (req, res) => {
-  const { student_id } = req.params;
-  const year = req.query.year || 2025;
-
-  try {
-    // ----------------------------
-    // 1. ดึงคะแนน CLO ของนักเรียน
-    // ----------------------------
-    const cloRows = await pool.query(
-      `
-      SELECT 
-          astu.student_id,
-          ac.clo_id,
-          SUM((ag.score / a.total_score) * ac.weight * a.total_score) AS total_score_clo
-      FROM 
-          assignments a
-      JOIN 
-          assignment_clo ac ON a.assignment_id = ac.assignment_id
-      JOIN 
-          assignment_student astu ON a.assignment_id = astu.assignment_id
-      JOIN 
-          assignment_grade ag ON ag.assignment_student_id = astu.id
-      WHERE 
-          astu.student_id = ?
-      GROUP BY 
-          astu.student_id,
-          ac.clo_id
-      ORDER BY 
-          ac.clo_id
-      `,
-      [student_id]
-    );
-
-    // สร้าง temp map เพื่อใช้กับ PLO query ด้านล่าง
-    const cloScoreMap = {};
-    cloRows.forEach((row) => {
-      cloScoreMap[row.clo_id] = row.total_score_clo;
-    });
-
-    // ----------------------------
-    // 2. ดึงคะแนน PLO ที่ใช้ weight จาก plo_clo
-    // ----------------------------
-    const ploRows = await pool.query(
-      `
-      SELECT 
-          p.PLO_id,
-          sc.clo_id,
-          p.weight
-      FROM 
-          plo_clo p
-      JOIN (
-        SELECT 
-            ac.clo_id,
-            SUM((ag.score / a.total_score) * ac.weight * a.total_score) AS clo_score
-        FROM 
-            assignments a
-        JOIN assignment_clo ac ON a.assignment_id = ac.assignment_id
-        JOIN assignment_student astu ON a.assignment_id = astu.assignment_id
-        JOIN assignment_grade ag ON ag.assignment_student_id = astu.id
-        WHERE 
-            astu.student_id = ?
-        GROUP BY 
-            ac.clo_id
-      ) sc ON sc.clo_id = p.CLO_id
-      WHERE 
-          p.year = ?
-      `,
-      [student_id, year]
-    );
-
-    // คำนวณ PLO score จาก clo score * weight
-    const ploScoreMap = {};
-    ploRows.forEach((row) => {
-      const cloScore = cloScoreMap[row.clo_id] || 0;
-      const contribution = (cloScore * row.weight) / 100;
-      if (!ploScoreMap[row.PLO_id]) {
-        ploScoreMap[row.PLO_id] = 0;
-      }
-      ploScoreMap[row.PLO_id] += contribution;
-    });
-
-    const ploScores = Object.entries(ploScoreMap).map(([plo_id, score]) => ({
-      PLO_id: Number(plo_id),
-      plo_score: score,
-    }));
-
-    // ----------------------------
-    // ส่งผลลัพธ์กลับ
-    // ----------------------------
-    res.status(200).json({
-      student_id,
-      year: Number(year),
-      clo_scores: cloRows,
-      plo_scores: ploScores,
-    });
-  } catch (err) {
-    console.error("Database error:", err);
-    res.status(500).json({
-      message: "Database error",
-      error: err.message || err,
-    });
-  }
-};
-
-export const getAvgPloScoresForAllStudents = async (req, res) => {
-  try {
-    const rows = await pool.query(
-      `
-      SELECT
-          p.PLO_id,
-          p.PLO_name,
-          AVG(student_plo_score) AS avg_plo_score
-      FROM
-          (
-              -- คำนวณคะแนนของนักเรียนแต่ละคนในแต่ละ PLO
-              SELECT
-                  ag.assignment_student_id,
-                  pc.PLO_id,
-                  SUM(
-                      (ag.score / a.total_score) -- สัดส่วนคะแนนงานที่นักเรียนได้
-                      * ac.weight               -- น้ำหนัก CLO ต่อ assignment
-                      * pc.weight               -- น้ำหนัก CLO ต่อ PLO
-                  ) AS student_plo_score
-              FROM assignment_grade ag
-              INNER JOIN assignment_student ast ON ag.assignment_student_id = ast.id
-              INNER JOIN assignments a ON ast.assignment_id = a.assignment_id
-              INNER JOIN assignment_clo ac ON a.assignment_id = ac.assignment_id
-              INNER JOIN plo_clo pc ON ac.clo_id = pc.CLO_id
-                  AND pc.year = YEAR(CURDATE()) -- ปีปัจจุบัน (หรือเปลี่ยนเป็น ? ได้ถ้าจะรับจาก req.query)
-              GROUP BY ag.assignment_student_id, pc.PLO_id
-          ) AS student_plo_scores
-      INNER JOIN plo p ON student_plo_scores.PLO_id = p.PLO_id
-      GROUP BY p.PLO_id, p.PLO_name
-      ORDER BY p.PLO_id
-      `
-    );
-
-    if (!rows || rows.length === 0) {
-      return res.status(404).json({ message: "No average PLO scores found." });
-    }
-
-    res.status(200).json(rows);
-  } catch (err) {
-    console.error("Database error:", err);
-    res.status(500).json({
-      message: "Database error",
-      error: err.message || err,
-    });
-  }
-};
-
-export const getCloScoresByStudentAndCourse = async (req, res) => {
-  const { student_id } = req.params;
-  const { course_id } = req.query;
-
-  if (!course_id) {
-    return res.status(400).json({ message: "Missing course_id in query." });
-  }
-
-  try {
-    const rows = await pool.query(
-      `
-      SELECT
-          clo.CLO_id,
-          clo.CLO_code,
-          clo.CLO_name,
-          SUM(
-              (ag.score / a.total_score) * ac.weight
-          ) AS clo_score
-      FROM assignment_grade ag
-      JOIN assignment_student ast ON ag.assignment_student_id = ast.id
-      JOIN assignments a ON ast.assignment_id = a.assignment_id
-      JOIN assignment_clo ac ON a.assignment_id = ac.assignment_id
-      JOIN clo ON ac.clo_id = clo.CLO_id
-      JOIN program_course pc ON a.program_course_id = pc.program_course_id
-      WHERE ast.student_id = ?
-        AND pc.course_id = ?
-      GROUP BY clo.CLO_id, clo.CLO_code, clo.CLO_name
-      ORDER BY clo.CLO_id
-      `,
-      [student_id, course_id]
-    );
-
-    if (!rows || rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No CLO scores found for this student and course." });
-    }
-
-    res.status(200).json(rows);
-  } catch (err) {
-    console.error("Database error:", err);
-    res.status(500).json({
-      message: "Database error",
-      error: err.message || err,
-    });
-  }
-};
-
-export const getAverageCloScoresByCourse = async (req, res) => {
-  const { course_id } = req.query;
-
-  if (!course_id) {
-    return res.status(400).json({ message: "Missing course_id in query." });
-  }
-
-  try {
-    const rows = await pool.query(
-      `
-      SELECT 
-          clo.CLO_id,
-          clo.CLO_code,
-          clo.CLO_name,
-          AVG(student_clo_score.total_clo_score) AS average_clo_score
-      FROM (
-          SELECT
-              ast.student_id,
-              clo.CLO_id,
-              SUM((ag.score / a.total_score) * ac.weight) AS total_clo_score
-          FROM assignment_grade ag
-          JOIN assignment_student ast ON ag.assignment_student_id = ast.id
-          JOIN assignments a ON ast.assignment_id = a.assignment_id
-          JOIN assignment_clo ac ON a.assignment_id = ac.assignment_id
-          JOIN clo ON ac.clo_id = clo.CLO_id
-          JOIN program_course pc ON a.program_course_id = pc.program_course_id
-          WHERE pc.course_id = ?
-          GROUP BY ast.student_id, clo.CLO_id
-      ) AS student_clo_score
-      JOIN clo ON student_clo_score.CLO_id = clo.CLO_id
-      GROUP BY clo.CLO_id, clo.CLO_code, clo.CLO_name
-      ORDER BY clo.CLO_id
-      `,
-      [course_id]
-    );
-
-    if (!rows || rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No average CLO scores found for this course." });
-    }
-
-    res.status(200).json(rows);
-  } catch (err) {
-    console.error("Database error:", err);
-    res.status(500).json({
-      message: "Database error",
-      error: err.message || err,
-    });
-  }
-};
