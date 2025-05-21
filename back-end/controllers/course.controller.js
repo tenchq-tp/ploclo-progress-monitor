@@ -4,8 +4,14 @@ import mysql from "mysql2/promise";
 async function getAll(req, res) {
   try {
     const conn = await pool.getConnection();
-    const result = await conn.query("SELECT * FROM course");
-    res.json(resultyFilter);
+    const result = await conn.query(`SELECT 
+      c.course_id,
+        c.course_name,
+        c.course_engname,
+        pc.year
+    FROM program_course AS pc
+    LEFT JOIN course AS c ON pc.course_id=c.course_id`);
+    res.json(result);
     conn.release();
   } catch (err) {
     console.error(err);
