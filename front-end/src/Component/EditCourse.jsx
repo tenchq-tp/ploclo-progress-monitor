@@ -3665,6 +3665,7 @@ export default function Course() {
             allFiltersSelected={allFiltersSelected}
             selectedYear={selectedYear}
             selectedSemesterId={selectedSemesterId}
+            fetchCourse={fetchAllCourseByProgram}
           />
 
           {/* Course Table */}

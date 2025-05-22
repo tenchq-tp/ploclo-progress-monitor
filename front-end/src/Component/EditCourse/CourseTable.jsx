@@ -73,8 +73,6 @@ export default function CourseTable({
         updateData
       );
 
-      console.log("Course updated successfully:", response.data);
-
       // ถ้ามีการส่ง callback function มาจากคอมโพเนนต์หลัก
       if (typeof onCourseUpdated === "function") {
         onCourseUpdated(); // เรียกใช้เพื่อให้โหลดข้อมูลใหม่
