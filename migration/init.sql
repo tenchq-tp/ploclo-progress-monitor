@@ -14,7 +14,7 @@ CREATE TABLE `course` (
   `course_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `course_engname` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`course_id`)
+  PRIMARY KEY (`course_id`) 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `plo` (
@@ -185,6 +185,14 @@ CREATE TABLE `student` (
   PRIMARY KEY (`student_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `student_course` (
+  `student_id` VARCHAR(20) COLLATE utf8mb4_general_ci NOT NULL,
+  course_id INT NOT NULL,
+  FOREIGN KEY (`student_id`) REFERENCES student(`student_id`) ON DELETE CASCADE,
+  FOREIGN KEY (course_id) REFERENCES course(course_id) ON DELETE CASCADE,
+  PRIMARY KEY (`student_id`, course_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+ 
 CREATE TABLE `student_program` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `student_id` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,

@@ -1,5 +1,4 @@
 import pool from "../utils/db.js";
-import mysql from "mysql2/promise";
 
 async function getAll(req, res) {
   try {

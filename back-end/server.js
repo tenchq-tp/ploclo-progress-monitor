@@ -23,6 +23,7 @@ import ploCloRoutes from "./routes/plo_clo.route.js";
 import ploCloMappingRoutes from "./routes/plo_clo_mapping.route.js";
 import accountRoutes from "./routes/account.route.js";
 import dashboardRoutes from "./routes/dashboard.route.js";
+import studentCourseRoutes from "./routes/student_course.route.js";
 
 dotenv.config();
 import pool from "./utils/db.js";
@@ -50,6 +51,7 @@ app.use("/api/plo-clo", ploCloRoutes);
 app.use("/api/plo-clo-mapping", ploCloMappingRoutes);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/student-course", studentCourseRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

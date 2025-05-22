@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "../axios"; // ให้แน่ใจว่าเส้นทางการนำเข้า axios ถูกต้องตามโครงสร้างโปรเจค
 import { useTranslation } from "react-i18next";
+import StudentControl from "./StudentControl";
 
 export default function CourseTable({
   course_list,
@@ -21,6 +22,10 @@ export default function CourseTable({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showStudentModal, setShowStudentModal] = useState(false);
+
+  const [selectedCourse, setSelectedCourse] = useState();
+  const [selectedSection, setSelectedSection] = useState();
 
   // ฟังก์ชันเปิด Modal และตั้งค่าข้อมูลคอร์สที่จะแก้ไข
   const openEditModal = (course) => {
@@ -101,19 +106,20 @@ export default function CourseTable({
 
   return (
     <div className="mt-4">
-      <h4>{t('Course List')}</h4>
+      <h4>{t("Course List")}</h4>
       <table className="table table-bordered">
         <thead>
           <tr>
-            <th>{t('Course ID')}</th>
-            <th>{t('Course Name')}</th>
-            <th>{t('Course engName')}</th>
-            <th>{t('Section')}</th>
-            <th>{t('Actions')}</th>
+            <th>{t("Course ID")}</th>
+            <th>{t("Course Name")}</th>
+            <th>{t("Course English Name")}</th>
+            <th>{t("Section")}</th>
+            <th>{t("Actions")}</th>
           </tr>
         </thead>
         <tbody>
-          {course_list && course_list.length > 0 &&
+          {course_list &&
+            course_list.length > 0 &&
             course_list.map((courseItem) => (
               <tr key={`${courseItem.course_id}_${courseItem.section_id}`}>
                 <td>{courseItem.course_id}</td>
@@ -122,24 +128,30 @@ export default function CourseTable({
                 <td>{courseItem.section_id}</td>
                 <td>
                   <button
+                    onClick={() => {
+                      setSelectedCourse(courseItem.course_id);
+                      setSelectedSection(courseItem.section_id);
+                      setShowStudentModal(true);
+                    }}
+                    className="btn btn-success btn-sm me-2">
+                    Students
+                  </button>
+                  <button
                     onClick={() => openEditModal(courseItem)}
-                    className="btn btn-warning btn-sm me-2"
-                  >
-                    {t('Edit')}
+                    className="btn btn-warning btn-sm me-2">
+                    {t("Edit")}
                   </button>
                   <button
                     onClick={() =>
                       deleteCourse(courseItem.course_id, courseItem.section_id)
                     }
-                    className="btn btn-danger btn-sm"
-                  >
-                    {t('Delete')}
+                    className="btn btn-danger btn-sm">
+                    {t("Delete")}
                   </button>
                 </td>
               </tr>
             ))}
         </tbody>
-
       </table>
 
       {/* Edit Modal */}
@@ -254,6 +266,16 @@ export default function CourseTable({
         <div
           className="modal-backdrop fade show"
           onClick={() => !isLoading && setShowEditModal(false)}></div>
+      )}
+
+      {showStudentModal && (
+        <StudentControl
+          onClose={() => setShowStudentModal(false)}
+          courseDetail={{
+            course: selectedCourse,
+            section: selectedSection,
+          }}
+        />
       )}
     </div>
   );
