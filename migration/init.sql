@@ -188,6 +188,7 @@ CREATE TABLE `student` (
 CREATE TABLE `student_course` (
   `student_id` VARCHAR(20) COLLATE utf8mb4_general_ci NOT NULL,
   course_id INT NOT NULL,
+  section_id INT,
   FOREIGN KEY (`student_id`) REFERENCES student(`student_id`) ON DELETE CASCADE,
   FOREIGN KEY (course_id) REFERENCES course(course_id) ON DELETE CASCADE,
   PRIMARY KEY (`student_id`, course_id)
