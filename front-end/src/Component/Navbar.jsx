@@ -183,7 +183,7 @@ export default function Navbar({ role }) {
           )}
 
           {/* Course Dropdown for System Admin and Curriculum Admin */}
-          {(role === "System Admin" || role === "Curriculum Admin") && (
+          {(role === "Instructor" || role === "Curriculum Admin") && (
             <CustomLink
               to="/editcourse"
               onMouseEnter={(e) => updateAnimationBar(e.currentTarget)}
@@ -222,7 +222,7 @@ export default function Navbar({ role }) {
             {t("About")}
           </CustomLink>
 
-          {(role === "System Admin" || role === "Curriculum Admin") && (
+          {role === "System Admin" && (
             <CustomLink
               to="/manageAccount"
               onMouseEnter={(e) => updateAnimationBar(e.currentTarget)}

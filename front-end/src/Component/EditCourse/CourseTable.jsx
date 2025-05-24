@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "../axios"; // ให้แน่ใจว่าเส้นทางการนำเข้า axios ถูกต้องตามโครงสร้างโปรเจค
 import { useTranslation } from "react-i18next";
 import StudentControl from "./StudentControl";
@@ -26,6 +26,7 @@ export default function CourseTable({
 
   const [selectedCourse, setSelectedCourse] = useState();
   const [selectedSection, setSelectedSection] = useState();
+  const [role, setRole] = useState();
 
   // ฟังก์ชันเปิด Modal และตั้งค่าข้อมูลคอร์สที่จะแก้ไข
   const openEditModal = (course) => {
@@ -102,6 +103,11 @@ export default function CourseTable({
     }
   };
 
+  useEffect(() => {
+    const role_local = localStorage.getItem("user_role");
+    setRole(role_local);
+  }, []);
+
   return (
     <div className="mt-4">
       <h4>{t("Course List")}</h4>
@@ -112,7 +118,7 @@ export default function CourseTable({
             <th>{t("Course Name")}</th>
             <th>{t("Course English Name")}</th>
             <th>{t("Section")}</th>
-            <th>{t("Actions")}</th>
+            {role === "Curriculum Admin" && <th>{t("Actions")}</th>}
           </tr>
         </thead>
         <tbody>
@@ -124,29 +130,34 @@ export default function CourseTable({
                 <td>{courseItem.course_name}</td>
                 <td>{courseItem.course_engname}</td>
                 <td>{courseItem.section_id}</td>
-                <td>
-                  <button
-                    onClick={() => {
-                      setSelectedCourse(courseItem.course_id);
-                      setSelectedSection(courseItem.section_id);
-                      setShowStudentModal(true);
-                    }}
-                    className="btn btn-success btn-sm me-2">
-                    Students
-                  </button>
-                  <button
-                    onClick={() => openEditModal(courseItem)}
-                    className="btn btn-warning btn-sm me-2">
-                    {t("Edit")}
-                  </button>
-                  <button
-                    onClick={() =>
-                      deleteCourse(courseItem.course_id, courseItem.section_id)
-                    }
-                    className="btn btn-danger btn-sm">
-                    {t("Delete")}
-                  </button>
-                </td>
+                {role === "Curriculum Admin" && (
+                  <td>
+                    <button
+                      onClick={() => {
+                        setSelectedCourse(courseItem.course_id);
+                        setSelectedSection(courseItem.section_id);
+                        setShowStudentModal(true);
+                      }}
+                      className="btn btn-success btn-sm me-2">
+                      Students
+                    </button>
+                    <button
+                      onClick={() => openEditModal(courseItem)}
+                      className="btn btn-warning btn-sm me-2">
+                      {t("Edit")}
+                    </button>
+                    <button
+                      onClick={() =>
+                        deleteCourse(
+                          courseItem.course_id,
+                          courseItem.section_id
+                        )
+                      }
+                      className="btn btn-danger btn-sm">
+                      {t("Delete")}
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
         </tbody>

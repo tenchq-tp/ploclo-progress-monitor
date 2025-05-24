@@ -33,9 +33,10 @@ export async function addManyFromExcel(req, res) {
           section_id,
         ]);
         if (isInCourse) {
-          message.push(
-            `(${students[i].student_id}) : This student is already enrolled in this course.`
-          );
+          message.push({
+            student_id: students[i].student_id,
+            status: "นักศึกษาคนนี้ได้ลงทะเบียนเรียนในรายวิชานี้แล้ว",
+          });
           continue;
         } else {
           await conn.query(queryInsert, [
@@ -43,14 +44,17 @@ export async function addManyFromExcel(req, res) {
             course_id,
             section_id,
           ]);
-          message.push(
-            `(${students[i].student_id}) : Student has been successfully added to the course.`
-          );
+          message.push({
+            student_id: students[i].student_id,
+            status: "เพิ่มนักศึกษาในรายวิชาเรียบร้อยแล้ว",
+          });
         }
       } else {
-        message.push(
-          `(${students[i].student_id}) : This student is not registered in the program associated with this course.`
-        );
+        message.push({
+          student_id: students[i].student_id,
+          status:
+            "นักศึกษาคนนี้ไม่ได้ลงทะเบียนในหลักสูตรที่เกี่ยวข้องกับรายวิชานี้",
+        });
         continue;
       }
     }

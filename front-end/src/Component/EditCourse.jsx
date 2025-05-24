@@ -140,6 +140,7 @@ export default function Course() {
   const [courseList, setCourseList] = useState([]);
   const [selectedProgramCourse, setSelectedProgramCourse] = useState();
   const [showAddAssignmentModal, setShowAddAssignmentModal] = useState();
+  const [role, setRole] = useState();
 
   useEffect(() => {
     const fetchUniversities = async () => {
@@ -159,7 +160,8 @@ export default function Course() {
         setLoading(false);
       }
     };
-
+    const role_local = localStorage.getItem("user_role");
+    setRole(role_local);
     fetchUniversities();
   }, []);
 
@@ -3513,31 +3515,41 @@ export default function Course() {
               padding: "5px 0 10px 5px",
               borderBottom: "none",
             }}>
-            <li
-              className={`tab-item ${activeTab === 0 ? "active" : ""}`}
-              onClick={() => handleTabClick(0)}>
-              {t("General Information")}
-            </li>
-            <li
-              className={`tab-item ${activeTab === 1 ? "active" : ""}`}
-              onClick={() => handleTabClick(1)}>
-              {t("Course Learning Outcomes (CLO)")}
-            </li>
-            <li
-              className={`tab-item ${activeTab === 2 ? "active" : ""}`}
-              onClick={() => handleTabClick(2)}>
-              {t("Course-CLO Mapping")}
-            </li>
-            <li
-              className={`tab-item ${activeTab === 3 ? "active" : ""}`}
-              onClick={() => handleTabClick(3)}>
-              {t("CLO-PLO Mapping")}
-            </li>
-            <li
-              className={`tab-item ${activeTab === 4 ? "active" : ""}`}
-              onClick={() => handleTabClick(4)}>
-              {t("Assignment")}
-            </li>
+            {(role == "Curriculum Admin" || role === "Instructor") && (
+              <li
+                className={`tab-item ${activeTab === 0 ? "active" : ""}`}
+                onClick={() => handleTabClick(0)}>
+                {t("General Information")}
+              </li>
+            )}
+            {(role == "Curriculum Admin" || role === "Instructor") && (
+              <li
+                className={`tab-item ${activeTab === 1 ? "active" : ""}`}
+                onClick={() => handleTabClick(1)}>
+                {t("Course Learning Outcomes (CLO)")}
+              </li>
+            )}
+            {(role == "Curriculum Admin" || role === "Instructor") && (
+              <li
+                className={`tab-item ${activeTab === 2 ? "active" : ""}`}
+                onClick={() => handleTabClick(2)}>
+                {t("Course-CLO Mapping")}
+              </li>
+            )}
+            {(role == "Curriculum Admin" || role === "Instructor") && (
+              <li
+                className={`tab-item ${activeTab === 3 ? "active" : ""}`}
+                onClick={() => handleTabClick(3)}>
+                {t("CLO-PLO Mapping")}
+              </li>
+            )}
+            {(role == "Curriculum Admin" || role === "Instructor") && (
+              <li
+                className={`tab-item ${activeTab === 4 ? "active" : ""}`}
+                onClick={() => handleTabClick(4)}>
+                {t("Assignment")}
+              </li>
+            )}
           </ul>
 
           {/* 5 Filters in one row */}
@@ -3656,19 +3668,20 @@ export default function Course() {
           <h3>{t("Course Management")}</h3>
           <hr className="my-4" />
 
-          {/* Add Course Section */}
-          <AddCourse
-            selectedProgram={selectedProgram}
-            newCourse={newCourse}
-            handleCourseChange={handleCourseChange}
-            addCourse={addCourse}
-            allFiltersSelected={allFiltersSelected}
-            selectedYear={selectedYear}
-            selectedSemesterId={selectedSemesterId}
-            fetchCourse={fetchAllCourseByProgram}
-          />
+          {role == "Curriculum Admin" && (
+            <AddCourse
+              selectedProgram={selectedProgram}
+              newCourse={newCourse}
+              handleCourseChange={handleCourseChange}
+              addCourse={addCourse}
+              allFiltersSelected={allFiltersSelected}
+              selectedYear={selectedYear}
+              selectedSemesterId={selectedSemesterId}
+              fetchCourse={fetchAllCourseByProgram}
+            />
+          )}
 
-          {/* Course Table */}
+          {role == "Curriculum Admin" || role == "Instructor"}
           <CourseTable course_list={courseList} deleteCourse={deleteCourse} />
         </div>
 
@@ -3708,62 +3721,66 @@ export default function Course() {
             {/* CLO List Section */}
             <h5>CLO List</h5>
 
-            <div className="action-buttons">
-              <div className="button-group">
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="btn"
-                  style={{ backgroundColor: "#FF8C00", color: "white" }}
-                  disabled={
-                    !selectedProgram ||
-                    !selectedCourseId ||
-                    !selectedSemesterId ||
-                    !selectedYear
-                  }>
-                  Add CLO
-                </button>
+            {role === "Curriculum Admin" && (
+              <div className="action-buttons">
+                <div className="button-group">
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="btn"
+                    style={{ backgroundColor: "#FF8C00", color: "white" }}
+                    disabled={
+                      !selectedProgram ||
+                      !selectedCourseId ||
+                      !selectedSemesterId ||
+                      !selectedYear
+                    }>
+                    Add CLO
+                  </button>
 
-                <button
-                  onClick={fetchPreviousYearCLOs}
-                  className="btn btn-secondary"
-                  disabled={
-                    !selectedProgram ||
-                    !selectedCourseId ||
-                    !selectedSemesterId ||
-                    !selectedYear
-                  }>
-                  Load Previous Year CLOs
-                </button>
+                  <button
+                    onClick={fetchPreviousYearCLOs}
+                    className="btn btn-secondary"
+                    disabled={
+                      !selectedProgram ||
+                      !selectedCourseId ||
+                      !selectedSemesterId ||
+                      !selectedYear
+                    }>
+                    Load Previous Year CLOs
+                  </button>
+                </div>
+
+                <div className="button-group ms-auto">
+                  <button
+                    onClick={() =>
+                      document.getElementById("uploadExcel").click()
+                    }
+                    className="btn btn-secondary"
+                    disabled={
+                      !selectedProgram ||
+                      !selectedCourseId ||
+                      !selectedSemesterId ||
+                      !selectedYear
+                    }>
+                    Upload Excel
+                  </button>
+                  <input
+                    type="file"
+                    id="uploadExcel"
+                    style={{ display: "none" }}
+                    accept=".xlsx, .xls"
+                    onChange={handleFileUpload}
+                  />
+
+                  <button
+                    onClick={handleUploadButtonClick}
+                    className="btn btn-success"
+                    disabled={!excelData || excelData.length === 0}>
+                    Submit Excel Data
+                  </button>
+                </div>
               </div>
-
-              <div className="button-group ms-auto">
-                <button
-                  onClick={() => document.getElementById("uploadExcel").click()}
-                  className="btn btn-secondary"
-                  disabled={
-                    !selectedProgram ||
-                    !selectedCourseId ||
-                    !selectedSemesterId ||
-                    !selectedYear
-                  }>
-                  Upload Excel
-                </button>
-                <input
-                  type="file"
-                  id="uploadExcel"
-                  style={{ display: "none" }}
-                  accept=".xlsx, .xls"
-                  onChange={handleFileUpload}
-                />
-
-                <button
-                  onClick={handleUploadButtonClick}
-                  className="btn btn-success"
-                  disabled={!excelData || excelData.length === 0}>
-                  Submit Excel Data
-                </button>
-              </div>
-            </div>
+            )}
 
             {/* พื้นที่วางข้อมูล */}
             <div
@@ -3977,7 +3994,9 @@ export default function Course() {
                       <tr>
                         <th className="plo-code-col">{t("CLO Code")}</th>
                         <th className="plo-name-col">{t("CLO Name")}</th>
-                        <th className="plo-actions-col">{t("Actions")}</th>
+                        {role === "Curriculum Admin" && (
+                          <th className="plo-actions-col">{t("Actions")}</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -4009,25 +4028,27 @@ export default function Course() {
                                 </>
                               )}
                             </td>
-                            <td>
-                              <button
-                                className="plo-table-btn plo-edit-btn"
-                                onClick={() => handleEditClo(clo.CLO_id)}>
-                                {t("Edit")}
-                              </button>
-                              <button
-                                className="plo-table-btn plo-delete-btn"
-                                onClick={() =>
-                                  handleDeleteClo(
-                                    clo.CLO_id,
-                                    selectedCourseId,
-                                    selectedSemesterId,
-                                    selectedYear
-                                  )
-                                }>
-                                {t("Delete")}
-                              </button>
-                            </td>
+                            {role === "Curriculum Admin" && (
+                              <td>
+                                <button
+                                  className="plo-table-btn plo-edit-btn"
+                                  onClick={() => handleEditClo(clo.CLO_id)}>
+                                  {t("Edit")}
+                                </button>
+                                <button
+                                  className="plo-table-btn plo-delete-btn"
+                                  onClick={() =>
+                                    handleDeleteClo(
+                                      clo.CLO_id,
+                                      selectedCourseId,
+                                      selectedSemesterId,
+                                      selectedYear
+                                    )
+                                  }>
+                                  {t("Delete")}
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         ))}
                     </tbody>
@@ -4144,12 +4165,13 @@ export default function Course() {
             </div>
             <div className="card-body">
               <div className="mb-3 d-flex align-items-center">
-                {/* ปุ่มแก้ไข/ยกเลิก */}
-                <button
-                  className="btn btn-primary me-2"
-                  onClick={handleEditToggle2}>
-                  {editingScores ? "ยกเลิกการแก้ไข" : "แก้ไข PLO-CLO Mapping"}
-                </button>
+                {role === "Curriculum Admin" && (
+                  <button
+                    className="btn btn-primary me-2"
+                    onClick={handleEditToggle2}>
+                    {editingScores ? "ยกเลิกการแก้ไข" : "แก้ไข PLO-CLO Mapping"}
+                  </button>
+                )}
 
                 {/* เพิ่มปุ่มบันทึกที่จะแสดงเมื่ออยู่ในโหมดแก้ไข */}
                 {editingScores && (
@@ -4402,6 +4424,7 @@ export default function Course() {
               calculateTotal={calculateTotal}
               selectedSemesterId={selectedSemesterId}
               selectedYear={selectedYear}
+              role={role}
             />
           ) : (
             <div style={{ marginTop: "20px", textAlign: "center" }}>

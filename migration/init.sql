@@ -198,8 +198,8 @@ CREATE TABLE `student_program` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `student_id` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `program_id` INT,
-  FOREIGN KEY (`student_id`) REFERENCES `student`(`student_id`),
-  FOREIGN KEY (`program_id`) REFERENCES `program`(`program_id`)
+  FOREIGN KEY (`student_id`) REFERENCES `student`(`student_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`program_id`) REFERENCES `program`(`program_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `assignments` (

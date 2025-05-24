@@ -20,7 +20,7 @@ router.post("/scores", saveScore);
 router.post("/program/excel", importStudentsFromExcel);
 router.get("/program", getStudentsByProgram);
 router.post("/program", addStudent);
-router.put("/program/:id", updateStudent);
+router.put("/program/:student_id", updateStudent);
 router.delete("/program/:id", deleteStudent);
 router.get("/:student_id", getOneById);
 

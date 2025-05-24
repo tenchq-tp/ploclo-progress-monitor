@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 import PreviousPLOs from "./EditProgram/PreviousPlo";
 import AddProgram from "./EditProgram/AddProgram";
 import EditProgramModal from "./EditProgram/EditProgramModal";
+import EditStudent from "./EditProgram/student/EditStudent";
 
 export default function Program() {
   const [program, setProgram] = useState([]);
@@ -52,9 +53,9 @@ export default function Program() {
     useState(false);
   const [previousYearPLOs, setPreviousYearPLOs] = useState([]);
   const [showPasteArea, setShowPasteArea] = useState(false);
+  const [studentEdit, setStudentEdit] = useState([]);
 
   // -------> Edit Program Modal
-  const [name, setName] = useState("Natthapong Pan-in");
   const [initialProgramValue, setInitialProgramValue] = useState({
     program_id: "",
     code: "",
@@ -167,6 +168,7 @@ export default function Program() {
       );
       setStudents(updatedStudents);
       showAlert("ลบนักศึกษาเรียบร้อยแล้ว", "success");
+      fetchStudents();
     } catch (error) {
       console.error("Error deleting student:", error);
       showAlert("เกิดข้อผิดพลาดในการลบนักศึกษา", "danger");
@@ -1741,7 +1743,7 @@ export default function Program() {
                                       className="btn btn-primary btn-sm"
                                       onClick={() => {
                                         setSelectedStudent(student);
-                                        setNewStudent({
+                                        setStudentEdit({
                                           student_id: student.student_id,
                                           first_name: student.first_name,
                                           last_name: student.last_name,
@@ -1753,7 +1755,7 @@ export default function Program() {
                                     <button
                                       className="btn btn-danger btn-sm"
                                       onClick={() =>
-                                        handleDeleteStudent(student.id)
+                                        handleDeleteStudent(student.student_id)
                                       }>
                                       {t("Delete")}
                                     </button>
@@ -1859,83 +1861,13 @@ export default function Program() {
 
         {/* Edit Student Modal */}
         {showEditStudentModal && (
-          <div
-            className="modal show d-block"
-            tabIndex="-1"
-            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-            <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">
-                    Edit Student (ปี {selectedYear})
-                  </h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    aria-label="Close"
-                    onClick={() => setShowEditStudentModal(false)}></button>
-                </div>
-
-                <div className="modal-body">
-                  <div className="mb-2">
-                    <label className="form-label">{t("Student ID")}</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={newStudent.student_id}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          student_id: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="mb-2">
-                    <label className="form-label">{t("First Name")}</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={newStudent.first_name}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          first_name: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="mb-2">
-                    <label className="form-label">{t("Last Name")}</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={newStudent.last_name}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          last_name: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="modal-footer">
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleEditStudent}>
-                    {t("Save")}
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => setShowEditStudentModal(false)}>
-                    {t("Cancel")}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <EditStudent
+            onClose={() => setShowEditStudentModal(false)}
+            year={selectedYear}
+            student={studentEdit}
+            setStudent={setStudentEdit}
+            fetchStudent={fetchStudents}
+          />
         )}
 
         {/* Student Excel Preview Modal */}

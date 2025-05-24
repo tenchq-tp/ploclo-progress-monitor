@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import AddStudentExcel from "../student/AddStudentExcel";
 import styles from "./styles/Student.module.css";
-import AddStudentFromExists from "../student/AddStudentFromExists";
 import StudentTable from "../student/StudentTable";
 import axios from "./../axios";
 
@@ -57,7 +56,10 @@ export default function StudentControl({ onClose, courseDetail }) {
 
         {activeTab === 1 && (
           <div>
-            <AddStudentExcel course={courseDetail} />
+            <AddStudentExcel
+              course={courseDetail}
+              onSubmit={() => setActiveTab(0)}
+            />
           </div>
         )}
 

@@ -9,6 +9,7 @@ export default function CloMapping({
   courses,
   weightEachCourse,
   handleEditWeightEachCourse,
+  role,
 }) {
   const [id_array, setId_array] = useState();
   const [weightValues, setWeightValues] = useState(weightEachCourse);
@@ -84,19 +85,21 @@ export default function CloMapping({
   return (
     <>
       <h2 className="mt-3">Course-CLO Mapping</h2>
-      <div className="action-buttons mb-3">
-        <button onClick={handleEditToggle} className="btn btn-primary me-2">
-          {editingScores ? "Cancel Edit" : "Edit Course-CLO Mapping"}
-        </button>
+      {role === "Curriculum Admin" && (
+        <div className="action-buttons mb-3">
+          <button onClick={handleEditToggle} className="btn btn-primary me-2">
+            {editingScores ? "Cancel Edit" : "Edit Course-CLO Mapping"}
+          </button>
 
-        <button
-          onClick={handleSubmit}
-          disabled={!editingScores}
-          className="btn"
-          style={{ backgroundColor: "#FF8C00", color: "white" }}>
-          Submit Course-CLO Scores
-        </button>
-      </div>
+          <button
+            onClick={handleSubmit}
+            disabled={!editingScores}
+            className="btn"
+            style={{ backgroundColor: "#FF8C00", color: "white" }}>
+            Submit Course-CLO Scores
+          </button>
+        </div>
+      )}
 
       {/* <TableEditCloWeight /> */}
       <table

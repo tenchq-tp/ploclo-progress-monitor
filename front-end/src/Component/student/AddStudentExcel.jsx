@@ -2,9 +2,12 @@ import { useState } from "react";
 import styles from "./AddStudentExcel.module.css";
 import * as XLSX from "xlsx";
 import axios from "./../axios";
+import ReportSubmitAction from "./ReportStudentAction";
 
-export default function AddStudentExcel({ course }) {
+export default function AddStudentExcel({ course, onSubmit }) {
   const [students, setStudents] = useState([]);
+  const [showReport, setShowReport] = useState(false);
+  const [messages, setMessages] = useState([]);
 
   function handleUpload(e) {
     const file = e.target.files[0];
@@ -34,7 +37,9 @@ export default function AddStudentExcel({ course }) {
           section_id: course.section,
         },
       });
-      console.log("result ----: \n", result);
+      setStudents([]);
+      setMessages(result.data.message);
+      setShowReport(true);
     } catch (error) {
       console.error(error);
     }
@@ -81,6 +86,16 @@ export default function AddStudentExcel({ course }) {
           </tbody>
         </table>
       </div>
+
+      {showReport && (
+        <ReportSubmitAction
+          onClose={() => {
+            setShowReport(false);
+            onSubmit();
+          }}
+          messages={messages}
+        />
+      )}
     </div>
   );
 }

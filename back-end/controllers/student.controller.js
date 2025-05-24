@@ -309,19 +309,22 @@ async function addStudent(req, res) {
 // 3. อัปเดตข้อมูลนักศึกษา
 async function updateStudent(req, res) {
   try {
-    const student_id = req.params.id;
+    const { student_id } = req.params;
     const { first_name, last_name } = req.body;
 
     // ตรวจสอบข้อมูลที่จำเป็น
     if (!student_id || !first_name || !last_name) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({
+        error: "Missing required fields",
+        field: { student_id, first_name, last_name },
+      });
     }
-
+    console.log(student_id);
     const conn = await pool.getConnection();
 
     // ตรวจสอบว่ามีนักศึกษาคนนี้หรือไม่
     const checkQuery = "SELECT student_id FROM student WHERE student_id = ?";
-    const checkResult = await conn.query(checkQuery, [studentId]);
+    const checkResult = await conn.query(checkQuery, [student_id]);
 
     if (!checkResult || checkResult.length === 0) {
       conn.release();
@@ -331,21 +334,21 @@ async function updateStudent(req, res) {
     // อัปเดตข้อมูลนักศึกษา
     const query = `
       UPDATE student
-      SET student_id = ?, first_name = ?, last_name = ?
+      SET first_name = ?, last_name = ?
       WHERE student_id = ?
     `;
 
-    const values = [student_id, first_name, last_name];
+    const values = [first_name, last_name, student_id];
     await conn.query(query, values);
 
     // ดึงข้อมูลนักศึกษาที่อัปเดตแล้ว
     const updatedStudent = await conn.query(
-      "SELECT * FROM students WHERE student_id = ?",
-      [studentId]
+      "SELECT * FROM student WHERE student_id = ?",
+      [student_id]
     );
 
     conn.release();
-    res.json(updatedStudent[0]);
+    res.status(200).json(updatedStudent[0]);
   } catch (error) {
     console.error("Error updating student:", error);
 
@@ -368,7 +371,7 @@ async function deleteStudent(req, res) {
     const conn = await pool.getConnection();
 
     // ตรวจสอบว่ามีนักศึกษาคนนี้หรือไม่
-    const checkQuery = "SELECT id FROM students WHERE id = ?";
+    const checkQuery = "SELECT student_id FROM student WHERE student_id = ?";
     const checkResult = await conn.query(checkQuery, [studentId]);
 
     if (!checkResult || checkResult.length === 0) {
@@ -377,7 +380,7 @@ async function deleteStudent(req, res) {
     }
 
     // ลบข้อมูลนักศึกษา
-    const query = "DELETE FROM students WHERE id = ?";
+    const query = "DELETE FROM student WHERE student_id = ?";
     await conn.query(query, [studentId]);
 
     conn.release();
@@ -528,7 +531,6 @@ export async function getOneById(req, res) {
     });
   }
 }
-
 export {
   insertStudent,
   getAll,

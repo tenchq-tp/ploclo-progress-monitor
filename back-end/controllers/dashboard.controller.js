@@ -173,48 +173,48 @@ export async function getAvgReport(req, res) {
   const { program_id } = req.params;
 
   const query_clo = `WITH assignment_details AS (
-  SELECT
-    c.course_id,
-    c.course_name,
-    clo.CLO_id,
-    clo.CLO_code,
-    ac.weight AS clo_weight,
-    a.total_score,
-    ag.score,
-    (ag.score / a.total_score) * ac.weight AS clo_contribution_score,
-    pc.program_id
-  FROM clo
-  JOIN assignment_clo ac ON clo.CLO_id = ac.clo_id
-  JOIN assignments a ON ac.assignment_id = a.assignment_id
-  JOIN program_course pc ON a.program_course_id = pc.program_course_id
-  JOIN course c ON pc.course_id = c.course_id
-  LEFT JOIN assignment_student ast ON ast.assignment_id = a.assignment_id
-  LEFT JOIN assignment_grade ag ON ag.assignment_student_id = ast.id
-  WHERE pc.program_id = ?
-),
+    SELECT
+      c.course_id,
+      c.course_name,
+      clo.CLO_id,
+      clo.CLO_code,
+      ac.weight AS clo_weight,
+      a.total_score,
+      ag.score,
+      (ag.score / a.total_score) * ac.weight AS clo_contribution_score,
+      pc.program_id
+    FROM clo
+    JOIN assignment_clo ac ON clo.CLO_id = ac.clo_id
+    JOIN assignments a ON ac.assignment_id = a.assignment_id
+    JOIN program_course pc ON a.program_course_id = pc.program_course_id
+    JOIN course c ON pc.course_id = c.course_id
+    LEFT JOIN assignment_student ast ON ast.assignment_id = a.assignment_id
+    LEFT JOIN assignment_grade ag ON ag.assignment_student_id = ast.id
+    WHERE pc.program_id = ?
+  ),
 
-clo_summary AS (
+  clo_summary AS (
+    SELECT
+      course_id,
+      course_name,
+      CLO_id,
+      CLO_code,
+      SUM(clo_contribution_score) AS total_score,
+      SUM(clo_weight) AS total_weight,
+      (SUM(clo_contribution_score) / SUM(clo_weight)) * 100 AS avg_clo_score_percent
+    FROM assignment_details
+    GROUP BY course_id, CLO_id, CLO_code, course_name
+  )
+
   SELECT
     course_id,
     course_name,
     CLO_id,
     CLO_code,
-    SUM(clo_contribution_score) AS total_score,
-    SUM(clo_weight) AS total_weight,
-    (SUM(clo_contribution_score) / SUM(clo_weight)) * 100 AS avg_clo_score_percent
-  FROM assignment_details
-  GROUP BY course_id, CLO_id, CLO_code, course_name
-)
-
-SELECT
-  course_id,
-  course_name,
-  CLO_id,
-  CLO_code,
-  ROUND(avg_clo_score_percent, 2) AS avg_clo_score_percent
-FROM clo_summary
-ORDER BY course_id, CLO_id;
-    `;
+    ROUND(avg_clo_score_percent, 2) AS avg_clo_score_percent
+  FROM clo_summary
+  ORDER BY course_id, CLO_id;
+      `;
   const query_plo = `WITH assignment_details AS (
       SELECT
         c.course_id,
