@@ -1257,8 +1257,6 @@ app.get("/clo_mapping", async (req, res) => {
     // ตรวจสอบและแปลงผลลัพธ์ให้เป็น array เสมอ
     const mappings = Array.isArray(result) ? result : result ? [result] : [];
 
-    console.log("Query Result Count:", mappings.length);
-
     return res.status(200).json(mappings);
   } catch (err) {
     console.error("Error fetching PLO-CLO mappings:", err);
@@ -2470,7 +2468,6 @@ app.post("/plo", async (req, res) => {
       "SELECT 1 FROM program WHERE program_id = ?",
       [program_id]
     );
-    console.log("Query Result:", queryResult);
 
     if (!queryResult || queryResult.length === 0) {
       conn.release();
@@ -2498,7 +2495,6 @@ app.post("/plo", async (req, res) => {
       program_id,
       newPloId,
     ]);
-    console.log("Program-PLO Relation Result:", programPloResult);
 
     conn.release();
 
@@ -4104,11 +4100,6 @@ app.get("/plo_clo", async (req, res) => {
       year,
       program_id,
     ]);
-
-    console.log(
-      "Query Result Count:",
-      result ? (Array.isArray(result) ? result.length : 1) : 0
-    );
 
     if (!result || (Array.isArray(result) && result.length === 0)) {
       console.log("No PLO-CLO mappings found");

@@ -81,8 +81,6 @@ async function getMapping(req, res) {
     // ตรวจสอบและแปลงผลลัพธ์ให้เป็น array เสมอ
     const mappings = Array.isArray(result) ? result : result ? [result] : [];
 
-    console.log("Query Result Count:", mappings.length);
-
     return res.status(200).json(mappings);
   } catch (err) {
     console.error("Error fetching PLO-CLO mappings:", err);

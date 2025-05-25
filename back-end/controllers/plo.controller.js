@@ -51,7 +51,6 @@ async function createOne(req, res) {
       "SELECT 1 FROM program WHERE program_id = ?",
       [program_id]
     );
-    console.log("Query Result:", queryResult);
 
     if (!queryResult || queryResult.length === 0) {
       conn.release();
@@ -79,7 +78,6 @@ async function createOne(req, res) {
       program_id,
       newPloId,
     ]);
-    console.log("Program-PLO Relation Result:", programPloResult);
 
     conn.release();
 

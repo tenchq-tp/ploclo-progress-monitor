@@ -111,48 +111,11 @@ export default function Program() {
         program_id: result.data.program_id,
       });
 
-      if (response.data) {
-        setStudents([...students, response.data]);
-        setShowAddStudentModal(false);
-        setNewStudent({
-          student_id: "",
-          first_name: "",
-          last_name: "",
-        });
-        showAlert("เพิ่มนักศึกษาเรียบร้อยแล้ว", "success");
-      }
+      fetchStudents();
+      showAlert("เพิ่มนักศึกษาเรียบร้อยแล้ว", "success");
     } catch (error) {
       console.error("Error adding student:", error);
       showAlert("เกิดข้อผิดพลาดในการเพิ่มนักศึกษา", "danger");
-    }
-  };
-
-  const handleEditStudent = async () => {
-    try {
-      const result = await axios.get(
-        `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
-      );
-
-      const response = await axios.put(
-        `/api/students/program/${newStudent.student_id}`,
-        {
-          first_name: newStudent.first_name,
-          last_name: newStudent.last_name,
-          program_id: result.data.program_id,
-        }
-      );
-
-      if (response.data) {
-        const updatedStudents = students.map((student) =>
-          student.id === selectedStudent.id ? response.data : student
-        );
-        setStudents(updatedStudents);
-        setShowEditStudentModal(false);
-        showAlert("แก้ไขข้อมูลนักศึกษาเรียบร้อยแล้ว", "success");
-      }
-    } catch (error) {
-      console.error("Error editing student:", error);
-      showAlert("เกิดข้อผิดพลาดในการแก้ไขข้อมูลนักศึกษา", "danger");
     }
   };
 
@@ -419,7 +382,6 @@ export default function Program() {
       setSelectedProgramName("all");
       fetchAllProgram();
     }
-    console.log("selectedProgram ");
   }, [selectedFaculty]);
 
   useEffect(() => {
@@ -711,6 +673,8 @@ export default function Program() {
     if (!confirmation) return;
 
     // สร้าง requests สำหรับการเพิ่ม PLO แต่ละรายการ
+    console.log(selectedProgramName);
+
     const result = await axios.get(
       `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
     );
@@ -725,7 +689,7 @@ export default function Program() {
       };
 
       // ส่งคำขอไปยัง API
-      return axios.post("/plo", newPloData).catch((error) => {
+      return axios.post("/api/plo", newPloData).catch((error) => {
         console.error(`เกิดข้อผิดพลาดในการเพิ่ม PLO ${plo.PLO_code}:`, error);
         return { data: { success: false, error: error.message } };
       });
@@ -805,12 +769,14 @@ export default function Program() {
             // The modal will automatically be shown because it's conditionally rendered based on excelData
           } catch (error) {
             console.error("Error reading file:", error);
-            alert("Error reading Excel file. Please check the file format.");
+            window.alert(
+              "Error reading Excel file. Please check the file format."
+            );
           }
         };
         reader.onerror = (error) => {
           console.error("Error reading file:", error);
-          alert("Error reading file. Please try again.");
+          window.alert("Error reading file. Please try again.");
         };
         reader.readAsBinaryString(selectedFile);
       } else {
@@ -862,7 +828,7 @@ export default function Program() {
 
       try {
         console.log(dataToUpload);
-        const response = await axios.post("/plo/excel", dataToUpload);
+        const response = await axios.post("/api/plo/excel", dataToUpload);
 
         const data = await response.data;
         window.alert("Data uploaded successfully\nอัปโหลดข้อมูลสำเร็จ");
@@ -914,37 +880,25 @@ export default function Program() {
     }
   };
 
-  const handleAddPlo = () => {
-    fetch("http://localhost:8000/plo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+  const handleAddPlo = async () => {
+    const result = await axios.get(
+      `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
+    );
+
+    try {
+      await axios.post("/api/plo", {
         PLO_name: newPlo.PLO_name,
         PLO_engname: newPlo.PLO_engname,
         PLO_code: newPlo.PLO_code,
-        program_id: selectedProgram,
-        year: parseInt(selectedYear), // เพิ่มการส่งค่าปี
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          // อัปเดต PLO ใหม่ใน state และแน่ใจว่ามีข้อมูลปีด้วย
-          const newPloWithYear = {
-            ...data.newPlo,
-            year: parseInt(selectedYear), // เพิ่มข้อมูลปีให้กับ PLO ใหม่
-          };
-          setPlos([...plos, newPloWithYear]);
-          setShowAddModal(false);
-          alert("PLO added successfully");
-        } else {
-          alert("Error adding PLO: " + data.message);
-        }
-      })
-      .catch((error) => {
-        console.error("Error adding PLO:", error);
-        alert("An error occurred while adding the PLO");
+        program_id: parseInt(result.data.program_id),
+        year: parseInt(selectedYear),
       });
+      setShowAddModal(false);
+      fetchPlo();
+    } catch (error) {
+      console.error("Error adding PLO:", error);
+      window.alert("An error occurred while adding the PLO");
+    }
   };
 
   // แก้ไขฟังก์ชัน handleEditPlo
@@ -962,15 +916,8 @@ export default function Program() {
       const result = await axios.get(
         `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
       );
-      console.log("Payload sent to backend:", {
-        program_id: result.data.program_id,
-        PLO_id: selectedPlo,
-        PLO_code: newPlo.PLO_code,
-        PLO_name: newPlo.PLO_name,
-        PLO_engname: newPlo.PLO_engname,
-      });
       const response = await axios.put("/api/program/plo", {
-        program_id: result.data.program_id, // ต้องแน่ใจว่ามีค่าตัวนี้
+        program_id: result.data.program_id,
         PLO_id: selectedPlo,
         PLO_code: newPlo.PLO_code,
         PLO_name: newPlo.PLO_name,

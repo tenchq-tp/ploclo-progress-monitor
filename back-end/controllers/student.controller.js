@@ -223,79 +223,57 @@ async function getStudentsByProgram(req, res) {
 // 2. เพิ่มข้อมูลนักศึกษาใหม่
 async function addStudent(req, res) {
   try {
-    const {
-      student_id,
-      first_name,
-      last_name,
-      program_id,
-      year,
-      university_id,
-      faculty_id,
-    } = req.body;
+    const { student_id, first_name, last_name, program_id } = req.body;
 
     // ตรวจสอบข้อมูลที่จำเป็น
-    if (
-      !student_id ||
-      !first_name ||
-      !last_name ||
-      !program_id ||
-      !year ||
-      !university_id ||
-      !faculty_id
-    ) {
+    if (!student_id || !first_name || !last_name || !program_id) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     const conn = await pool.getConnection();
-
-    // ตรวจสอบว่ามีนักศึกษารหัสนี้ในโปรแกรมและปีการศึกษานี้หรือไม่
     const checkQuery = `
-      SELECT id FROM students 
-      WHERE student_id = ? AND program_id = ? AND year = ?
-    `;
-    const checkResult = await conn.query(checkQuery, [
-      student_id,
-      program_id,
-      year,
-    ]);
-
+            SELECT student_id, first_name, last_name FROM student
+            WHERE student_id = ?
+          `;
+    const checkResult = await conn.query(checkQuery, [student_id]);
     if (checkResult && checkResult.length > 0) {
-      conn.release();
-      return res
-        .status(409)
-        .json({ error: "Student ID already exists in this program and year" });
+      const updateQuery = `
+              UPDATE student
+              SET first_name = ?, last_name = ?
+              WHERE student_id = ?
+            `;
+      await conn.query(updateQuery, [first_name, last_name, student_id]);
+    } else {
+      const insertQuery = `
+              INSERT INTO student (student_id, first_name, last_name)
+              VALUES (?, ?, ?)
+            `;
+      const insertResult = await conn.query(insertQuery, [
+        student_id,
+        first_name,
+        last_name,
+      ]);
     }
 
-    // เพิ่มข้อมูลนักศึกษาลงในฐานข้อมูล
-    const query = `
-      INSERT INTO students (student_id, first_name, last_name, program_id, year, university_id, faculty_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    const values = [
-      student_id,
-      first_name,
-      last_name,
-      program_id,
-      year,
-      university_id,
-      faculty_id,
-    ];
-    const result = await conn.query(query, values);
-
-    // ดึงข้อมูลนักศึกษาที่เพิ่งเพิ่ม
-    const insertedId = result.insertId;
-    const insertedStudent = await conn.query(
-      "SELECT * FROM students WHERE id = ?",
-      [insertedId]
-    );
+    const checkProgramQuery = `
+            SELECT student_id FROM student_program WHERE student_id = ?
+          `;
+    const hasProgram = await conn.query(checkProgramQuery, [student_id]);
+    if (hasProgram[0]) {
+      const updateProgramQuery = `UPDATE student_program SET program_id = ? WHERE student_id = ?`;
+      await conn.query(updateProgramQuery, [program_id, student_id]);
+    } else {
+      const insertProgramQuery = `INSERT INTO student_program (student_id, program_id) VALUES (?, ?)`;
+      const insertProgramResult = await conn.query(insertProgramQuery, [
+        student_id,
+        program_id,
+      ]);
+    }
 
     conn.release();
-    res.status(201).json(insertedStudent[0]);
+    res.status(201).json({ message: "insert student successfully." });
   } catch (error) {
     console.error("Error adding student:", error);
-
-    // ตรวจสอบการซ้ำกันของข้อมูล (Duplicate key)
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Student ID already exists" });
     }

@@ -10,6 +10,7 @@ import CourseTable from "./EditCourse/CourseTable";
 import TableEditCloWeight from "./EditCourse/TableEditCloWeight";
 import CloMapping from "./EditCourse/CloMapping";
 import Assignment from "./EditCourse/Assignment";
+import CloTable from "./EditCourse/CloTable";
 
 export default function Course() {
   const [selectedPlo, setSelectedPlo] = useState(null);
@@ -218,6 +219,8 @@ export default function Course() {
       ) {
         fetchPLOCLOMappings();
       }
+    } else if (activeTab === 1 && !selectedCourseId) {
+      setSelectedCourseClo([]);
     }
   }, [
     activeTab,
@@ -3980,7 +3983,7 @@ export default function Course() {
             </div>
           )}
 
-          <div className="">
+          {/* <div className="">
             <div className="card-header"></div>
             <div className="card-body">
               {!(selectedCourseId && selectedSemesterId && selectedYear) ? (
@@ -4032,7 +4035,14 @@ export default function Course() {
                               <td>
                                 <button
                                   className="plo-table-btn plo-edit-btn"
-                                  onClick={() => handleEditClo(clo.CLO_id)}>
+                                  onClick={() =>
+                                    handleEditClo(
+                                      clo.CLO_id,
+                                      selectedCourseId,
+                                      selectedSemesterId,
+                                      selectedYear
+                                    )
+                                  }>
                                   {t("Edit")}
                                 </button>
                                 <button
@@ -4060,7 +4070,14 @@ export default function Course() {
                 </div>
               )}
             </div>
-          </div>
+          </div> */}
+          {selectedCourseClo.length > 0 ? (
+            <CloTable role={role} cloArray={selectedCourseClo} />
+          ) : (
+            <div className="text-center">
+              <p>{t("No CLO data available for the selected filters.")}</p>
+            </div>
+          )}
 
           {showEditModal && (
             <div className="modal show" style={{ display: "block" }}>

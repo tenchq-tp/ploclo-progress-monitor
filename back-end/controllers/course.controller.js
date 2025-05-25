@@ -187,7 +187,7 @@ async function importCoursesFromExcel(req, res) {
     }
 
     await conn.commit();
-    res.status(200).json(message);
+    res.status(201).json(message);
   } catch (error) {
     await conn.rollback();
     res.status(500).json({

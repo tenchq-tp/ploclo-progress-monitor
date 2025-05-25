@@ -1,6 +1,8 @@
 import axios from "./../axios";
 import * as XLSX from "xlsx";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
+import ReportResult from "./ReportResult";
 
 export default function AddCourse({
   newCourse,
@@ -13,6 +15,8 @@ export default function AddCourse({
   fetchCourse,
 }) {
   const { t, i18n } = useTranslation();
+  const [messages, setMessages] = useState([]);
+  const [showReport, setShowReport] = useState(false);
 
   const handleCourseExcelUpload = async (e) => {
     const file = e.target.files[0];
@@ -64,7 +68,8 @@ export default function AddCourse({
           response.status === 201 ||
           response.data?.message === "All courses uploaded successfully!"
         ) {
-          alert("เพิ่มรายวิชาสำเร็จแล้ว");
+          setMessages(response.data);
+          setShowReport(true);
         } else {
           alert(
             "เกิดข้อผิดพลาด: " +
@@ -146,6 +151,13 @@ export default function AddCourse({
           />
         </div>
       </div>
+
+      {showReport && (
+        <ReportResult
+          messages={messages}
+          onClose={() => setShowReport(false)}
+        />
+      )}
     </div>
   );
 }

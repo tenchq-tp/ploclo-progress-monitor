@@ -264,7 +264,6 @@ async function createOneByPlo(req, res) {
 
 async function deleteOneByPlo(req, res) {
   const { program_id, plo_id } = req.query;
-  console.log("\n\nprogram id ---> ", program_id);
   let conn;
   if (!program_id || !plo_id) {
     return res.status(400).json({ message: "Invalid data" });
@@ -443,11 +442,6 @@ async function createFromExcel(req, res) {
     res.status(500).json({ success: false, message: "Database error" });
   }
 }
-
-
-
-
-
 
 // async function getManyByFilter(req, res) {
 

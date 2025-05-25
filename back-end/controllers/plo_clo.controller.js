@@ -67,11 +67,6 @@ async function getMany(req, res) {
       program_id,
     ]);
 
-    console.log(
-      "Query Result Count:",
-      result ? (Array.isArray(result) ? result.length : 1) : 0
-    );
-
     if (!result || (Array.isArray(result) && result.length === 0)) {
       console.log("No PLO-CLO mappings found");
       return res.status(200).json([]); // ส่ง array ว่างแทนที่จะส่ง 404
