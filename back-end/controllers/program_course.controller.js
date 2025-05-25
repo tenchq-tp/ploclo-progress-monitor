@@ -73,7 +73,7 @@ async function importExcel(req, res) {
 
       if (!existingSection || existingSection.length === 0) {
         const insertSectionQuery = `
-              INSERT INTO section (section_id) 
+              INSERT INTO section (section_id)
               VALUES (?)
             `;
 
@@ -81,8 +81,8 @@ async function importExcel(req, res) {
       }
 
       const checkProgramCourseQuery = `
-          SELECT 1 
-          FROM program_course 
+          SELECT 1
+          FROM program_course
           WHERE program_id = ? AND course_id = ? AND semester_id = ?
         `;
 
@@ -111,7 +111,7 @@ async function importExcel(req, res) {
         ]);
       } else {
         const updateProgramCourseQuery = `
-            UPDATE program_course 
+            UPDATE program_course
             SET year = ?, section_id = ?
             WHERE program_id = ? AND course_id = ? AND semester_id = ?
           `;
@@ -136,6 +136,10 @@ async function importExcel(req, res) {
     });
   }
 }
+// async function importExcel(req, res) {
+//   console.log(req.body);
+//   res.status(200).json({ body: req.body });
+// }
 
 async function getOneById(req, res) {
   const { program_id } = req.query;

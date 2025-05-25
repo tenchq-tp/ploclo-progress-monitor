@@ -78,7 +78,6 @@ async function getManyByFilter(req, res) {
       "SELECT DISTINCT c.course_id, c.course_name, c.course_engname FROM program_course AS pc LEFT JOIN course AS c ON pc.course_id=c.course_id WHERE pc.semester_id=? AND pc.year=?",
       [semester_id, year]
     );
-    console.log(response);
     res.status(200).json(response);
   } catch (error) {
     console.error(error);
@@ -87,100 +86,113 @@ async function getManyByFilter(req, res) {
 }
 
 async function importCoursesFromExcel(req, res) {
-  const coursesData = req.body;
-
-  if (!Array.isArray(coursesData) || coursesData.length === 0) {
-    return res.status(400).json({
-      message: "No course data provided. Please upload valid Excel data.",
-    });
-  }
-
+  const courseArray = req.body;
+  const conn = await pool.getConnection();
+  const message = [];
+  await conn.beginTransaction();
   try {
-    const conn = await pool.getConnection();
+    const isExistsInCourseQuery = `
+      SELECT
+        course_id
+      FROM
+        course
+      WHERE
+        course_id=?
+    `;
+    const isExistsInSelectedProgramQuery = `
+      SELECT
+        program_course_id
+      FROM
+        program_course
+      WHERE
+        course_id=? AND
+        year = ? AND
+        semester_id = ? AND
+        section_id = ? AND
+        program_id = ?
+    `;
+    const queryInsertIntoCourse = `
+      INSERT INTO
+        course (course_id, course_name, course_engname, timestamp)
+      VALUES (?, ?, ?, now())
+    `;
+    const queryInsertIntoProgramCourse = `
+      INSERT INTO
+        program_course (year, semester_id, course_id, section_id, program_id)
+      VALUES (?, ?, ?, ?, ?);
+    `;
+    const checkedSectionQuery = `
+      SELECT section_id FROM section WHERE section_id = ?
+    `;
+    const insertSectionQuery = `
+      INSERT INTO section(section_id) VALUES(?)
+    `;
 
-    for (const course of coursesData) {
+    for (let i = 0; i < courseArray.length; i++) {
       const {
-        program_id,
         course_id,
         course_name,
         course_engname,
+        program_id,
+        section_id,
         semester_id,
         year,
-        section_id = 1,
-      } = course;
+      } = courseArray[i];
 
-      if (!program_id || !course_id || !course_name || !semester_id || !year) {
-        conn.release();
-        console.log("Missing data:", course);
-        return res.status(400).json({
-          message:
-            "Missing required fields in some rows. Please ensure all fields are complete.",
-        });
-      }
+      const isExistsInCourse = await conn.query(isExistsInCourseQuery, [
+        course_id,
+      ]);
 
-      const [existingCourse] = await conn.query(
-        `SELECT 1 FROM course WHERE course_id = ?`,
-        [course_id]
-      );
-
-      if (!existingCourse || existingCourse.length === 0) {
-        await conn.query(
-          `INSERT INTO course (course_id, course_name, course_engname, timestamp)
-           VALUES (?, ?, ?, NOW())`,
-          [course_id, course_name, course_engname]
-        );
-      } else {
-        await conn.query(
-          `UPDATE course
-           SET course_name = ?, course_engname = ?, timestamp = NOW()
-           WHERE course_id = ?`,
-          [course_name, course_engname, course_id]
-        );
-      }
-
-      const [existingSection] = await conn.query(
-        `SELECT 1 FROM section WHERE section_id = ?`,
-        [section_id]
-      );
-
-      if (!existingSection || existingSection.length === 0) {
-        await conn.query(`INSERT INTO section (section_id) VALUES (?)`, [
-          section_id,
+      if (!isExistsInCourse[0]) {
+        await conn.query(queryInsertIntoCourse, [
+          course_id,
+          course_name,
+          course_engname,
         ]);
       }
 
-      const [existingProgramCourse] = await conn.query(
-        `SELECT 1
-         FROM program_course
-         WHERE program_id = ? AND course_id = ? AND semester_id = ?`,
-        [program_id, course_id, semester_id]
+      const isExistsInSelectedProgram = await conn.query(
+        isExistsInSelectedProgramQuery,
+        [course_id, year, semester_id, section_id, program_id]
       );
 
-      if (!existingProgramCourse || existingProgramCourse.length === 0) {
-        await conn.query(
-          `INSERT INTO program_course (
-             program_id, course_id, semester_id, year, section_id
-           )
-           VALUES (?, ?, ?, ?, ?)`,
-          [program_id, course_id, semester_id, year, section_id]
-        );
+      if (isExistsInSelectedProgram[0]) {
+        message.push({
+          course: courseArray[i],
+          message: "มีรายวิชานี้ในหลักสูตรนี้แล้ว",
+        });
+        continue;
       } else {
-        await conn.query(
-          `UPDATE program_course
-           SET year = ?, section_id = ?
-           WHERE program_id = ? AND course_id = ? AND semester_id = ?`,
-          [year, section_id, program_id, course_id, semester_id]
-        );
+        const sectionIsExists = await conn.query(checkedSectionQuery, [
+          section_id,
+        ]);
+
+        if (!sectionIsExists[0]) {
+          await conn.query(insertSectionQuery, [section_id]);
+        }
+
+        await conn.query(queryInsertIntoProgramCourse, [
+          year,
+          semester_id,
+          course_id,
+          section_id,
+          program_id,
+        ]);
+
+        message.push({
+          course: courseArray[i],
+          message: "เพิ่มรายวิชานี้ในหลักสูตรนี้แล้ว",
+        });
       }
     }
 
-    conn.release();
-    res.status(201).json({ message: "All courses uploaded successfully!" });
-  } catch (err) {
-    console.error("Error adding courses from Excel:", err);
+    await conn.commit();
+    res.status(200).json(message);
+  } catch (error) {
+    await conn.rollback();
     res.status(500).json({
-      message: "Database error occurred while processing Excel data.",
-      error: err.message,
+      message: "Error while import course from Excel",
+      error: error.message,
     });
   }
 }
