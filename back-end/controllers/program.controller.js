@@ -37,7 +37,7 @@ async function getPrograms(req, res) {
     console.error("Database error:", err);
     res
       .status(500)
-      .json({ error: "Internal Server Error", details: err.message }); // ✅ คืน JSON เสมอ
+      .json({ error: "Internal Server Error", details: err.message });
   }
 }
 
@@ -62,12 +62,12 @@ async function createOne(req, res) {
       errors.push("Program name (English) is required");
     }
 
-    // Validate year
+    // Validate year - แก้ไขให้รับปีอะไรก็ได้
     let parsedYear = null;
     if (year !== null && year !== undefined) {
       parsedYear = Number(year);
-      if (isNaN(parsedYear) || parsedYear < 1900 || parsedYear > 2100) {
-        errors.push("Year must be a valid number between 1900 and 2100");
+      if (isNaN(parsedYear)) {
+        errors.push("Year must be a valid number");
       }
     }
 
@@ -99,10 +99,16 @@ async function createOne(req, res) {
       program_shortname_th,
     ]);
 
-    // Send success response with inserted ID
+    // Fetch the newly created program - เพิ่มการ fetch หลังจาก insert
+    const fetchQuery = `SELECT * FROM program WHERE program_id = ?`;
+    const fetchResult = await conn.query(fetchQuery, [result.insertId]);
+    const newProgram = fetchResult[0];
+
+    // Send success response with the complete program data
     res.status(201).json({
       message: "Program added successfully",
-      program_id: Number(result.insertId), // Explicitly convert to Number
+      program_id: Number(result.insertId),
+      program: newProgram // ส่งข้อมูล program ที่เพิ่งสร้างกลับไป
     });
   } catch (err) {
     console.error("Full error details:", err);
@@ -376,6 +382,8 @@ async function createFromExcel(req, res) {
   try {
     await conn.beginTransaction();
 
+    const insertedPrograms = []; // เก็บข้อมูล programs ที่สร้างใหม่
+
     for (const row of rows) {
       const {
         code,
@@ -430,11 +438,24 @@ async function createFromExcel(req, res) {
         INSERT INTO program_faculty (program_id, faculty_id) VALUES (?, ?)
       `;
       await conn.query(programFacultyQuery, [program_id, faculty_id]);
+
+      // Fetch ข้อมูล program ที่เพิ่งสร้างขึ้น
+      const fetchQuery = `SELECT * FROM program WHERE program_id = ?`;
+      const fetchResult = await conn.query(fetchQuery, [program_id]);
+      const newProgram = fetchResult[0];
+      
+      insertedPrograms.push(newProgram); // เพิ่มไปยัง array
     }
 
     await conn.commit();
     conn.release();
-    res.json({ success: true, message: "All rows inserted successfully" });
+    
+    // ส่งข้อมูล programs ที่สร้างใหม่กลับไป
+    res.json({ 
+      success: true, 
+      message: "All rows inserted successfully",
+      programs: insertedPrograms // ส่งข้อมูล programs ทั้งหมดที่สร้างใหม่
+    });
   } catch (err) {
     await conn.rollback();
     conn.release();

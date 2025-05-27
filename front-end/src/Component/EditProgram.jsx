@@ -162,7 +162,6 @@ export default function Program() {
             const jsonData = XLSX.utils.sheet_to_json(sheet);
 
             setStudentExcelData(jsonData);
-            console.log(jsonData);
           } catch (error) {
             console.error("Error reading file:", error);
             alert("Error reading Excel file. Please check the file format.");
@@ -587,7 +586,6 @@ export default function Program() {
       );
       const ploData = await ploResponse.json();
 
-      console.log("Refreshed PLO data:", ploData);
 
       if (ploData.success && ploData.message && ploData.message.length > 0) {
         setPlos(ploData.message);
@@ -607,7 +605,7 @@ export default function Program() {
       }
 
       const courseData = await courseResponse.json();
-      console.log("Refreshed Course data:", courseData);
+
 
       if (Array.isArray(courseData)) {
         setCourses(courseData);
@@ -765,7 +763,6 @@ export default function Program() {
             }));
 
             setExcelData(updatedData); // เก็บข้อมูลจากไฟล์
-            console.log(updatedData);
             // The modal will automatically be shown because it's conditionally rendered based on excelData
           } catch (error) {
             console.error("Error reading file:", error);
@@ -789,117 +786,129 @@ export default function Program() {
   };
 
   const handleUploadButtonClick = async () => {
-    if (excelData && excelData.length > 0) {
-      // ตรวจสอบว่าได้เลือกโปรแกรมแล้วหรือไม่
-      if (!selectedProgramName || selectedProgramName === "all") {
-        alert("กรุณาเลือกโปรแกรมก่อนอัปโหลดข้อมูล");
-        return;
-      }
+  if (excelData && excelData.length > 0) {
+    // ตรวจสอบว่าได้เลือกโปรแกรมแล้วหรือไม่
+    if (!selectedProgramName || selectedProgramName === "all") {
+      window.alert("กรุณาเลือกโปรแกรมก่อนอัปโหลดข้อมูล");
+      return;
+    }
 
-      // ตรวจสอบว่าได้เลือกปีแล้วหรือไม่
-      if (!selectedYear || selectedYear === "all") {
-        alert("กรุณาเลือกปีการศึกษาก่อนอัปโหลดข้อมูล");
-        return;
-      }
+    // ตรวจสอบว่าได้เลือกปีแล้วหรือไม่
+    if (!selectedYear || selectedYear === "all") {
+      window.alert("กรุณาเลือกปีการศึกษาก่อนอัปโหลดข้อมูล");
+      return;
+    }
 
-      // แสดง confirmation dialog
-      if (
-        !window.confirm(
-          "Do you want to upload " +
-            excelData.length +
-            " PLO records?" +
-            "\n" +
-            "คุณต้องการอัปโหลดข้อมูล PLO จำนวน " +
-            excelData.length +
-            " รายการใช่หรือไม่?"
-        )
-      ) {
-        return;
-      }
+    // แสดง confirmation dialog
+    if (
+      !window.confirm(
+        "Do you want to upload " +
+          excelData.length +
+          " PLO records?" +
+          "\n" +
+          "คุณต้องการอัปโหลดข้อมูล PLO จำนวน " +
+          excelData.length +
+          " รายการใช่หรือไม่?"
+      )
+    ) {
+      return;
+    }
+
+    try {
       const result = await axios.get(
         `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
       );
+
       // เตรียมข้อมูลสำหรับส่งไปยัง API
       const dataToUpload = excelData.map((item) => ({
-        ...item,
+        PLO_name: item.PLO_name,
+        PLO_engname: item.PLO_engname, 
+        PLO_code: item.PLO_code,
         program_id: result.data.program_id,
-        year: parseInt(selectedYear), // เพิ่มข้อมูลปีการศึกษา
+        year: parseInt(selectedYear),
       }));
 
-      try {
-        console.log(dataToUpload);
-        const response = await axios.post("/api/plo/excel", dataToUpload);
 
-        const data = await response.data;
-        window.alert("Data uploaded successfully\nอัปโหลดข้อมูลสำเร็จ");
+      const response = await axios.post("/api/plo/excel", dataToUpload);
+      
+      window.alert("Data uploaded successfully\nอัปโหลดข้อมูลสำเร็จ");
 
-        // รีเฟรชข้อมูล PLO หลังจากอัปโหลด โดยเพิ่มพารามิเตอร์ year
-        const selectedProgramObj = program.find(
-          (p) =>
-            p.program_id === parseInt(selectedProgram) &&
-            p.year === parseInt(selectedYear)
-        );
+      // รีเฟรชข้อมูล PLO หลังจากอัปโหลด
+      fetchPlo();
+      setExcelData(null);
 
-        if (selectedProgramObj) {
-          try {
-            const ploResponse = await fetch(
-              `http://localhost:8000/program_plo?program_id=${selectedProgramObj.program_id}&year=${selectedYear}`
-            );
-
-            const ploData = await ploResponse.json();
-            console.log("Refreshed PLO data:", ploData);
-
-            if (
-              ploData.success &&
-              ploData.message &&
-              ploData.message.length > 0
-            ) {
-              setPlos(ploData.message);
-            } else if (Array.isArray(ploData) && ploData.length > 0) {
-              setPlos(ploData);
-            } else {
-              setPlos([]);
-            }
-          } catch (error) {
-            console.error("Error refreshing PLO data:", error);
-            refreshDataFromServer();
-          }
+    } catch (error) {
+      console.error("Error:", error);
+      
+      // ตรวจสอบว่าเป็น error เรื่อง PLO ซ้ำหรือไม่
+      if (error.response?.status === 400 && error.response?.data?.message) {
+        const errorMessage = error.response.data.message;
+        
+        // ตรวจสอบว่าเป็น error เรื่อง PLO ซ้ำหรือไม่
+        if (errorMessage.includes("already exists") || 
+            errorMessage.includes("already exist") || 
+            errorMessage.includes("Duplicate")) {
+          
+          window.alert(
+            "⚠️ พบข้อมูล PLO ซ้ำในปีนี้แล้ว\n" +
+            "Found duplicate PLO data for this year\n\n" +
+            "รายละเอียด: " + errorMessage + "\n\n" +
+            "กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง"
+          );
         } else {
-          refreshDataFromServer();
+          window.alert("เกิดข้อผิดพลาด: " + errorMessage);
         }
-
-        // ล้างข้อมูลหลังจากอัปโหลดสำเร็จ
-        setExcelData(null);
-        fetchPlo();
-      } catch (error) {
-        console.error("Error:", error);
-        alert("เกิดข้อผิดพลาด: " + error.message);
+      } else {
+        window.alert("เกิดข้อผิดพลาดในการอัปโหลดข้อมูล");
       }
-    } else {
-      alert("ไม่มีข้อมูลที่จะอัปโหลด กรุณาอัปโหลดไฟล์หรือวางข้อมูลก่อน");
     }
-  };
+  } else {
+    window.alert("ไม่มีข้อมูลที่จะอัปโหลด กรุณาอัปโหลดไฟล์หรือวางข้อมูลก่อน");
+  }
+};
 
   const handleAddPlo = async () => {
+  try {
     const result = await axios.get(
       `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
     );
 
-    try {
-      await axios.post("/api/plo", {
-        PLO_name: newPlo.PLO_name,
-        PLO_engname: newPlo.PLO_engname,
-        PLO_code: newPlo.PLO_code,
-        program_id: parseInt(result.data.program_id),
-        year: parseInt(selectedYear),
-      });
-      setShowAddModal(false);
-      fetchPlo();
-    } catch (error) {
-      console.error("Error adding PLO:", error);
-      window.alert("An error occurred while adding the PLO");
+    await axios.post("/api/plo", {
+      PLO_name: newPlo.PLO_name,
+      PLO_engname: newPlo.PLO_engname,
+      PLO_code: newPlo.PLO_code,
+      program_id: parseInt(result.data.program_id),
+      year: parseInt(selectedYear),
+    });
+    
+    setShowAddModal(false);
+    fetchPlo();
+    
+  } catch (error) {
+    console.error("Error adding PLO:", error);
+    
+    // ตรวจสอบว่าเป็น error เรื่อง PLO ซ้ำหรือไม่
+    if (error.response?.status === 400 && error.response?.data?.message) {
+      const errorMessage = error.response.data.message;
+      
+      if (errorMessage.includes("already exists") || 
+          errorMessage.includes("already exist") || 
+          errorMessage.includes("Duplicate")) {
+        
+        window.alert(
+          "⚠️ พบข้อมูล PLO ซ้ำในปีนี้แล้ว\n" +
+          "Found duplicate PLO data for this year\n\n" +
+          "รายละเอียด: " + errorMessage + "\n\n" +
+          "กรุณาใช้รหัส PLO อื่นหรือตรวจสอบข้อมูลที่มีอยู่"
+        );
+      } else {
+        window.alert("เกิดข้อผิดพลาด: " + errorMessage);
+      }
+    } else {
+      window.alert("เกิดข้อผิดพลาดในการเพิ่มข้อมูล PLO");
     }
-  };
+  }
+};
 
   // แก้ไขฟังก์ชัน handleEditPlo
   const handleEditPlo = (plo) => {

@@ -34,32 +34,51 @@ async function getManyByProgram(req, res) {
 }
 
 async function createOne(req, res) {
-  const { PLO_name, PLO_engname, PLO_code, program_id } = req.body;
+  const { PLO_name, PLO_engname, PLO_code, program_id, year } = req.body;
 
   // ตรวจสอบว่าข้อมูลครบถ้วน
-  if (!PLO_name || !PLO_engname || !PLO_code || !program_id) {
+  if (!PLO_name || !PLO_engname || !PLO_code || !program_id || !year) {
     return res
       .status(400)
-      .json({ success: false, message: "All fields are required" });
+      .json({ success: false, message: "All fields including year are required" });
   }
 
   try {
     const conn = await pool.getConnection();
 
-    // ตรวจสอบว่า program_id มีอยู่ในตาราง program
-    const queryResult = await conn.query(
-      "SELECT 1 FROM program WHERE program_id = ?",
-      [program_id]
+    // ตรวจสอบว่า program_id และ year มีอยู่ในตาราง program
+    const programCheck = await conn.query(
+      "SELECT program_id FROM program WHERE program_id = ? AND year = ?",
+      [program_id, year]
     );
 
-    if (!queryResult || queryResult.length === 0) {
+    if (!programCheck || programCheck.length === 0) {
       conn.release();
       return res
         .status(400)
-        .json({ success: false, message: "Invalid program_id" });
+        .json({ success: false, message: "Invalid program_id or year combination" });
     }
 
-    // เพิ่ม PLO ลงในตาราง `plo`
+    // ตรวจสอบว่า PLO_code ซ้ำในปีเดียวกันหรือไม่
+    const duplicateCheck = await conn.query(`
+      SELECT p.PLO_id 
+      FROM plo p
+      INNER JOIN program_plo pp ON p.PLO_id = pp.PLO_id
+      INNER JOIN program pr ON pp.program_id = pr.program_id
+      WHERE p.PLO_code = ? AND pr.year = ?
+    `, [PLO_code, year]);
+
+    if (duplicateCheck && duplicateCheck.length > 0) {
+      conn.release();
+      return res
+        .status(400)
+        .json({ 
+          success: false, 
+          message: `PLO with code "${PLO_code}" already exists for year ${year}` 
+        });
+    }
+
+    // เพิ่ม PLO ลงในตาราง plo
     const ploQuery =
       "INSERT INTO plo (PLO_name, PLO_engname, PLO_code) VALUES (?, ?, ?)";
     const ploResult = await conn.query(ploQuery, [
@@ -67,28 +86,25 @@ async function createOne(req, res) {
       PLO_engname,
       PLO_code,
     ]);
-    console.log("PLO Insert Result:", ploResult);
 
-    const newPloId = Number(ploResult.insertId); // แปลง BigInt เป็น Number
+    const newPloId = Number(ploResult.insertId);
 
-    // เพิ่มความสัมพันธ์ระหว่าง `program_id` และ `PLO_id` ในตาราง `program_plo`
+    // เพิ่มความสัมพันธ์ระหว่าง program_id และ PLO_id ในตาราง program_plo
     const programPloQuery =
       "INSERT INTO program_plo (program_id, PLO_id) VALUES (?, ?)";
-    const programPloResult = await conn.query(programPloQuery, [
-      program_id,
-      newPloId,
-    ]);
+    await conn.query(programPloQuery, [program_id, newPloId]);
 
     conn.release();
 
     res.json({
       success: true,
       newPlo: {
-        PLO_id: newPloId, // ส่งเป็น Number
+        PLO_id: newPloId,
         PLO_name,
         PLO_engname,
         PLO_code,
         program_id,
+        year,
       },
     });
   } catch (err) {
@@ -100,7 +116,6 @@ async function createOne(req, res) {
 async function createFromExcel(req, res) {
   const rows = req.body;
 
-  // ตรวจสอบว่าได้รับ array จาก client หรือไม่
   if (!Array.isArray(rows) || rows.length === 0) {
     return res
       .status(400)
@@ -110,12 +125,16 @@ async function createFromExcel(req, res) {
   try {
     const conn = await pool.getConnection();
 
-    // วน loop เพิ่มข้อมูลทีละแถว
+    // เก็บ PLO codes ที่จะเพิ่มเพื่อตรวจสอบความซ้ำซ้อนภายใน batch
+    const batchPloCodes = new Set();
+    const yearPloCodes = new Map(); // Map เพื่อเก็บ year -> Set of PLO codes
+
+    // ตรวจสอบข้อมูลทั้งหมดก่อนเริ่ม insert
     for (const row of rows) {
-      const { PLO_name, PLO_engname, PLO_code, program_id } = row;
+      const { PLO_name, PLO_engname, PLO_code, program_id, year } = row;
 
       // ตรวจสอบว่าข้อมูลครบถ้วน
-      if (!PLO_name || !PLO_engname || !PLO_code || !program_id) {
+      if (!PLO_name || !PLO_engname || !PLO_code || !program_id || !year) {
         conn.release();
         return res.status(400).json({
           success: false,
@@ -123,20 +142,63 @@ async function createFromExcel(req, res) {
         });
       }
 
-      // ตรวจสอบว่า program_id มีอยู่
-      const queryResult = await conn.query(
-        "SELECT 1 FROM program WHERE program_id = ?",
-        [program_id]
+      // ตรวจสอบว่า program_id และ year มีอยู่
+      const programCheck = await conn.query(
+        "SELECT program_id FROM program WHERE program_id = ? AND year = ?",
+        [program_id, year]
       );
-      if (!queryResult || queryResult.length === 0) {
+      if (!programCheck || programCheck.length === 0) {
         conn.release();
         return res.status(400).json({
           success: false,
-          message: `Invalid program_id in one of the rows: ${program_id}`,
+          message: `Invalid program_id or year combination in row: ${JSON.stringify(row)}`,
         });
       }
 
-      // เพิ่ม PLO ลงในตาราง `plo`
+      // ตรวจสอบความซ้ำซ้อนภายใน batch
+      if (!yearPloCodes.has(year)) {
+        yearPloCodes.set(year, new Set());
+      }
+      
+      if (yearPloCodes.get(year).has(PLO_code)) {
+        conn.release();
+        return res.status(400).json({
+          success: false,
+          message: `Duplicate PLO_code "${PLO_code}" found in batch for year ${year}`,
+        });
+      }
+      
+      yearPloCodes.get(year).add(PLO_code);
+    }
+
+    // ตรวจสอบความซ้ำซ้อนกับข้อมูลที่มีอยู่ในฐานข้อมูล
+    for (const [year, codes] of yearPloCodes) {
+      const codesArray = Array.from(codes);
+      const placeholders = codesArray.map(() => '?').join(', ');
+      
+      const duplicateCheck = await conn.query(`
+        SELECT p.PLO_code 
+        FROM plo p
+        INNER JOIN program_plo pp ON p.PLO_id = pp.PLO_id
+        INNER JOIN program pr ON pp.program_id = pr.program_id
+        WHERE p.PLO_code IN (${placeholders}) AND pr.year = ?
+      `, [...codesArray, year]);
+
+      if (duplicateCheck && duplicateCheck.length > 0) {
+        const duplicateCodes = duplicateCheck.map(row => row.PLO_code);
+        conn.release();
+        return res.status(400).json({
+          success: false,
+          message: `PLO codes already exist for year ${year}: ${duplicateCodes.join(', ')}`,
+        });
+      }
+    }
+
+    // หากผ่านการตรวจสอบทั้งหมด จึงเริ่ม insert ข้อมูล
+    for (const row of rows) {
+      const { PLO_name, PLO_engname, PLO_code, program_id } = row;
+
+      // เพิ่ม PLO ลงในตาราง plo
       const ploQuery =
         "INSERT INTO plo (PLO_name, PLO_engname, PLO_code) VALUES (?, ?, ?)";
       const ploResult = await conn.query(ploQuery, [

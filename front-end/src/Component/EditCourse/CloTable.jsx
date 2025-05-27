@@ -14,7 +14,6 @@ export default function CloTable({ cloArray, role }) {
   const handleSave = (updatedClo) => {
     console.log("Updated CLO: ", updatedClo);
   };
-  console.log(cloArray);
   return (
     <div className={styles.container}>
       <table className={styles.table}>
