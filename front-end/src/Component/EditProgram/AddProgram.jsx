@@ -12,8 +12,8 @@ export default function AddProgram({
   setProgram,
   program,
 }) {
-    const { t, i18n } = useTranslation();
-  
+  const { t, i18n } = useTranslation();
+
   const [newProgram, setNewProgram] = useState({
     code: "",
     program_name: "",
@@ -52,8 +52,8 @@ export default function AddProgram({
     }
 
     const yearValue = parseInt(newProgram.year, 10);
-    if (isNaN(yearValue) || yearValue < 1900 || yearValue > 2100) {
-      showAlert("ปีของหลักสูตรต้องเป็นตัวเลขระหว่าง 1900-2100", "warning");
+    if (isNaN(yearValue)) {
+      showAlert("ปีของหลักสูตรต้องเป็นตัวเลขที่ถูกต้อง", "warning");
       return;
     }
 
@@ -140,7 +140,7 @@ export default function AddProgram({
         console.log("Excel JSON Data:", jsonData);
 
         if (jsonData.length === 0) {
-          alert("ไม่พบข้อมูลใน Excel");
+          showAlert("ไม่พบข้อมูลใน Excel", "warning");
           return;
         }
 
@@ -151,20 +151,35 @@ export default function AddProgram({
 
         const response = await axios.post("/api/program/excel", dataToUpload);
 
-
         if (response.data.success) {
-          alert("เพิ่มโปรแกรมเรียบร้อยแล้ว");
+          // อัปเดต state ด้วยข้อมูลที่ได้จาก backend
+          const newPrograms = response.data.programs;
+
+          if (newPrograms && newPrograms.length > 0) {
+            // เพิ่มข้อมูลใหม่เข้าไปใน state
+            setFilteredProgram([...filteredProgram, ...newPrograms]);
+            setProgram([...program, ...newPrograms]);
+          }
+
+          showAlert(`เพิ่มโปรแกรม ${newPrograms?.length || 0} รายการเรียบร้อยแล้ว`, "success");
         } else {
-          alert("เกิดข้อผิดพลาด: " + response.data.message);
+          showAlert("เกิดข้อผิดพลาด: " + response.data.message, "danger");
         }
       } catch (err) {
         console.error("Error reading Excel file:", err);
-        alert("อ่านไฟล์ไม่สำเร็จ");
+
+        if (err.response) {
+          const errorMessage = err.response.data.message || "เกิดข้อผิดพลาดในการอัปโหลด Excel";
+          showAlert(errorMessage, "danger");
+        } else if (err.request) {
+          showAlert("ไม่สามารถติดต่อเซิร์ฟเวอร์ได้", "danger");
+        } else {
+          showAlert("อ่านไฟล์ไม่สำเร็จ", "danger");
+        }
       }
     };
 
     reader.readAsArrayBuffer(file);
-
   };
 
   return (

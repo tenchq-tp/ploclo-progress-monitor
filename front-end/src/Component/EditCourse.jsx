@@ -1295,7 +1295,6 @@ export default function Course() {
           section_id: parseInt(selectedSectionId, 10),
           semester_id: parseInt(selectedSemesterId, 10),
           year: parseInt(selectedYear, 10),
-          program_id: parseInt(selectedProgram, 10), // เพิ่ม program_id ที่จำเป็น
           weight: parseInt(scores[key], 10) || 0,
         });
       }
@@ -2065,8 +2064,7 @@ export default function Course() {
     }
   };
 
-  // ฟังก์ชันอัพโหลดข้อมูล Excel
-  const handleFileUpload = async (e) => {
+ const handleFileUpload = async (e) => {
     let fileTypes = [
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2285,6 +2283,75 @@ export default function Course() {
         alert("An error occurred: " + error.message);
       });
   };
+
+  const handleAddClo = async () => {
+    // Find the selected program data
+    const selectedProgramData = programs.find(
+      (program) => program.program_id.toString() === selectedProgram.toString()
+    );
+
+    // Comprehensive validation
+    if (!selectedProgramData) {
+      alert("Please select a valid program.");
+      return;
+    }
+
+    if (!selectedCourseId) {
+      alert("Please select a course.");
+      return;
+    }
+
+    if (!selectedSemesterId) {
+      alert("Please select a semester.");
+      return;
+    }
+
+    if (!selectedYear) {
+      alert("Please select a year.");
+      return;
+    }
+
+    if (!editCloCode) {
+      alert("Please enter a CLO code.");
+      return;
+    }
+
+    if (!editCloName) {
+      alert("Please enter a CLO name.");
+      return;
+    }
+
+    if (!editCloEngName) {
+      alert("Please enter a CLO English name.");
+      return;
+    }
+
+    // Prepare the data for submission
+    const newClo = {
+      program_id: parseInt(selectedProgramData.program_id),
+      course_id: parseInt(selectedCourseId),
+      semester_id: parseInt(selectedSemesterId),
+      year: parseInt(selectedYear),
+      CLO_code: editCloCode.trim(),
+      CLO_name: editCloName.trim(),
+      CLO_engname: editCloEngName.trim(),
+    };
+
+    try {
+      const response = await axios.post("/api/clo-mapping", newClo);
+      setEditCloCode("");
+      setEditCloName("");
+      setEditCloEngName("");
+      setShowAddModal(false);
+      alert("CLO added successfully!");
+      fetchFilteredCourseClo();
+    } catch (error) {
+      console.error(newClo);
+      console.error("Error adding CLO:", error);
+      alert("An error occurred while adding the CLO");
+    }
+  };
+
 
   // ฟังก์ชันแก้ไข CLO
   const handleEditClo = (cloId) => {
@@ -2528,74 +2595,7 @@ export default function Course() {
     }
   };
 
-  // ฟังก์ชันเพิ่ม CLO ใหม่
-  const handleAddClo = async () => {
-    // Find the selected program data
-    const selectedProgramData = programs.find(
-      (program) => program.program_id.toString() === selectedProgram.toString()
-    );
 
-    // Comprehensive validation
-    if (!selectedProgramData) {
-      alert("Please select a valid program.");
-      return;
-    }
-
-    if (!selectedCourseId) {
-      alert("Please select a course.");
-      return;
-    }
-
-    if (!selectedSemesterId) {
-      alert("Please select a semester.");
-      return;
-    }
-
-    if (!selectedYear) {
-      alert("Please select a year.");
-      return;
-    }
-
-    if (!editCloCode) {
-      alert("Please enter a CLO code.");
-      return;
-    }
-
-    if (!editCloName) {
-      alert("Please enter a CLO name.");
-      return;
-    }
-
-    if (!editCloEngName) {
-      alert("Please enter a CLO English name.");
-      return;
-    }
-
-    // Prepare the data for submission
-    const newClo = {
-      program_id: parseInt(selectedProgramData.program_id),
-      course_id: parseInt(selectedCourseId),
-      semester_id: parseInt(selectedSemesterId),
-      year: parseInt(selectedYear),
-      CLO_code: editCloCode.trim(),
-      CLO_name: editCloName.trim(),
-      CLO_engname: editCloEngName.trim(),
-    };
-
-    try {
-      const response = await axios.post("/api/clo-mapping", newClo);
-      setEditCloCode("");
-      setEditCloName("");
-      setEditCloEngName("");
-      setShowAddModal(false);
-      alert("CLO added successfully!");
-      fetchFilteredCourseClo();
-    } catch (error) {
-      console.error(newClo);
-      console.error("Error adding CLO:", error);
-      alert("An error occurred while adding the CLO");
-    }
-  };
   const styles = {
     heading: {
       fontSize: "24px",
@@ -3685,7 +3685,10 @@ export default function Course() {
           )}
 
           {role == "Curriculum Admin" || role == "Instructor"}
-          <CourseTable course_list={courseList} deleteCourse={deleteCourse} />
+          <CourseTable course_list={courseList}
+            deleteCourse={deleteCourse}
+            onCourseUpdated={() => fetchAllCourseByProgram(selectedProgram)}
+           />
         </div>
 
         <div

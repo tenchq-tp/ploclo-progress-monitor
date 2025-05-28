@@ -52,15 +52,10 @@ export default function CourseTable({
     }));
   };
 
-  // ฟังก์ชันบันทึกการแก้ไขโดยเรียกใช้ API endpoint โดยตรง
   const saveEdit = async () => {
-    // เตรียมข้อมูลที่จะส่งไปยัง API
     const updateData = {
       course_name: editingCourse.course_name,
       course_engname: editingCourse.course_engname,
-      // ถ้ามีการเปลี่ยน course_id ให้ส่ง new_course_id ไปด้วย
-      // new_course_id: editingCourse.new_course_id, // ถ้ามีฟิลด์นี้ในฟอร์ม
-      // ถ้าต้องการส่ง program_id และ semester_id ด้วย
       program_id: editingCourse.program_id,
       semester_id: editingCourse.semester_id,
     };
@@ -68,29 +63,28 @@ export default function CourseTable({
     try {
       setIsLoading(true);
 
-      // เรียกใช้ API endpoint สำหรับอัพเดตรายวิชา
       const response = await axios.put(
         `/api/program-course/${editingCourse.course_id}`,
         updateData
       );
-
-      // ถ้ามีการส่ง callback function มาจากคอมโพเนนต์หลัก
-      if (typeof onCourseUpdated === "function") {
-        onCourseUpdated(); // เรียกใช้เพื่อให้โหลดข้อมูลใหม่
-      } else {
-        // ถ้าไม่มี callback สามารถรีโหลดหน้าหรือใช้วิธีอื่นได้
-        window.location.reload(); // รีโหลดหน้าเพื่อแสดงข้อมูลใหม่
-      }
 
       // แจ้งเตือนผู้ใช้
       alert("อัพเดตรายวิชาสำเร็จ");
 
       // ปิด Modal
       setShowEditModal(false);
+      setErrorMessage("");
+
+      // เรียกใช้ callback function ที่ส่งมาจาก parent component
+      if (typeof onCourseUpdated === "function") {
+        onCourseUpdated(); // เรียกใช้ function ที่ส่งมาจาก parent
+      } else {
+        console.log("onCourseUpdated callback not available");
+      }
+
     } catch (error) {
       console.error("Error updating course:", error);
-
-      // แสดงข้อความผิดพลาด
+      
       if (error.response && error.response.data) {
         setErrorMessage(
           error.response.data.message || "เกิดข้อผิดพลาดในการอัพเดตรายวิชา"
@@ -124,42 +118,44 @@ export default function CourseTable({
         <tbody>
           {course_list &&
             course_list.length > 0 &&
-            course_list.map((courseItem) => (
-              <tr key={`${courseItem.course_id}_${courseItem.section_id}`}>
-                <td>{courseItem.course_id}</td>
-                <td>{courseItem.course_name}</td>
-                <td>{courseItem.course_engname}</td>
-                <td>{courseItem.section_id}</td>
-                {role === "Curriculum Admin" && (
-                  <td>
-                    <button
-                      onClick={() => {
-                        setSelectedCourse(courseItem.course_id);
-                        setSelectedSection(courseItem.section_id);
-                        setShowStudentModal(true);
-                      }}
-                      className="btn btn-success btn-sm me-2">
-                      Students
-                    </button>
-                    <button
-                      onClick={() => openEditModal(courseItem)}
-                      className="btn btn-warning btn-sm me-2">
-                      {t("Edit")}
-                    </button>
-                    <button
-                      onClick={() =>
-                        deleteCourse(
-                          courseItem.course_id,
-                          courseItem.section_id
-                        )
-                      }
-                      className="btn btn-danger btn-sm">
-                      {t("Delete")}
-                    </button>
-                  </td>
-                )}
-              </tr>
-            ))}
+            course_list
+              .sort((a, b) => a.course_id - b.course_id)
+              .map((courseItem) => (
+                <tr key={`${courseItem.course_id}_${courseItem.section_id}`}>
+                  <td>{courseItem.course_id}</td>
+                  <td>{courseItem.course_name}</td>
+                  <td>{courseItem.course_engname}</td>
+                  <td>{courseItem.section_id}</td>
+                  {role === "Curriculum Admin" && (
+                    <td>
+                      <button
+                        onClick={() => {
+                          setSelectedCourse(courseItem.course_id);
+                          setSelectedSection(courseItem.section_id);
+                          setShowStudentModal(true);
+                        }}
+                        className="btn btn-success btn-sm me-2">
+                        Students
+                      </button>
+                      <button
+                        onClick={() => openEditModal(courseItem)}
+                        className="btn btn-warning btn-sm me-2">
+                        {t("Edit")}
+                      </button>
+                      <button
+                        onClick={() =>
+                          deleteCourse(
+                            courseItem.course_id,
+                            courseItem.section_id
+                          )
+                        }
+                        className="btn btn-danger btn-sm">
+                        {t("Delete")}
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
         </tbody>
       </table>
 
