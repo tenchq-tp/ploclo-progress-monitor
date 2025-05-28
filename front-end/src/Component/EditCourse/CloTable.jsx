@@ -2,19 +2,28 @@ import { useTranslation } from "react-i18next";
 import styles from "./styles/CloTable.module.css";
 import { useState } from "react";
 import EditCloModal from "./EditClo";
+import axios from "./../axios";
 
 export default function CloTable({ cloArray, role }) {
   const { t } = useTranslation();
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedClo, setSelectedClo] = useState({
+    clo_id: 1,
     CLO_code: "CLO1",
     CLO_name: "อธิบายแนวคิด...",
     CLO_engname: "Describe the concept...",
   });
-  const handleSave = (updatedClo) => {
-    console.log("Updated CLO: ", updatedClo);
+  const handleSave = async (updatedClo) => {
+    try {
+      await axios.put(
+        "/api/clo/",
+        { updatedClo },
+        { params: updatedClo.clo_id }
+      );
+    } catch (error) {
+      console.error(error);
+    }
   };
-  console.log(cloArray);
   return (
     <div className={styles.container}>
       <table className={styles.table}>
@@ -50,6 +59,7 @@ export default function CloTable({ cloArray, role }) {
                     className={styles.btnEdit}
                     onClick={() => {
                       setSelectedClo({
+                        clo_id: clo.CLO_id,
                         CLO_code: clo.CLO_code,
                         CLO_name: clo.CLO_name,
                         CLO_engname: clo.CLO_engname,
