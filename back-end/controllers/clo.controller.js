@@ -15,6 +15,34 @@ async function getAll(req, res) {
   }
 }
 
+export async function updateById(req, res) {
+  const { clo_id } = req.params;
+  const clo = req.body;
+  console.log(req.body);
+
+  try {
+    const update_query = `
+      UPDATE clo
+      SET CLO_code = ?, CLO_name = ?, CLO_engname = ?
+      WHERE CLO_id = ?
+    `;
+
+    await pool.query(update_query, [
+      clo.clo_code,
+      clo.clo_name,
+      clo.clo_engname,
+      clo_id,
+    ]);
+    res.status(200).json({ message: "Update successfully", body: req.body });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error while update",
+      route: "clo",
+      error: error.message,
+    });
+  }
+}
+
 async function getMapping(req, res) {
   const { course_id, section_id, semester_id, year, program_id, clo_ids } =
     req.query;

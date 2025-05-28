@@ -247,6 +247,7 @@ WHERE
     AND course_clo.course_id = ?
     AND course_clo.semester_id = ?
     AND course_clo.year = ?
+ORDER BY clo.CLO_code ASC
         `;
 
     const rows = await conn.query(query, [

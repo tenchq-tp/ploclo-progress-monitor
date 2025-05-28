@@ -6,10 +6,12 @@ import {
   createMapping,
   createOne,
   deleteOneById,
+  updateById,
 } from "../controllers/clo.controller.js";
 const router = express.Router();
 
 router.get("/", getAll);
+router.put("/:clo_id", updateById);
 router.get("/mapping", getMapping);
 router.patch("/mapping", updateMapping);
 router.post("/mapping", createMapping);
