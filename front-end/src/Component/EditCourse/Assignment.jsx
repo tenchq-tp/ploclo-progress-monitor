@@ -97,7 +97,13 @@ export default function Assignment({
         setProgramCourse={setSelectedProgramCourse}
         programCourseId={selectedProgramCourse}
       />
-      <button onClick={() => setShowAddModal(true)}>เพิ่ม</button>
+      <div className={styles.btn_wrap}>
+        <button
+          className={styles.btn_submit}
+          onClick={() => setShowAddModal(true)}>
+          เพิ่ม
+        </button>
+      </div>
       {showAddModal && (
         <AddAssignmentModal
           setModal={setShowAddModal}
@@ -299,63 +305,77 @@ function AssignmentTable({
       <section className={styles.table_header}>
         <h1>Assignments</h1>
       </section>
-      <section className={styles.table_body}>
-        <table>
-          <thead>
-            <tr>
-              <th> Id </th>
-              <th> Name </th>
-              <th> Description </th>
-              <th> Total score </th>
-              <th> Due date </th>
-              <th> Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {assignments.length > 0 ? (
-              assignments.map((assignment, index) => (
-                <tr key={index}>
-                  <td> {assignment.assignment_id} </td>
-                  <td> {assignment.assignment_name} </td>
-                  <td> {assignment.description} </td>
-                  <td> {assignment.total_score} </td>
-                  <td> {assignment.due_date ? assignment.due_date : "-"} </td>
-                  <td>
-                    <button
-                      onClick={() => {
-                        setSelectedAssignmentStudent(assignment.assignment_id);
-                        setShowScores(true);
-                      }}>
-                      กรอกคะแนน
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedAssignmentStudent(assignment.assignment_id);
-                        document.getElementById("uploadStudentFile").click();
-                      }}>
-                      มอบหมายงาน
-                    </button>
-                    <input
-                      type="file"
-                      id="uploadStudentFile"
-                      style={{ display: "none" }}
-                      accept=".xlsx, .xls"
-                      onChange={handleFileUpload}
-                    />
-                    <button
-                      onClick={() =>
-                        deleteAssignment(assignment.assignment_id)
-                      }>
-                      ลบ
-                    </button>
+
+      <section className={styles.table_body_wrapper}>
+        <div className={styles.table_scroll_container}>
+          <table className={styles.table}>
+            <thead>
+              <tr className={styles.column_wrap}>
+                <th className={styles.column_table}>Id</th>
+                <th className={styles.column_table}>Name</th>
+                <th className={styles.column_table}>Description</th>
+                <th className={styles.column_table}>Total score</th>
+                <th className={styles.column_table}>Due date</th>
+                <th className={styles.column_table}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assignments.length > 0 ? (
+                assignments.map((assignment, index) => (
+                  <tr key={index}>
+                    <td>{assignment.assignment_id}</td>
+                    <td>{assignment.assignment_name}</td>
+                    <td>{assignment.description}</td>
+                    <td>{assignment.total_score}</td>
+                    <td>{assignment.due_date || "-"}</td>
+                    <td>
+                      <button
+                        className={styles.btn_submit}
+                        onClick={() => {
+                          setSelectedAssignmentStudent(
+                            assignment.assignment_id
+                          );
+                          setShowScores(true);
+                        }}>
+                        กรอกคะแนน
+                      </button>
+                      <button
+                        className={styles.btn_submit}
+                        onClick={() => {
+                          setSelectedAssignmentStudent(
+                            assignment.assignment_id
+                          );
+                          document.getElementById("uploadStudentFile").click();
+                        }}>
+                        มอบหมายงาน
+                      </button>
+                      <input
+                        type="file"
+                        id="uploadStudentFile"
+                        style={{ display: "none" }}
+                        accept=".xlsx, .xls"
+                        onChange={handleFileUpload}
+                      />
+                      <button
+                        className={styles.btn_delete}
+                        onClick={() =>
+                          deleteAssignment(assignment.assignment_id)
+                        }>
+                        ลบ
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: "center" }}>
+                    ยังไม่มีข้อมูลแสดง
                   </td>
                 </tr>
-              ))
-            ) : (
-              <p>ยังไม่มีข้อมูลแสดง</p>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </>
   );
@@ -403,7 +423,6 @@ function AddAssignmentModal({
   }
 
   function toggleClo(id) {
-    console.log(selectedClos);
     setSelectedClos((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     );
