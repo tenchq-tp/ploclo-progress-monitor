@@ -11,6 +11,7 @@ import TableEditCloWeight from "./EditCourse/TableEditCloWeight";
 import CloMapping from "./EditCourse/CloMapping";
 import Assignment from "./EditCourse/Assignment";
 import CloTable from "./EditCourse/CloTable";
+import SelectorSection from "./navbar/SelectorSection";
 
 export default function Course() {
   const [selectedPlo, setSelectedPlo] = useState(null);
@@ -222,6 +223,7 @@ export default function Course() {
     } else if (activeTab === 1 && !selectedCourseId) {
       setSelectedCourseClo([]);
     }
+    fetchCourses();
   }, [
     activeTab,
     selectedCourseId,
@@ -2064,7 +2066,7 @@ export default function Course() {
     }
   };
 
- const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e) => {
     let fileTypes = [
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2352,7 +2354,6 @@ export default function Course() {
     }
   };
 
-
   // ฟังก์ชันแก้ไข CLO
   const handleEditClo = (cloId) => {
     const cloToEdit = CLOs.find((clo) => clo.CLO_id === cloId);
@@ -2594,7 +2595,6 @@ export default function Course() {
       fetchFilteredCourseClo();
     }
   };
-
 
   const styles = {
     heading: {
@@ -3655,6 +3655,7 @@ export default function Course() {
               </select>
             </div>
           </div>
+          {/* <SelectorSection /> */}
         </div>
       </div>
 
@@ -3685,10 +3686,11 @@ export default function Course() {
           )}
 
           {role == "Curriculum Admin" || role == "Instructor"}
-          <CourseTable course_list={courseList}
+          <CourseTable
+            course_list={courseList}
             deleteCourse={deleteCourse}
             onCourseUpdated={() => fetchAllCourseByProgram(selectedProgram)}
-           />
+          />
         </div>
 
         <div
@@ -4075,7 +4077,11 @@ export default function Course() {
             </div>
           </div> */}
           {selectedCourseClo.length > 0 ? (
-            <CloTable role={role} cloArray={selectedCourseClo} />
+            <CloTable
+              role={role}
+              cloArray={selectedCourseClo}
+              fetchClo={fetchFilteredCourseClo}
+            />
           ) : (
             <div className="text-center">
               <p>{t("No CLO data available for the selected filters.")}</p>

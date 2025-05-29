@@ -17,6 +17,8 @@
   padding: 50px 30px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   min-width: 500px;
+  max-height: 80vh;
+  overflow: auto;
 }
 
 .title {

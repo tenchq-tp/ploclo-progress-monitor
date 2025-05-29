@@ -75,7 +75,7 @@ async function getManyByFilter(req, res) {
 
   try {
     const response = await pool.query(
-      "SELECT DISTINCT c.course_id, c.course_name, c.course_engname FROM program_course AS pc LEFT JOIN course AS c ON pc.course_id=c.course_id WHERE pc.semester_id=? AND pc.year=?",
+      "SELECT DISTINCT c.course_id, c.course_name, c.course_engname FROM program_course AS pc LEFT JOIN course AS c ON pc.course_id=c.course_id WHERE pc.semester_id=? AND pc.year=? ORDER BY course_id ASC",
       [semester_id, year]
     );
     res.status(200).json(response);

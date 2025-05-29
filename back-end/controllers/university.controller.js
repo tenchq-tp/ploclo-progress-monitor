@@ -39,7 +39,7 @@ async function insertOne(req, res) {
 
 async function getFaculty(req, res) {
   try {
-    const { university_id } = req.query;
+    const { university_id } = req.params;
 
     if (!university_id) {
       return res.status(400).json({ message: "university_id is required" });

@@ -73,7 +73,12 @@ export default function StudentScore({ assignment_id, onClose }) {
           </tbody>
         </table>
         <div className={styles.button_wrapper}>
-          <button onClick={handleSave} className={styles.save_button}>
+          <button
+            onClick={() => {
+              onClose();
+              handleSave();
+            }}
+            className={styles.save_button}>
             บันทึก
           </button>
           <button onClick={onClose} className={styles.close_button}>
