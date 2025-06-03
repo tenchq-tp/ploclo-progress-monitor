@@ -58,13 +58,13 @@ export default function Assignment({
 
   async function fetchClo() {
     try {
-      const response = await axios.get("/api/course-clo/clo", {
+      const response = await axios.get("/api/clo/course", {
         params: {
           course_id: selectedCourseName,
           year: selectedYear,
         },
       });
-      setClos(response.data);
+      setClos(response.data.data);
     } catch (error) {
       setError(error.message);
     }
@@ -123,6 +123,7 @@ export default function Assignment({
         setShowStudents={setShowStudents}
         setSelectedAssignmentStudent={setSelectedAssignmentStudent}
         setShowScores={setShowScores}
+        selectedCourseId={selectedCourseName}
       />
       {editingAssignment && (
         <EditAssignmentModal
@@ -245,6 +246,7 @@ function AssignmentTable({
   setShowStudents,
   setSelectedAssignmentStudent,
   setShowScores,
+  selectedCourseId,
 }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [studentData, setStudentData] = useState(null);
@@ -257,6 +259,20 @@ function AssignmentTable({
       console.log(error.message);
     }
     fetchAssignments();
+  }
+
+  async function fetchStudent() {
+    try {
+      const response = await axios.get(
+        `/api/students/course/${selectedCourseId}/students`
+      );
+      const students = response.data;
+      setStudents(students);
+      setShowStudents(true);
+      setStudentData(students);
+    } catch (error) {
+      console.error(error.message);
+    }
   }
 
   function handleFileUpload(e) {
@@ -345,17 +361,10 @@ function AssignmentTable({
                           setSelectedAssignmentStudent(
                             assignment.assignment_id
                           );
-                          document.getElementById("uploadStudentFile").click();
+                          fetchStudent();
                         }}>
                         มอบหมายงาน
                       </button>
-                      <input
-                        type="file"
-                        id="uploadStudentFile"
-                        style={{ display: "none" }}
-                        accept=".xlsx, .xls"
-                        onChange={handleFileUpload}
-                      />
                       <button
                         className={styles.btn_delete}
                         onClick={() =>
@@ -506,13 +515,13 @@ function AddAssignmentModal({
 
         {activeTab === "clo" && (
           <div>
-            {clos.map((clo, index) => (
-              <div key={index}>
+            {clos.map((clo) => (
+              <div key={clo.CLO_id}>
                 <input
                   type="checkbox"
-                  value={clo.course_clo_id}
-                  checked={selectedClos.includes(clo.course_clo_id)}
-                  onChange={() => toggleClo(clo.course_clo_id)}
+                  value={clo.CLO_id}
+                  checked={selectedClos.includes(clo.CLO_id)}
+                  onChange={() => toggleClo(clo.CLO_id)}
                 />
                 <label>{`${clo.CLO_code} ${clo.CLO_name}`}</label>
 
@@ -521,11 +530,9 @@ function AddAssignmentModal({
                   step="0.1"
                   min="0"
                   placeholder="น้ำหนัก"
-                  value={cloWeights[clo.course_clo_id] || ""}
-                  onChange={(e) =>
-                    onWeightChange(clo.course_clo_id, e.target.value)
-                  }
-                  disabled={!selectedClos.includes(clo.course_clo_id)}
+                  value={cloWeights[clo.CLO_id] || ""}
+                  onChange={(e) => onWeightChange(clo.CLO_id, e.target.value)}
+                  disabled={!selectedClos.includes(clo.CLO_id)}
                 />
               </div>
             ))}

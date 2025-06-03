@@ -509,6 +509,33 @@ export async function getOneById(req, res) {
     });
   }
 }
+
+export async function getStudentsByCourse(req, res) {
+  try {
+    const { course_id } = req.params;
+
+    if (!course_id) {
+      return res.status(400).json({ error: "Missing course_id parameter" });
+    }
+
+    const query = `
+      SELECT s.student_id, s.first_name, s.last_name, sc.section_id
+      FROM student_course AS sc
+      JOIN student AS s ON s.student_id = sc.student_id
+      WHERE sc.course_id = ?
+      ORDER BY s.student_id ASC
+    `;
+
+    const result = await pool.query(query, [course_id]);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching students by course:", error);
+    res
+      .status(500)
+      .json({ error: "Internal server error", message: error.message });
+  }
+}
+
 export {
   insertStudent,
   getAll,

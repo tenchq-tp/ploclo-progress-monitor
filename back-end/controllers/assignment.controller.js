@@ -32,6 +32,14 @@ export async function createOne(req, res) {
   const conn = await pool.getConnection();
   await conn.beginTransaction();
 
+  const totalWeight = clos.reduce(
+    (sum, clo) => sum + parseFloat(clo.weight),
+    0
+  );
+  if (Math.abs(totalWeight - 1.0) > 0.001) {
+    return res.status(400).json({ message: "CLO weights must sum up to 1.0" });
+  }
+
   try {
     const assignmentQuery = `
       INSERT INTO assignments (program_course_id, assignment_name, description, total_score, due_date, faculty_id, university_id)
@@ -189,6 +197,25 @@ export async function updateScore(req, res) {
     res.status(200).json({ message: "test" });
   } catch (error) {
     res.status(500).json({ messsage: "Test" });
+  }
+}
+
+export async function getAssignmentClos(req, res) {
+  const { assignment_id } = req.params;
+
+  try {
+    const query = `
+      SELECT ac.clo_id, ac.weight, clo.CLO_code, clo.CLO_name
+      FROM assignment_clo AS ac
+      JOIN clo ON clo.CLO_id = ac.clo_id
+      WHERE ac.assignment_id = ?
+    `;
+    const result = await pool.query(query, [assignment_id]);
+    res.status(200).json(result);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error while fetching CLOs for assignment", error });
   }
 }
 

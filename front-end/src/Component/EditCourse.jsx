@@ -12,6 +12,7 @@ import CloMapping from "./EditCourse/CloMapping";
 import Assignment from "./EditCourse/Assignment";
 import CloTable from "./EditCourse/CloTable";
 import SelectorSection from "./navbar/SelectorSection";
+import CloPloMapping from "./EditCourse/CloPloMapping";
 
 export default function Course() {
   const [selectedPlo, setSelectedPlo] = useState(null);
@@ -2717,13 +2718,6 @@ export default function Course() {
             )}
             {(role == "Curriculum Admin" || role === "Instructor") && (
               <li
-                className={`tab-item ${activeTab === 2 ? "active" : ""}`}
-                onClick={() => handleTabClick(2)}>
-                {t("Course-CLO Mapping")}
-              </li>
-            )}
-            {(role == "Curriculum Admin" || role === "Instructor") && (
-              <li
                 className={`tab-item ${activeTab === 3 ? "active" : ""}`}
                 onClick={() => handleTabClick(3)}>
                 {t("CLO-PLO Mapping")}
@@ -2734,6 +2728,13 @@ export default function Course() {
                 className={`tab-item ${activeTab === 4 ? "active" : ""}`}
                 onClick={() => handleTabClick(4)}>
                 {t("Assignment")}
+              </li>
+            )}
+            {(role == "Curriculum Admin" || role === "Instructor") && (
+              <li
+                className={`tab-item ${activeTab === 2 ? "active" : ""}`}
+                onClick={() => handleTabClick(2)}>
+                {t("Course-CLO Mapping")}
               </li>
             )}
           </ul>
@@ -3341,255 +3342,13 @@ export default function Course() {
           )}
         </div>
 
-        <div className={`tab-content ${activeTab === 3 ? "active" : "hidden"}`}>
-          <div className="row" style={{ padding: "0px 10px 0 10px" }}>
-            <div className="col-md-3">
-              <label className="form-label text-start">Choose a Course</label>
-              <select
-                className="form-select"
-                value={selectedCourseId || ""}
-                onChange={(e) => {
-                  setSelectedCourseId(e.target.value);
-                }}
-                disabled={!newCourse.semester_id}>
-                <option value="" disabled>
-                  Select Course
-                </option>
-                {Array.from(
-                  new Map(
-                    courses.map((course) => [course.course_name, course]) // กรองชื่อซ้ำออก
-                  ).values()
-                ).map((course) => (
-                  <option key={course.course_id} value={course.course_id}>
-                    {`${course.course_id} - ${course.course_name} (${course.course_engname})`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="">
-            <div className="card-header">
-              <h5>CLO-PLO Mapping Table</h5>
-            </div>
-            <div className="card-body">
-              <div className="mb-3 d-flex align-items-center">
-                {role === "Curriculum Admin" && (
-                  <button
-                    className="btn btn-primary me-2"
-                    onClick={handleEditToggle2}>
-                    {editingScores ? "ยกเลิกการแก้ไข" : "แก้ไข PLO-CLO Mapping"}
-                  </button>
-                )}
-
-                {/* เพิ่มปุ่มบันทึกที่จะแสดงเมื่ออยู่ในโหมดแก้ไข */}
-                {editingScores && (
-                  <button
-                    className="btn btn-success me-2"
-                    onClick={handlePostPloCloScores}>
-                    บันทึกการแก้ไข
-                  </button>
-                )}
-
-                {/* แสดงคำอธิบายเพิ่มเติมเมื่ออยู่ในโหมดแก้ไข */}
-                {editingScores && (
-                  <span className="text-info ms-2">
-                    <i className="fas fa-info-circle me-1"></i>
-                    คลิกที่วงกลมเพื่อเลือก PLO สำหรับแต่ละ CLO และกำหนดน้ำหนัก
-                  </span>
-                )}
-              </div>
-
-              {allPLOs.length > 0 && CLOs.length > 0 ? (
-                <div className="table-responsive">
-                  <table
-                    className="table table-bordered"
-                    border="1"
-                    cellPadding="10">
-                    <thead>
-                      <tr>
-                        <th rowSpan="2">CLO</th>
-                        <th colSpan={allPLOs.length} className="text-center">
-                          PLO
-                        </th>
-                        <th rowSpan="2">Total</th>
-                      </tr>
-                      <tr>
-                        {allPLOs.map((plo) => (
-                          <th
-                            key={`header-plo-${plo.PLO_id || plo.plo_id}`}
-                            className="text-center">
-                            {plo.PLO_code || "N/A"}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Map through each CLO */}
-                      {CLOs.map((clo) => {
-                        // Calculate total for this CLO
-                        let cloTotalWeight = 0;
-                        let mappedPloId = null;
-
-                        // Find which PLO this CLO is mapped to and get its weight
-                        allPLOs.forEach((plo) => {
-                          const currentPloId = plo.PLO_id || plo.plo_id;
-                          const mappingKey = `${currentPloId}-${clo.CLO_id}`;
-
-                          // If in edit mode, check scores
-                          if (editingScores) {
-                            if (scores[mappingKey] > 0) {
-                              cloTotalWeight =
-                                parseInt(scores[mappingKey]) || 0;
-                              mappedPloId = currentPloId;
-                            }
-                          }
-                          // Otherwise check existing mappings
-                          else {
-                            const mapping = mappings.find(
-                              (m) =>
-                                (m.PLO_id === currentPloId ||
-                                  m.plo_id === currentPloId) &&
-                                m.CLO_id === clo.CLO_id
-                            );
-
-                            if (mapping && mapping.weight > 0) {
-                              cloTotalWeight = mapping.weight;
-                              mappedPloId = currentPloId;
-                            }
-                          }
-                        });
-
-                        return (
-                          <tr key={`row-clo-${clo.CLO_id}`}>
-                            <td>{clo.CLO_code}</td>
-                            {allPLOs.map((plo) => {
-                              const currentPloId = plo.PLO_id || plo.plo_id;
-                              const mappingKey = `${currentPloId}-${clo.CLO_id}`;
-
-                              return (
-                                <td
-                                  key={`cell-${mappingKey}`}
-                                  className="text-center">
-                                  {editingScores ? (
-                                    <div className="form-check d-flex justify-content-center align-items-center">
-                                      <input
-                                        type="radio"
-                                        className="form-check-input me-2"
-                                        checked={
-                                          scores[mappingKey] > 0 ||
-                                          (mappedPloId === currentPloId &&
-                                            !scores[mappingKey])
-                                        }
-                                        onChange={() => {
-                                          // Clear previous selections for this CLO
-                                          const newScores = { ...scores };
-                                          allPLOs.forEach((p) => {
-                                            const pId = p.PLO_id || p.plo_id;
-                                            delete newScores[
-                                              `${pId}-${clo.CLO_id}`
-                                            ];
-                                          });
-
-                                          // Set new selection with default weight of 100
-                                          newScores[mappingKey] =
-                                            cloTotalWeight || 100;
-                                          setScores(newScores);
-                                        }}
-                                      />
-                                      {(mappedPloId === currentPloId ||
-                                        scores[mappingKey] > 0) && (
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          max="100"
-                                          value={
-                                            scores[mappingKey] !== undefined
-                                              ? scores[mappingKey]
-                                              : cloTotalWeight || 100
-                                          }
-                                          onChange={(e) =>
-                                            handleInputChange2(
-                                              currentPloId,
-                                              clo.CLO_id,
-                                              e.target.value
-                                            )
-                                          }
-                                          className="form-control mx-auto"
-                                          style={{ width: "60px" }}
-                                        />
-                                      )}
-                                    </div>
-                                  ) : mappedPloId === currentPloId ? (
-                                    cloTotalWeight
-                                  ) : (
-                                    "-"
-                                  )}
-                                </td>
-                              );
-                            })}
-                            <td className="text-center">
-                              {cloTotalWeight || "-"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-
-                      {/* PLO Totals row */}
-                      <tr className="table-secondary">
-                        <td className="fw-bold">PLO Totals</td>
-                        {allPLOs.map((plo) => {
-                          const currentPloId = plo.PLO_id || plo.plo_id;
-                          const ploTotal = calculateTotalForPLO(currentPloId);
-
-                          return (
-                            <td
-                              key={`ploTotal-${currentPloId}`}
-                              className="text-center fw-bold">
-                              {ploTotal || "-"}
-                            </td>
-                          );
-                        })}
-                        <td className="text-center">-</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-warning">
-                  {!(
-                    selectedCourseId &&
-                    selectedSectionId &&
-                    selectedSemesterId &&
-                    selectedYear
-                  )
-                    ? "กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนแสดงตาราง"
-                    : CLOs.length === 0
-                      ? "ไม่พบข้อมูล CLO"
-                      : allPLOs.length === 0
-                        ? "ไม่พบข้อมูล PLO"
-                        : "ไม่พบข้อมูลการแมป PLO-CLO"}
-                </p>
-              )}
-
-              {/* เพิ่มปุ่มบันทึกที่ด้านล่างของตารางเมื่ออยู่ในโหมดแก้ไข */}
-              {editingScores && (
-                <div className="mt-3 text-end">
-                  <button
-                    className="btn btn-secondary me-2"
-                    onClick={handleEditToggle2}>
-                    ยกเลิกการแก้ไข
-                  </button>
-                  <button
-                    className="btn btn-success"
-                    onClick={handlePostPloCloScores}>
-                    บันทึกการแก้ไข
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        {activeTab === 3 && (
+          <CloPloMapping
+            selectedProgram={selectedProgram}
+            selectedSemester={selectedSemesterId}
+            selectedYear={selectedYear}
+          />
+        )}
 
         <div
           className={`tab-content ${activeTab === 2 ? "active" : "hidden"}`}

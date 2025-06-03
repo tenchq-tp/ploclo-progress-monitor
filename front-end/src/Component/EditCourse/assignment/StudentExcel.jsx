@@ -24,7 +24,7 @@ export default function StudentExcel({
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
-        <h2 className={styles.header}>รายชื่อนักเรียนจาก Excel</h2>
+        <h2 className={styles.header}>รายชื่อนักเรียนจากรายวิชานี้</h2>
         <div className={styles.studentTableWrapper}>
           <table className={styles.studentTable}>
             <thead>
@@ -38,8 +38,8 @@ export default function StudentExcel({
               {students.map((s, index) => (
                 <tr key={index}>
                   <td>{s.student_id}</td>
-                  <td>{s.firstname}</td>
-                  <td>{s.lastname}</td>
+                  <td>{s.first_name}</td>
+                  <td>{s.last_name}</td>
                 </tr>
               ))}
             </tbody>

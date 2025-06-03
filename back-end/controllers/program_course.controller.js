@@ -569,7 +569,7 @@ async function updateOneByCourseId(req, res) {
 }
 
 async function getManyCourseDetail(req, res) {
-  const { program_id, year, semester_id } = req.query; // รับ parameter year เพิ่มเติม
+  const { program_id, year, semester_id } = req.query;
 
   let conn;
   if (!program_id) {

@@ -93,23 +93,11 @@ CREATE TABLE `course_plo` (
 
 CREATE TABLE `plo_clo` (
   `PLO_CLO_id` int NOT NULL AUTO_INCREMENT,
-  `year` int NOT NULL,
   `weight` int NOT NULL,
-  `semester_id` int DEFAULT NULL,
-  `course_id` int DEFAULT NULL,
-  `section_id` int DEFAULT NULL,
   `PLO_id` int NOT NULL,
   `CLO_id` int NOT NULL,
   PRIMARY KEY (`PLO_CLO_id`),
-  KEY `semester_id` (`semester_id`),
-  KEY `course_id` (`course_id`),
-  KEY `section_id` (`section_id`),
-  KEY `PLO_id` (`PLO_id`),
-  KEY `CLO_id` (`CLO_id`),
-  CONSTRAINT `plo_clo_ibfk_1` FOREIGN KEY (`semester_id`) REFERENCES `semester` (`semester_id`),
-  CONSTRAINT `plo_clo_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `course` (`course_id`),
-  CONSTRAINT `plo_clo_ibfk_3` FOREIGN KEY (`section_id`) REFERENCES `section` (`section_id`),
-  CONSTRAINT `plo_clo_ibfk_4` FOREIGN KEY (`PLO_id`) REFERENCES `plo` (`PLO_id`),
+  CONSTRAINT `plo_clo_ibfk_4` FOREIGN KEY (`PLO_id`) REFERENCES `program_plo` (`plo_id`),
   CONSTRAINT `plo_clo_ibfk_5` FOREIGN KEY (`CLO_id`) REFERENCES `clo` (`CLO_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

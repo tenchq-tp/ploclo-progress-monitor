@@ -4,6 +4,7 @@ import {
   createOne,
   deleteOneById,
   getAll,
+  getAssignmentClos,
   getManyByProgramCourse,
   getManyWithScore,
   updateScore,
@@ -17,5 +18,7 @@ router.get("/:program_course_id", getManyByProgramCourse);
 router.post("/assign", assignStudent);
 router.get("/score/:assignment_id", getManyWithScore);
 router.post("/score", updateScore);
+router.get("/clos/:assignment_id", getAssignmentClos);
+// router.put("/clos/:assignment_id", updateAssignmentClos);
 
 export default router;

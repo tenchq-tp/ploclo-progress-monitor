@@ -11,6 +11,7 @@ import {
   deleteStudent,
   importStudentsFromExcel,
   getOneById,
+  getStudentsByCourse,
 } from "../controllers/student.controller.js";
 
 router.post("/", insertStudent);
@@ -23,5 +24,6 @@ router.post("/program", addStudent);
 router.put("/program/:student_id", updateStudent);
 router.delete("/program/:id", deleteStudent);
 router.get("/:student_id", getOneById);
+router.get("/course/:course_id/students", getStudentsByCourse);
 
 export default router;
