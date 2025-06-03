@@ -1,376 +1,239 @@
 import pool from "../utils/db.js";
+import { success, error } from "../utils/response.js";
+import xlsx from "xlsx";
+import fs from "fs";
 
-async function getAll(req, res) {
-  let conn;
-  try {
-    conn = await pool.getConnection();
-    const query = "SELECT * FROM clo;";
-    const clos = await conn.query(query);
-    res.json(Array.isArray(clos) ? clos : [clos]);
-  } catch (error) {
-    console.error("Error fetching CLOs : ", err);
-    res.status(500).json({ success: false, message: "Database error" });
-  } finally {
-    if (conn) conn.release();
-  }
-}
-
-export async function updateById(req, res) {
-  const { clo_id } = req.params;
-  const { clo_code, clo_name, clo_engname } = req.body;
+export async function getAll(req, res) {
   try {
     const query = `
-    UPDATE clo
-    SET CLO_code = ?, CLO_name = ?, CLO_engname = ?
-    WHERE CLO_id = ?
+      SELECT * FROM clo
     `;
-    await pool.query(query, [clo_code, clo_name, clo_engname, clo_id]);
-    res.status(200).json({ message: "Update successfully" });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error while update",
-      function: "updateById",
-      route: "clo",
-      error: error.message,
-    });
+
+    const [result] = await pool.query(query);
+    success(res, result);
+  } catch (err) {
+    console.error("Error in getAll clo: ", err);
+    error(res, "Error while fetching CLOs");
   }
 }
 
-async function getMapping(req, res) {
-  const { course_id, section_id, semester_id, year, program_id, clo_ids } =
-    req.query;
+export async function getOne(req, res) {
+  const { id } = req.params;
 
-  console.log("Received Query Params:", req.query);
-
-  if (!course_id || !section_id || !semester_id || !year || !program_id) {
-    return res.status(400).json({ message: "Missing required parameters" });
+  if (isNaN(Number(id))) {
+    return res.status(400).json({ message: "Invalid ID format" });
   }
 
-  let conn;
   try {
-    conn = await pool.getConnection();
+    const query = `
+      SELECT * FROM clo WHERE CLO_id = ?
+    `;
+    const [rows] = await pool.query(query, [id]);
 
-    let query = `
-            SELECT 
-      pc.plo_clo_id,
-      pc.year,
-      pc.weight,  -- ดึง weight จากตาราง plo_clo
-      pc.semester_id,
-      pc.course_id,
-      pc.section_id,
-      pc.PLO_id,
-      pc.CLO_id,
-      p.PLO_code,
-      p.PLO_name,
-      p.PLO_engname,
-      c.CLO_code,
-      c.CLO_name,
-      c.CLO_engname
-  FROM 
-      plo_clo pc  -- เปลี่ยนจาก course_plo เป็น plo_clo
-  JOIN 
-      plo p ON pc.PLO_id = p.PLO_id
-  JOIN 
-      clo c ON pc.CLO_id = c.CLO_id
-  WHERE 
-      pc.course_id = ? 
-      AND pc.section_id = ? 
-      AND pc.semester_id = ? 
-      AND pc.year = ? 
-      AND pc.PLO_id IN (
-          SELECT plo_id FROM program_plo WHERE program_id = ?
-      )
-          `;
-
-    // ถ้ามีการระบุ clo_ids (ตัวเลือก)
-    const params = [course_id, section_id, semester_id, year, program_id];
-    if (clo_ids) {
-      const cloIdsArray = clo_ids.split(",");
-      if (cloIdsArray.length > 0) {
-        query += ` AND cc.clo_id IN (${cloIdsArray.map(() => "?").join(",")})`;
-        params.push(...cloIdsArray);
-      }
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "CLO not found" });
     }
 
-    query += ` ORDER BY p.PLO_code, c.CLO_code`;
-
-    console.log("SQL Query:", query);
-    console.log("Parameters:", params);
-
-    const result = await conn.query(query, params);
-
-    // ตรวจสอบและแปลงผลลัพธ์ให้เป็น array เสมอ
-    const mappings = Array.isArray(result) ? result : result ? [result] : [];
-
-    return res.status(200).json(mappings);
+    res.status(200).json(rows);
   } catch (err) {
-    console.error("Error fetching PLO-CLO mappings:", err);
-    return res
-      .status(500)
-      .json({ message: "Database error", error: err.message });
-  } finally {
-    if (conn) conn.release();
+    console.error("Erro in getOne clo: ", err);
+    error(res, "Error while fetching CLO");
   }
 }
 
-async function updateMapping(req, res) {
-  const {
-    program_id,
-    course_id,
-    section_id,
-    semester_id,
-    year,
-    PLO_id,
-    CLO_id,
-    weight,
-  } = req.body;
+export async function createOne(req, res) {
+  const { clo_code, clo_name, clo_engname, course_id, year } = req.body;
 
-  // ตรวจสอบข้อมูลที่จำเป็น
-  if (!course_id || !PLO_id || !CLO_id || weight === undefined) {
-    return res.status(400).json({
-      success: false,
-      message: "Missing required fields: course_id, PLO_id, CLO_id, or weight",
-    });
+  if (!clo_code || !clo_name || !clo_engname || !course_id || !year) {
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
-  let conn;
   try {
-    conn = await pool.getConnection();
-
-    // 1. ค้นหาข้อมูลที่มีอยู่ใน course_plo ก่อน
     const checkQuery = `
-            SELECT course_plo_id, weight 
-            FROM course_plo
-            WHERE course_id = ? AND plo_id = ?
-        `;
-    const existingData = await conn.query(checkQuery, [course_id, PLO_id]);
+      SELECT 1 FROM clo WHERE clo_code = ? AND course_id = ? AND year = ?
+    `;
+    const exists = await pool.query(checkQuery, [clo_code, course_id, year]);
 
-    // แปลง weight เป็น int
-    const weightInt = parseInt(weight) || 0;
-
-    // 2. ถ้ามีข้อมูลอยู่แล้ว ให้อัปเดต
-    if (existingData && existingData.length > 0) {
-      const updateQuery = `
-                UPDATE course_plo
-                SET weight = ?
-                WHERE course_id = ? AND plo_id = ?
-            `;
-      await conn.query(updateQuery, [weightInt, course_id, PLO_id]);
-    } else {
-      // 3. ถ้ายังไม่มีข้อมูล ให้เพิ่มใหม่
-      const insertQuery = `
-                INSERT INTO course_plo (course_id, plo_id, weight)
-                VALUES (?, ?, ?)
-            `;
-      await conn.query(insertQuery, [course_id, PLO_id, weightInt]);
+    if (exists.length > 0) {
+      return res
+        .status(409)
+        .json({ message: "CLO code already exists for this course." });
     }
 
-    res.json({
-      success: true,
-      message: "Weight updated successfully",
-    });
-  } catch (error) {
-    console.error("Error updating PLO-CLO weight:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  } finally {
-    if (conn) conn.release();
-  }
-}
-
-async function createMapping(req, res) {
-  const { program_id, course_id, section_id, semester_id, year, scores } =
-    req.body;
-
-  // ตรวจสอบข้อมูลที่จำเป็น
-  if (
-    !program_id ||
-    !course_id ||
-    !section_id ||
-    !semester_id ||
-    !year ||
-    !scores ||
-    !Array.isArray(scores) ||
-    scores.length === 0
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Missing required fields or invalid scores array",
-    });
-  }
-
-  let conn;
-  try {
-    conn = await pool.getConnection();
-
-    // เริ่ม transaction
-    await conn.beginTransaction();
-
-    // ประมวลผลทีละรายการ
-    for (const score of scores) {
-      const { plo_id, clo_id, weight } = score;
-
-      if (!plo_id || !clo_id || weight === undefined) {
-        await conn.rollback();
-        return res.status(400).json({
-          success: false,
-          message: `Invalid score data: missing plo_id, clo_id, or weight`,
-        });
-      }
-
-      // แปลง weight เป็น int
-      const weightInt = parseInt(weight) || 0;
-
-      // ตรวจสอบว่ามีข้อมูลอยู่แล้วหรือไม่
-      const checkQuery = `
-                SELECT course_plo_id
-                FROM course_plo
-                WHERE course_id = ? AND plo_id = ?
-            `;
-      const existingData = await conn.query(checkQuery, [course_id, plo_id]);
-
-      if (existingData && existingData.length > 0) {
-        // อัพเดตข้อมูลที่มีอยู่
-        const updateQuery = `
-                    UPDATE course_plo
-                    SET weight = ?
-                    WHERE course_id = ? AND plo_id = ?
-                `;
-        await conn.query(updateQuery, [weightInt, course_id, plo_id]);
-      } else {
-        // เพิ่มข้อมูลใหม่
-        const insertQuery = `
-                    INSERT INTO course_plo (course_id, plo_id, weight)
-                    VALUES (?, ?, ?)
-                `;
-        await conn.query(insertQuery, [course_id, plo_id, weightInt]);
-      }
-    }
-
-    // Commit transaction
-    await conn.commit();
-
-    res.json({
-      success: true,
-      message: "PLO-CLO mappings added successfully",
-    });
-  } catch (error) {
-    if (conn) await conn.rollback();
-    console.error("Error adding PLO-CLO mappings:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
-  } finally {
-    if (conn) conn.release();
-  }
-}
-
-async function createOne(req, res) {
-  const {
-    program_id,
-    course_id,
-    section_id,
-    semester_id,
-    year,
-    CLO_code,
-    CLO_name,
-    CLO_engname,
-  } = req.body;
-
-  // ตรวจสอบว่าข้อมูลทั้งหมดถูกเลือกแล้ว
-  if (!program_id || !course_id || !section_id || !semester_id || !year) {
-    return res.status(400).json({
-      error: "Please select all required fields before inserting CLO",
-    });
-  }
-
-  const conn = await pool.getConnection();
-  try {
-    // ตรวจสอบว่าข้อมูล program_course มีอยู่ในระบบหรือไม่
-    const checkProgramCourseQuery = `
-        SELECT * FROM program_course
-        WHERE program_id = ? AND course_id = ? AND section_id = ? AND semester_id = ? AND year = ?
-      `;
-
-    const results = await conn.query(checkProgramCourseQuery, [
-      program_id,
+    const insertQuery = `
+      INSERT INTO clo (clo_code, clo_name, clo_engname, course_id, year)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+    const result = await pool.query(insertQuery, [
+      clo_code,
+      clo_name,
+      clo_engname,
       course_id,
-      section_id,
-      semester_id,
       year,
     ]);
 
-    if (results.length === 0) {
-      return res.status(400).json({
-        error: "Selected program/course/section/semester/year not found",
-      });
-    }
-
-    // Insert CLO
-    const insertCLOQuery = `
-        INSERT INTO course_clo (program_id, course_id, section_id, semester_id, year, CLO_code, CLO_name, CLO_engname)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-
-    const result = await conn.query(insertCLOQuery, [
-      program_id,
-      course_id,
-      section_id,
-      semester_id,
-      year,
-      CLO_code,
-      CLO_name,
-      CLO_engname,
-    ]);
-
-    return res.status(200).json({ message: "CLO inserted successfully" });
+    res.status(201).json({
+      message: "CLO created successfully",
+      clo_id: Number(result.insertId),
+    });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Database error", details: err });
-  } finally {
-    conn.release(); // Always release the connection back to the pool
+    console.error("Error in createOne clo:", err);
+    res.status(500).json({ message: "Error while creating CLO" });
   }
 }
 
-async function deleteOneById(req, res) {
-  const { clo_id } = req.params;
+export async function updateOne(req, res) {
+  const { id } = req.params;
+  const { clo_code, clo_name, clo_engname } = req.body;
 
-  if (!clo_id) {
-    return res.status(400).json({ error: "CLO ID is required" });
+  if (!clo_code || !clo_name || !clo_engname) {
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
-  const conn = await pool.getConnection();
   try {
-    const deleteCLOQuery = `
-        DELETE FROM course_clo WHERE CLO_id = ?
-      `;
+    const [existing] = await pool.query("SELECT * FROM clo WHERE CLO_id = ?", [
+      id,
+    ]);
+    if (!existing) {
+      return res.status(404).json({ message: "CLO not found" });
+    }
 
-    const result = await conn.query(deleteCLOQuery, [clo_id]);
+    const [duplicate] = await pool.query(
+      "SELECT 1 FROM clo WHERE CLO_code = ? AND CLO_id != ?",
+      [clo_code, id]
+    );
+    if (duplicate) {
+      return res
+        .status(409)
+        .json({ message: "CLO code already exists for this course." });
+    }
+
+    const query = `
+      UPDATE clo
+      SET CLO_code = ?, CLO_name = ?, CLO_engname = ?
+      WHERE CLO_id = ?
+    `;
+    await pool.query(query, [clo_code, clo_name, clo_engname, id]);
+
+    res.json({ message: "CLO updated successfully" });
+  } catch (err) {
+    console.error("Error in updateOne clo:", err);
+    res.status(500).json({ message: "Error while updating CLO" });
+  }
+}
+
+export async function patchOne(req, res) {
+  const { id } = req.params;
+  const fields = req.body;
+
+  if (!fields || Object.keys(fields).length === 0) {
+    return res.status(400).json({ message: "No fields to update" });
+  }
+
+  try {
+    const columns = Object.keys(fields)
+      .map((key) => `${key} = ?`)
+      .join(", ");
+
+    const values = Object.values(fields);
+    values.push(id);
+
+    const query = `UPDATE clo SET ${columns} WHERE CLO_id = ?`;
+    const result = await pool.query(query, values);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "CLO not found" });
+      return res.status(404).json({ message: "CLO not found" });
     }
 
-    return res.status(200).json({ message: "CLO deleted successfully" });
+    res.json({ message: "CLO updated partially" });
   } catch (err) {
-    console.error(err);
-    return res
-      .status(500)
-      .json({ error: "Failed to delete CLO", details: err });
-  } finally {
-    conn.release(); // Always release the connection back to the pool
+    console.error("Error in patchOne clo:", err);
+    res.status(500).json({ message: "Error while patching CLO" });
   }
 }
 
-export {
-  getAll,
-  getMapping,
-  updateMapping,
-  createMapping,
-  createOne,
-  deleteOneById,
-};
+export async function deleteOne(req, res) {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query("DELETE FROM clo WHERE CLO_id = ?", [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "CLO not found" });
+    }
+
+    res.json({ message: "CLO deleted successfully" });
+  } catch (err) {
+    console.error("Error in deleteOne clo:", err);
+    res.status(500).json({ message: "Error while deleting CLO" });
+  }
+}
+
+export async function uploadExcel(req, res) {
+  const { course_id, year } = req.query;
+
+  try {
+    const rawRows = req.body;
+    const mapping = {
+      CLO_code: "clo_code",
+      CLO_name: "clo_name",
+      CLO_engname: "clo_engname",
+    };
+    const rows = rawRows.map((row) => {
+      const newRow = {};
+      for (const key in row) {
+        if (mapping[key]) {
+          newRow[mapping[key]] = row[key];
+        }
+      }
+      return newRow;
+    });
+    if (!rows || !rows.length) {
+      return res.status(400).json({ message: "Empty or invalid Excel file." });
+    }
+
+    let inserted = 0;
+    for (const row of rows) {
+      const { clo_code, clo_name, clo_engname } = row;
+
+      if (!clo_code || !clo_name || !clo_engname || !course_id || !year) {
+        continue;
+      }
+      const exists = await pool.query(
+        "SELECT 1 FROM clo WHERE CLO_code = ? AND course_id = ? AND year = ?",
+        [clo_code, course_id, year]
+      );
+      if (exists.length > 0) continue;
+
+      await pool.query(
+        `INSERT INTO clo (CLO_code, CLO_name, CLO_engname, course_id, year)
+         VALUES (?, ?, ?, ?, ?)`,
+        [clo_code, clo_name, clo_engname, course_id, year]
+      );
+      inserted++;
+    }
+    res
+      .status(201)
+      .json({ message: `Imported ${inserted} CLOs successfully.` });
+  } catch (error) {
+    console.error("Error in uploadExcel:", error);
+    res.status(500).json({ message: "Error while importing Excel" });
+  }
+}
+
+export async function getByCourseId(req, res) {
+  const { course_id, year } = req.query;
+
+  try {
+    const query = `
+      SELECT * FROM clo WHERE course_id = ? AND year = ?
+      ORDER BY CLO_code ASC
+    `;
+
+    const result = await pool.query(query, [course_id, year]);
+    success(res, result);
+  } catch (err) {
+    console.error("Error in getByCourseId clo: ", err);
+    error(res, "Error while fetching CLOs by course_id");
+  }
+}

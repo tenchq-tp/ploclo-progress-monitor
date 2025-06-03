@@ -1,20 +1,23 @@
 USE react_ploclo;
 
-CREATE TABLE `clo` (
-  `CLO_id` int NOT NULL AUTO_INCREMENT,
-  `CLO_code` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `CLO_name` varchar(1000) COLLATE utf8mb4_general_ci NOT NULL,
-  `CLO_engname` varchar(1000) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `timestamp` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`CLO_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 CREATE TABLE `course` (
   `course_id` int NOT NULL,
   `course_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `course_engname` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`course_id`) 
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `clo` (
+  `CLO_id` int NOT NULL AUTO_INCREMENT,
+  `CLO_code` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `CLO_name` varchar(1000) COLLATE utf8mb4_general_ci NOT NULL,
+  `CLO_engname` varchar(1000) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `course_id` INT NOT NULL,
+  `year` INT(4),
+  `timestamp` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`CLO_id`),
+  FOREIGN KEY (`course_id`) REFERENCES `course`(`course_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `plo` (
@@ -222,7 +225,7 @@ CREATE TABLE `assignment_clo` (
   `assignment_id` int NOT NULL,
   `clo_id` int NOT NULL,
   `weight` DECIMAL(10,2) NOT NULL,
-  FOREIGN KEY (`clo_id`) REFERENCES `clo`(`CLO_id`),
+  FOREIGN KEY (`clo_id`) REFERENCES `clo`(`CLO_id`) ON DELETE CASCADE,
   FOREIGN KEY (`assignment_id`) REFERENCES `assignments`(`assignment_id`) ON DELETE CASCADE
 );
 

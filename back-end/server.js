@@ -8,8 +8,6 @@ import dotenv from "dotenv";
 
 import studentRoutes from "./routes/student.route.js";
 import universityRoutes from "./routes/university.route.js";
-import cloRoutes from "./routes/clo.route.js";
-import courseCloRoutes from "./routes/course_clo.route.js";
 import assignmentRoutes from "./routes/assignment.route.js";
 import programCourseRoutes from "./routes/program_course.route.js";
 import authRoutes from "./routes/auth.route.js";
@@ -17,13 +15,10 @@ import programRoutes from "./routes/program.route.js";
 import ploRoutes from "./routes/plo.route.js";
 import courseRoutes from "./routes/course.route.js";
 import metaDataRoutes from "./routes/metadata.route.js";
-import cloMappingRoutes from "./routes/clo_mapping.route.js";
-import coursePloRoutes from "./routes/course_plo.route.js";
-import ploCloRoutes from "./routes/plo_clo.route.js";
-import ploCloMappingRoutes from "./routes/plo_clo_mapping.route.js";
 import accountRoutes from "./routes/account.route.js";
 import dashboardRoutes from "./routes/dashboard.route.js";
 import studentCourseRoutes from "./routes/student_course.route.js";
+import cloRoutes from "./routes/clo.route.js";
 
 dotenv.config();
 import pool from "./utils/db.js";
@@ -36,8 +31,6 @@ app.use(setCharset);
 
 app.use("/api/students", studentRoutes);
 app.use("/api/university", universityRoutes);
-app.use("/api/clo", cloRoutes);
-app.use("/api/course-clo", courseCloRoutes);
 app.use("/api/assignment", assignmentRoutes);
 app.use("/api/program-course", programCourseRoutes);
 app.use("/api/auth/", authRoutes);
@@ -45,13 +38,10 @@ app.use("/api/program", programRoutes);
 app.use("/api/plo", ploRoutes);
 app.use("/api/course", courseRoutes);
 app.use("/api/metadata", metaDataRoutes);
-app.use("/api/clo-mapping", cloMappingRoutes);
-app.use("/api/course-plo", coursePloRoutes);
-app.use("/api/plo-clo", ploCloRoutes);
-app.use("/api/plo-clo-mapping", ploCloMappingRoutes);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/student-course", studentCourseRoutes);
+app.use("/api/clo", cloRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

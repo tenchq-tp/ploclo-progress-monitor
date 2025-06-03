@@ -167,14 +167,6 @@ export default function Course() {
     fetchUniversities();
   }, []);
 
-  const getCloWeightForPlo = (ploId, cloId) => {
-    const mapping = mappings.find(
-      (m) => (m.PLO_id === ploId || m.plo_id === ploId) && m.CLO_id === cloId
-    );
-    return mapping ? mapping.weight : "-";
-  };
-
-  // แก้ไขการเรียกใช้ API เพื่อดึงข้อมูลคณะ
   useEffect(() => {
     if (!selectedUniversity) {
       setFacultys([]);
@@ -206,7 +198,6 @@ export default function Course() {
     fetchFaculties();
   }, [selectedUniversity]);
 
-  // เพิ่มเงื่อนไขในการเรียกใช้ fetchPLOCLOMappings ใน useEffect ที่ตรวจสอบ activeTab
   useEffect(() => {
     if (activeTab === 3) {
       fetchPLOsForProgram();
@@ -2000,11 +1991,6 @@ export default function Course() {
     const parsedData = rows.map((row) => {
       const columns = row.split(delimiter);
       return {
-        program_id: parseInt(selectedProgram),
-        course_id: parseInt(selectedCourseId),
-        semester_id: parseInt(selectedSemesterId),
-        section_id: parseInt(selectedSectionId),
-        year: parseInt(selectedYear),
         CLO_code: columns[0] || "",
         CLO_name: columns[1] || "",
         CLO_engname: columns[2] || "",
@@ -2018,54 +2004,6 @@ export default function Course() {
     setShowPasteArea(false);
   };
 
-  const handlePasteButtonClick = async () => {
-    try {
-      // เปิดพื้นที่วางข้อมูล
-      setShowPasteArea(true);
-
-      // อ่านข้อมูลจาก Clipboard
-      const text = await navigator.clipboard.readText();
-
-      // ตรวจสอบว่าข้อมูลมีหรือไม่
-      if (!text || text.trim() === "") {
-        alert("ไม่พบข้อมูลใน clipboard โปรดคัดลอกข้อมูลก่อนกดปุ่ม Paste Data");
-        return;
-      }
-
-      // แยกข้อมูลตามบรรทัด
-      const rows = text.trim().split(/\r?\n/);
-
-      // ตรวจสอบว่ามีการใช้ tab หรือ comma เป็นตัวคั่น
-      let delimiter = "\t"; // ค่าเริ่มต้นคือ tab
-      if (rows[0].includes(",") && !rows[0].includes("\t")) {
-        delimiter = ",";
-      }
-
-      // แปลงข้อมูลเป็น array ของ objects
-      const parsedData = rows.map((row) => {
-        const columns = row.split(delimiter);
-        return {
-          program_id: parseInt(selectedProgram),
-          course_id: parseInt(selectedCourseId),
-          semester_id: parseInt(selectedSemesterId),
-          section_id: parseInt(selectedSectionId),
-          year: parseInt(selectedYear),
-          CLO_code: columns[0] || "",
-          CLO_name: columns[1] || "",
-          CLO_engname: columns[2] || "",
-        };
-      });
-
-      // อัปเดต excelData state
-      setExcelData(parsedData);
-      // แสดงข้อความแจ้งเตือนว่าวางข้อมูลสำเร็จ
-      alert(`วางข้อมูลสำเร็จ: พบ ${parsedData.length} รายการ`);
-    } catch (err) {
-      console.error("Failed to paste data:", err);
-      alert("ไม่สามารถวางข้อมูลได้ โปรดตรวจสอบว่าได้คัดลอกข้อมูลที่ถูกต้อง");
-    }
-  };
-
   const handleFileUpload = async (e) => {
     let fileTypes = [
       "application/vnd.ms-excel",
@@ -2073,7 +2011,7 @@ export default function Course() {
       "text/csv",
     ];
     let selectedFile = e.target.files[0];
-
+    setExcelData([]);
     if (selectedFile) {
       if (fileTypes.includes(selectedFile.type)) {
         setTypeError(null);
@@ -2081,7 +2019,7 @@ export default function Course() {
         reader.onload = async (event) => {
           try {
             const data = event.target.result;
-            const workbook = XLSX.read(data, { type: "binary" });
+            const workbook = XLSX.read(data, { type: "array" });
             const sheetName = workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(sheet);
@@ -2102,24 +2040,13 @@ export default function Course() {
 
             // Ensure all required fields are present
             const updatedData = jsonData.map((row) => ({
-              program_id: parseInt(programData.program_id),
-              course_id: parseInt(selectedCourseId),
-              semester_id: parseInt(selectedSemesterId),
-              year: parseInt(selectedYear),
               CLO_code: row.CLO_code || "DEFAULT_CODE", // ให้ค่าเริ่มต้นแทนค่าว่าง
               CLO_name: row.CLO_name || "DEFAULT_NAME", // ให้ค่าเริ่มต้นแทนค่าว่าง
               CLO_engname: row.CLO_engname || "DEFAULT_ENG_NAME", // ให้ค่าเริ่มต้นแทนค่าว่าง
             }));
 
             // Validate that all required fields are present in each row
-            const invalidRows = updatedData.filter(
-              (row) =>
-                !row.program_id ||
-                !row.course_id ||
-                !row.semester_id ||
-                !row.year ||
-                !row.CLO_code
-            );
+            const invalidRows = updatedData.filter((row) => !row.CLO_code);
 
             if (invalidRows.length > 0) {
               console.error("Invalid rows found:", invalidRows);
@@ -2139,7 +2066,7 @@ export default function Course() {
           console.error("Error reading file:", error);
           alert("Error reading file: " + error.message);
         };
-        reader.readAsBinaryString(selectedFile);
+        reader.readAsArrayBuffer(selectedFile);
       } else {
         setTypeError("Please select only Excel file types");
         alert("Please select only Excel file types");
@@ -2150,16 +2077,10 @@ export default function Course() {
   async function fetchFilteredCourseClo() {
     setSelectedCourseClo([]);
     try {
-      const response = await axios.get("/api/course-clo/filter", {
-        params: {
-          program_id: selectedProgram,
-          course_id: selectedCourseId,
-          semester_id: selectedSemesterId,
-          year: selectedYear,
-        },
+      const response = await axios.get(`/api/clo/course`, {
+        params: { course_id: selectedCourseId, year: selectedYear },
       });
-
-      setSelectedCourseClo(response.data);
+      setSelectedCourseClo(response.data.data);
     } catch (error) {
       console.error("Error refreshing CLOs: ", error);
     }
@@ -2188,13 +2109,7 @@ export default function Course() {
 
     // Check each row for required fields
     const missingFields = previousYearCLOs.some(
-      (row) =>
-        !row.course_id ||
-        !row.semester_id ||
-        !row.year ||
-        !row.CLO_code ||
-        !row.CLO_name ||
-        !row.CLO_engname
+      (row) => !row.CLO_code || !row.CLO_name || !row.CLO_engname
     );
 
     if (missingFields) {
@@ -2227,7 +2142,7 @@ export default function Course() {
     }
   };
 
-  const handleUploadButtonClick = () => {
+  const handleUploadButtonClick = async () => {
     if (!excelData || excelData.length === 0) {
       console.error("No data to upload");
       alert("No data to upload. Please paste or upload data first.");
@@ -2235,81 +2150,41 @@ export default function Course() {
     }
 
     // Additional validation before sending to server
-    if (
-      !selectedProgram ||
-      !selectedCourseId ||
-      !selectedSemesterId ||
-      !selectedYear
-    ) {
+    if (!selectedCourseId || !selectedYear) {
       alert(
         "Please select Program, Course, Section, Semester, and Year before uploading."
       );
       return;
     }
 
-    // Check each row for required fields
     const missingFields = excelData.some(
-      (row) =>
-        !row.program_id ||
-        !row.course_id ||
-        !row.semester_id ||
-        !row.year ||
-        !row.CLO_code ||
-        !row.CLO_name ||
-        !row.CLO_engname
+      (row) => !row.CLO_code || !row.CLO_name || !row.CLO_engname
     );
 
     if (missingFields) {
       alert("Some rows are missing required fields. Please check your data.");
       return;
     }
-
-    axios
-      .post("/api/clo-mapping/excel", excelData)
-      .then((response) => {
-        alert("Data Uploaded Successfully!");
-        setExcelData(null); // ล้างข้อมูลหลังจากอัปโหลดสำเร็จ
-
-        // Refresh CLOs after successful upload
-        if (
-          selectedCourseId &&
-          selectedSemesterId &&
-          selectedYear &&
-          selectedProgram
-        ) {
-          fetchFilteredCourseClo();
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("An error occurred: " + error.message);
+    try {
+      const response = await axios.post(`/api/clo/upload`, excelData, {
+        params: { course_id: selectedCourseId, year: selectedYear },
       });
+      alert(response.data.message);
+      setExcelData(null);
+      fetchFilteredCourseClo();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleAddClo = async () => {
-    // Find the selected program data
-    const selectedProgramData = programs.find(
-      (program) => program.program_id.toString() === selectedProgram.toString()
-    );
-
-    // Comprehensive validation
-    if (!selectedProgramData) {
-      alert("Please select a valid program.");
-      return;
-    }
-
     if (!selectedCourseId) {
       alert("Please select a course.");
       return;
     }
 
-    if (!selectedSemesterId) {
-      alert("Please select a semester.");
-      return;
-    }
-
     if (!selectedYear) {
-      alert("Please select a year.");
+      alert("Please select a course.");
       return;
     }
 
@@ -2330,17 +2205,15 @@ export default function Course() {
 
     // Prepare the data for submission
     const newClo = {
-      program_id: parseInt(selectedProgramData.program_id),
       course_id: parseInt(selectedCourseId),
-      semester_id: parseInt(selectedSemesterId),
       year: parseInt(selectedYear),
-      CLO_code: editCloCode.trim(),
-      CLO_name: editCloName.trim(),
-      CLO_engname: editCloEngName.trim(),
+      clo_code: editCloCode.trim(),
+      clo_name: editCloName.trim(),
+      clo_engname: editCloEngName.trim(),
     };
 
     try {
-      const response = await axios.post("/api/clo-mapping", newClo);
+      const response = await axios.post("/api/clo", newClo);
       setEditCloCode("");
       setEditCloName("");
       setEditCloEngName("");
@@ -2348,8 +2221,6 @@ export default function Course() {
       alert("CLO added successfully!");
       fetchFilteredCourseClo();
     } catch (error) {
-      console.error(newClo);
-      console.error("Error adding CLO:", error);
       alert("An error occurred while adding the CLO");
     }
   };
@@ -2773,694 +2644,6 @@ export default function Course() {
     }
   };
 
-  const validateCloScores = () => {
-    const errors = {};
-
-    // ถ้าไม่มีข้อมูล CLO ให้ผ่านการตรวจสอบไปเลย
-    if (!CLOs || CLOs.length === 0) {
-      return true;
-    }
-
-    // ตรวจสอบแต่ละ CLO
-    CLOs.forEach((clo) => {
-      // CLO ID อาจเป็น CLO_id หรือ clo_id ขึ้นอยู่กับรูปแบบข้อมูล
-      const cloId = clo.CLO_id || clo.clo_id;
-      if (!cloId) return; // ข้ามถ้าไม่มี ID
-
-      // ดึงน้ำหนักจาก state cloWeights
-      const maxWeight = cloWeights[cloId] || 0;
-
-      // คำนวณคะแนนรวมสำหรับ CLO นี้จากทุก homework
-      const total = homeworks.reduce((sum, hw) => {
-        return sum + (Number(hw.scores[cloId]) || 0);
-      }, 0);
-
-      // ตรวจสอบว่าคะแนนรวมไม่เกินค่า weight สูงสุด
-      if (total > maxWeight) {
-        // ดึงรหัส CLO (CLO_code) สำหรับการแสดงข้อความ
-        const cloCode = clo.CLO_code || `CLO${cloId}`;
-        errors[cloId] =
-          `คะแนนรวม (${total}) เกินกว่าน้ำหนักที่กำหนด (${maxWeight}) สำหรับ ${cloCode}`;
-      }
-    });
-
-    // ตั้งค่าข้อความแสดงข้อผิดพลาด
-    setValidationErrors(errors);
-
-    // ถ้าไม่มีข้อผิดพลาด (errors เป็น object ว่าง) จะคืนค่า true
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSaveStep1 = () => {
-    if (
-      !selectedProgram ||
-      !selectedCourseId ||
-      !selectedSectionId ||
-      !selectedSemesterId ||
-      !selectedYear ||
-      !assignmentName
-    ) {
-      setTypeError("กรุณากรอกข้อมูลทั้งหมดก่อนบันทึก");
-      return;
-    }
-
-    // Get the course name from the selected course ID
-    const selectedCourseObj = programCourseData.courses.find(
-      (c) => c.course_id.toString() === selectedCourseId.toString()
-    );
-
-    // If no course is found, show error
-    if (!selectedCourseObj) {
-      setTypeError("ไม่พบข้อมูลรายวิชาที่เลือก");
-      return;
-    }
-
-    // Construct the payload exactly as the backend expects
-    const newAssignment = {
-      program_id: parseInt(selectedProgram, 10),
-      course_name: selectedCourseObj.course_name, // Use the actual course_name, not course_id
-      section_id: parseInt(selectedSectionId, 10),
-      semester_id: parseInt(selectedSemesterId, 10),
-      year: parseInt(selectedYear, 10),
-      assignment_name: assignmentName,
-      faculty_id: parseInt(selectedFaculty, 10),
-      university_id: parseInt(selectedUniversity, 10),
-    };
-    setLoading(true);
-
-    // Send the data to the API
-    axios
-      .post("/api/add_assignment", newAssignment)
-      .then((response) => {
-        if (
-          response.data &&
-          (response.data.success ||
-            response.data.message === "Assignment บันทึกสำเร็จ")
-        ) {
-          alert("บันทึก Assignment สำเร็จ!");
-
-          // Go to Step 2 after successful save
-          setCurrentStep(2);
-
-          // Create a new homework from the saved assignment
-          if (response.data.assignment_id) {
-            const newHomework = {
-              id: response.data.assignment_id,
-              name: assignmentName,
-              scores: {},
-            };
-
-            // If CLOs have data, set initial scores to 0
-            if (CLOs && CLOs.length > 0) {
-              CLOs.forEach((clo) => {
-                const cloId = clo.CLO_id || clo.clo_id;
-                newHomework.scores[cloId] = 0;
-              });
-            }
-
-            setHomeworks([newHomework]);
-            setCurrentAssignmentId(response.data.assignment_id);
-          }
-        } else {
-          alert(response.data?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-        }
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error saving Assignment:", error);
-
-        // Show detailed error message
-        let errorMessage = `เกิดข้อผิดพลาด: ${error.message}`;
-        if (error.response) {
-          errorMessage += `\nStatus: ${error.response.status}`;
-          errorMessage += `\nResponse data: ${JSON.stringify(error.response.data)}`;
-        }
-
-        alert(errorMessage);
-        setLoading(false);
-      });
-  };
-
-  const handleSaveAssignment = () => {
-    // ตรวจสอบว่ามีรหัส Assignment หรือไม่
-    if (!currentAssignmentId) {
-      setTypeError("กรุณาเลือก Assignment ก่อนบันทึก");
-      return;
-    }
-
-    // ตรวจสอบความถูกต้องของคะแนน (ข้ามได้ถ้าไม่มี CLO)
-    if (CLOs.length > 0) {
-      const isValid = validateCloScores();
-      if (!isValid) {
-        return; // ถ้ามีข้อผิดพลาด ไม่ต้องทำต่อ
-      }
-    } else {
-      // ถ้าไม่มี CLO ให้แจ้งเตือนผู้ใช้
-      alert(
-        "ไม่พบข้อมูล CLO สำหรับ Assignment นี้ กรุณาเพิ่ม CLO ก่อนบันทึกคะแนน"
-      );
-      return;
-    }
-
-    // ตรวจสอบว่ามี homeworks หรือไม่
-    if (!homeworks || homeworks.length === 0) {
-      alert("ไม่พบข้อมูล Assignment ที่จะบันทึก");
-      return;
-    }
-
-    // เตรียมข้อมูลสำหรับส่งไป API
-    const prepareDataForApi = () => {
-      const apiData = [];
-
-      homeworks.forEach((hw) => {
-        // สำหรับแต่ละ CLO ใน homework
-        for (const cloId in hw.scores) {
-          if (Object.prototype.hasOwnProperty.call(hw.scores, cloId)) {
-            const score = Number(hw.scores[cloId]) || 0;
-            const weight = cloWeights[cloId] || 0;
-
-            apiData.push({
-              assignment_id: hw.id,
-              item: {
-                clo_id: cloId, // ตรงนี้สำคัญ ต้องส่ง clo_id ในรูปแบบนี้ตามที่ API ต้องการ
-              },
-              score: score,
-              weight: weight,
-            });
-          }
-        }
-      });
-
-      return apiData;
-    };
-
-    // บันทึกข้อมูล
-    const saveData = async () => {
-      try {
-        const dataToSend = prepareDataForApi();
-
-        // แสดงสถานะกำลังบันทึก
-        setLoading(true);
-
-        const response = await axios.post("/api/save_assignment_clo", {
-          data: dataToSend,
-        });
-
-        // แสดงข้อความสำเร็จ
-        alert("บันทึกคะแนน CLO สำเร็จ!");
-
-        // ไปยัง Step 3 หลังจากบันทึกสำเร็จ
-        setCurrentStep(3);
-
-        // ปิดสถานะกำลังบันทึก
-        setLoading(false);
-      } catch (error) {
-        console.error("Error saving assignment CLO scores:", error);
-        alert(`เกิดข้อผิดพลาด: ${error.message || "บันทึกข้อมูลไม่สำเร็จ"}`);
-        setLoading(false);
-      }
-    };
-
-    saveData();
-  };
-
-  // ฟังก์ชันเปลี่ยนคะแนนของการบ้านและ CLO
-  const handleScoreChange = (homeworkId, cloId, value) => {
-    // Convert to number or default to 0 if empty
-    const numValue = value === "" ? 0 : Number.parseInt(value, 10);
-
-    // Update the homework scores
-    const updatedHomeworks = homeworks.map((hw) => {
-      if (hw.id === homeworkId) {
-        return {
-          ...hw,
-          scores: {
-            ...hw.scores,
-            [cloId]: numValue,
-          },
-        };
-      }
-      return hw;
-    });
-
-    setHomeworks(updatedHomeworks);
-
-    // Validate scores after change
-    setTimeout(() => validateCloScores(), 100);
-  };
-
-  // ฟังก์ชันคำนวณคะแนนรวมสำหรับ CLO เฉพาะ
-  const calculateCloTotal = (cloId) => {
-    return homeworks.reduce((total, hw) => {
-      return total + (hw.scores[cloId] || 0);
-    }, 0);
-  };
-
-  // ฟังก์ชันไปยังขั้นตอนถัดไป
-  const goToNextStep = () => {
-    setCurrentStep((prevStep) => prevStep + 1);
-  };
-
-  // ฟังก์ชันไปยังขั้นตอนก่อนหน้า
-  const goToPreviousStep = () => {
-    setCurrentStep((prevStep) => prevStep - 1);
-  };
-
-  // ฟังก์ชันไปจาก Step 2 ไปยัง Step 3
-  const goToStep3 = () => {
-    if (homeworks.length === 0) {
-      alert("กรุณาสร้างการบ้านก่อนนำเข้ารายชื่อนักเรียน");
-      return;
-    }
-
-    // Check if there are unsaved changes in Step 2
-    // If all validations pass, go to step 3
-    setCurrentStep(3);
-  };
-
-  // ฟังก์ชันสำหรับดูสีพื้นหลังตามค่าคะแนน
-  const getScoreColor = (score) => {
-    if (score === 0) return "";
-    if (score < 5) return "bg-danger text-white";
-    if (score < 8) return "bg-warning";
-    return "bg-success text-white";
-  };
-
-  // ฟังก์ชันอัพโหลดไฟล์ Excel
-  const handleExcelFileUpload = (e) => {
-    const file = e.target.files[0];
-    setImportErrors([]);
-    setImportSuccess("");
-
-    if (!file) return;
-
-    // Reset previously imported data
-    setExcelData(null);
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-
-        // Get first sheet
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-
-        // Convert to JSON
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-        if (jsonData.length === 0) {
-          setImportErrors(["ไม่พบข้อมูลในไฟล์ Excel"]);
-          return;
-        }
-
-        // Validate required columns
-        const firstRow = jsonData[0];
-        const hasStudentId =
-          "student_id" in firstRow || "รหัสนักศึกษา" in firstRow;
-        const hasName =
-          "name" in firstRow ||
-          "ชื่อ-นามสกุล" in firstRow ||
-          "ชื่อ" in firstRow;
-
-        if (!hasStudentId || !hasName) {
-          setImportErrors([
-            "ไฟล์ Excel ต้องมีคอลัมน์ 'student_id' (หรือ 'รหัสนักศึกษา') และ 'name' (หรือ 'ชื่อ-นามสกุล', 'ชื่อ')",
-          ]);
-          return;
-        }
-
-        // Process and normalize data
-        const processedData = jsonData
-          .map((row) => {
-            // Try to find student_id in various possible column names
-            const studentId =
-              row.student_id || row.รหัสนักศึกษา || row["รหัสนักศึกษา"];
-            // Try to find name in various possible column names
-            const name = row.name || row["ชื่อ-นามสกุล"] || row.ชื่อ;
-
-            return {
-              student_id: studentId ? String(studentId).trim() : "",
-              name: name ? String(name).trim() : "",
-            };
-          })
-          .filter((student) => student.student_id && student.name);
-
-        if (processedData.length === 0) {
-          setImportErrors(["ไม่พบข้อมูลที่ถูกต้องในไฟล์ Excel"]);
-          return;
-        }
-
-        setExcelData(processedData);
-      } catch (error) {
-        console.error("Error reading Excel file:", error);
-        setImportErrors([
-          "เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: " + error.message,
-        ]);
-      }
-    };
-
-    reader.onerror = (error) => {
-      console.error("FileReader error:", error);
-      setImportErrors(["เกิดข้อผิดพลาดในการอ่านไฟล์: " + error.message]);
-    };
-
-    reader.readAsArrayBuffer(file);
-  };
-
-  // ฟังก์ชันนำเข้านักศึกษาจาก Excel
-  const handleImportFromExcel = () => {
-    if (!excelData || excelData.length === 0) {
-      setImportErrors(["ไม่พบข้อมูลที่จะนำเข้า"]);
-      return;
-    }
-
-    setImportErrors([]);
-    setImportSuccess("");
-
-    // Validate data
-    const errors = [];
-    excelData.forEach((student, index) => {
-      if (!student.student_id) {
-        errors.push(`แถวที่ ${index + 1}: ไม่พบรหัสนักศึกษา`);
-      } else if (!/^\d{8,13}$/.test(student.student_id)) {
-        errors.push(
-          `แถวที่ ${index + 1}: รหัสนักศึกษา ${student.student_id} ไม่ถูกต้อง (ต้องเป็นตัวเลข 8-13 หลัก)`
-        );
-      }
-
-      if (!student.name) {
-        errors.push(`แถวที่ ${index + 1}: ไม่พบชื่อ-นามสกุล`);
-      }
-    });
-
-    if (errors.length > 0) {
-      setImportErrors(errors);
-      return;
-    }
-
-    // Import to list
-    setImportedStudents([...importedStudents, ...excelData]);
-    setImportSuccess(
-      `นำเข้ารายชื่อนักเรียนจาก Excel จำนวน ${excelData.length} คน สำเร็จ`
-    );
-    setExcelData(null);
-
-    // Reset file input
-    const fileInput = document.querySelector('input[type="file"]');
-    if (fileInput) fileInput.value = "";
-  };
-
-  // ฟังก์ชันนำเข้านักศึกษาจาก Clipboard
-  const handleImportFromClipboard = () => {
-    if (!clipboardText.trim()) {
-      setImportErrors(["ไม่พบข้อมูลที่จะนำเข้า"]);
-      return;
-    }
-
-    setImportErrors([]);
-    setImportSuccess("");
-
-    // Process clipboard text
-    // Expecting format: "student_id[tab]name" or "student_id[space]name" per line
-    const lines = clipboardText.trim().split(/\r?\n/);
-    const parsedStudents = [];
-    const errors = [];
-
-    lines.forEach((line, index) => {
-      // Try to split by tab first, then by multiple spaces
-      const parts = line.trim().split(/\t+/);
-      let studentId, name;
-
-      if (parts.length >= 2) {
-        // If split by tab works
-        studentId = parts[0].trim();
-        name = parts.slice(1).join(" ").trim();
-      } else {
-        // Try splitting by multiple spaces
-        const spaceParts = line.trim().split(/\s{2,}/);
-        if (spaceParts.length >= 2) {
-          studentId = spaceParts[0].trim();
-          name = spaceParts.slice(1).join(" ").trim();
-        } else {
-          // Try to find a pattern where numbers are followed by text
-          const match = line.match(/^(\d+)\s+(.+)$/);
-          if (match) {
-            studentId = match[1].trim();
-            name = match[2].trim();
-          } else {
-            errors.push(`บรรทัดที่ ${index + 1}: รูปแบบไม่ถูกต้อง "${line}"`);
-            return;
-          }
-        }
-      }
-
-      // Validate student ID
-      if (!studentId) {
-        errors.push(`บรรทัดที่ ${index + 1}: ไม่พบรหัสนักศึกษา`);
-      } else if (!/^\d{8,13}$/.test(studentId)) {
-        errors.push(
-          `บรรทัดที่ ${index + 1}: รหัสนักศึกษา ${studentId} ไม่ถูกต้อง (ต้องเป็นตัวเลข 8-13 หลัก)`
-        );
-      }
-
-      // Validate name
-      if (!name) {
-        errors.push(`บรรทัดที่ ${index + 1}: ไม่พบชื่อ-นามสกุล`);
-      }
-
-      if (studentId && name) {
-        parsedStudents.push({
-          student_id: studentId,
-          name: name,
-        });
-      }
-    });
-
-    if (errors.length > 0) {
-      setImportErrors(errors);
-      return;
-    }
-
-    if (parsedStudents.length === 0) {
-      setImportErrors([
-        "ไม่สามารถแยกแยะข้อมูลนักเรียนได้ โปรดตรวจสอบรูปแบบข้อมูล",
-      ]);
-      return;
-    }
-
-    // Add to imported students list
-    setImportedStudents([...importedStudents, ...parsedStudents]);
-    setImportSuccess(
-      `นำเข้ารายชื่อนักเรียนจาก Clipboard จำนวน ${parsedStudents.length} คน สำเร็จ`
-    );
-    setClipboardText("");
-  };
-
-  // ฟังก์ชันลบนักศึกษา
-  const handleRemoveStudent = (index) => {
-    const updatedStudents = [...importedStudents];
-    updatedStudents.splice(index, 1);
-    setImportedStudents(updatedStudents);
-  };
-
-  // ฟังก์ชันบันทึกรายชื่อนักศึกษา
-  const handleSaveImportedStudents = () => {
-    if (importedStudents.length === 0) {
-      setImportErrors(["ไม่พบรายชื่อนักเรียนที่จะบันทึก"]);
-      return;
-    }
-
-    // ตรวจสอบว่ามี currentAssignmentId หรือไม่
-    if (!currentAssignmentId) {
-      // ถ้าไม่มี currentAssignmentId แต่มี homeworks
-      if (homeworks.length > 0 && homeworks[0].id) {
-        // ใช้ id จาก homework แรก
-        setCurrentAssignmentId(homeworks[0].id);
-      } else {
-        setImportErrors([
-          "ไม่พบข้อมูลการบ้านที่จะบันทึก กรุณาเลือกการบ้านอีกครั้ง",
-        ]);
-        return;
-      }
-    }
-
-    // ใช้ค่า currentAssignmentId ที่เป็นปัจจุบัน
-    const assignmentIdToUse =
-      currentAssignmentId || (homeworks.length > 0 ? homeworks[0].id : null);
-
-    if (!assignmentIdToUse) {
-      setImportErrors([
-        "ไม่พบข้อมูลการบ้านที่จะบันทึก กรุณาเลือกการบ้านอีกครั้ง",
-      ]);
-      return;
-    }
-
-    setLoading(true);
-    setImportErrors([]);
-    setImportSuccess("");
-
-    // แสดงข้อมูลที่จะส่งในคอนโซล
-    const studentsData = importedStudents.map((student) => ({
-      student_id: student.student_id,
-      name: student.name,
-      assignment_id: assignmentIdToUse,
-      // ไม่ต้องส่ง assignment_clo_id เพราะ backend จะดึงข้อมูลทั้งหมดจาก assignment_id
-      // และทำการเชื่อมโยงกับ CLO ทั้งหมดให้อัตโนมัติ
-    }));
-
-    // ส่งข้อมูลไป API
-    axios
-      .post("/api/add_students_to_assignment", {
-        students: studentsData,
-      })
-      .then((response) => {
-        setImportSuccess(
-          `บันทึกรายชื่อนักเรียนสำเร็จ: ${response.data?.message || `จำนวน ${importedStudents.length} คน`}`
-        );
-        setImportedStudents([]);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error saving students:", error);
-        setImportErrors([`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`]);
-        setLoading(false);
-      });
-  };
-
-  // ฟังก์ชันเพิ่มนักศึกษาเข้า assignment
-  const handleAddStudentToAssignment = (studentId, assignmentId) => {
-    const student = students.find((s) => s.student_id === studentId);
-    const assignment = assignments.find(
-      (a) => a.assignment_id === assignmentId
-    );
-
-    if (student && assignment) {
-      // console.log("Adding student to assignment...")
-      // console.log("Student ID:", student.student_id)
-      // console.log("Student Name:", student.name)
-      // console.log("Course:", assignment.course_name)
-      // console.log("Assignment Name:", assignment.assignment_name)
-      // console.log("Year:", assignment.year)
-
-      axios
-        .post("/api/add_student_to_assignment", {
-          student_id: student.student_id,
-          name: student.name,
-          course: assignment.course_name,
-          assignment_id: assignment.assignment_id,
-          assignment_name: assignment.assignment_name,
-          year: assignment.year,
-        })
-        .then((response) => {
-          // console.log("API response:", response.data);
-          if (response.data?.message) {
-            alert("Student added successfully!");
-          }
-        })
-        .catch((error) => {
-          console.error("Error adding student:", error);
-          alert("Error: " + error.message);
-        });
-    } else {
-      console.error("Student or assignment not found");
-      alert("Student or assignment information is missing.");
-    }
-  };
-
-  // ฟังก์ชันเลือกโปรแกรม
-  const handleSelectProgram = (programName) => {
-    setSelectedProgram(programName);
-    setSelectedCourseId("");
-    setSelectedSectionId("");
-    setSelectedSemesterId("");
-    setSelectedYear("");
-  };
-
-  const handleAssignmentClick = (assignment) => {
-    // บันทึกข้อมูล assignment ที่เลือกในตัวแปร state
-    setSelectedAssignment(assignment);
-    console.log("เลือก Assignment:", assignment);
-
-    // ตั้งค่าข้อมูลตามข้อมูลใน assignment
-    setSelectedCourseId(assignment.course_id?.toString() || "");
-    setSelectedSectionId(assignment.section_id?.toString() || "");
-    setSelectedSemesterId(assignment.semester_id?.toString() || "");
-    setSelectedYear(assignment.year?.toString() || "");
-    setCurrentAssignmentId(assignment.assignment_id);
-    setAssignmentName(assignment.assignment_name || "");
-
-    // ดึงข้อมูล CLO และนักศึกษาสำหรับ Assignment นี้
-    const fetchData = async () => {
-      try {
-        // ดึงข้อมูล Assignment, CLOs และนักศึกษา
-        const response = await axios.get(
-          `/api/get_assignment_detail/${assignment.assignment_id}`
-        );
-
-        if (response.data && response.data.success) {
-          console.log("ข้อมูล Assignment ที่ได้รับ:", response.data);
-
-          // นำข้อมูล CLO มาใช้
-          setCLOs(response.data.clos || []);
-
-          // นำข้อมูลนักศึกษามาใช้ (นักศึกษาที่มีคะแนนใน Assignment นี้)
-          setImportedStudents(response.data.students || []);
-
-          // นำข้อมูลคะแนนมาใช้
-          setScores(response.data.scores || {});
-
-          // สร้าง homeworks สำหรับการแก้ไขคะแนน
-          if (response.data.clos && response.data.clos.length > 0) {
-            const homeworkData = {
-              id: assignment.assignment_id,
-              name: assignment.assignment_name,
-              scores: {},
-            };
-
-            // ตั้งค่าคะแนนและน้ำหนัก CLO
-            const cloWeightsObj = {};
-            response.data.clos.forEach((clo) => {
-              homeworkData.scores[clo.clo_id] = 0; // ค่าเริ่มต้น
-              cloWeightsObj[clo.clo_id] = clo.weight || 0;
-            });
-
-            // นำคะแนนที่มีอยู่มาตั้งค่า (ถ้ามีข้อมูลนักเรียนและคะแนน)
-            if (response.data.students.length > 0) {
-              const firstStudent = response.data.students[0];
-              const firstStudentScores =
-                response.data.scores[firstStudent.student_id] || {};
-
-              response.data.clos.forEach((clo) => {
-                if (firstStudentScores[clo.assignment_clo_id] !== undefined) {
-                  homeworkData.scores[clo.clo_id] =
-                    firstStudentScores[clo.assignment_clo_id];
-                }
-              });
-            }
-
-            // ตั้งค่า homeworks และ cloWeights
-            setHomeworks([homeworkData]);
-            setCloWeights(cloWeightsObj);
-          }
-        } else {
-          console.error(
-            "ไม่สามารถดึงข้อมูล Assignment ได้:",
-            response.data?.message
-          );
-          setImportedStudents([]);
-        }
-      } catch (error) {
-        console.error("เกิดข้อผิดพลาดในการดึงข้อมูล Assignment:", error);
-        setImportedStudents([]);
-      }
-    };
-
-    // เรียกใช้ฟังก์ชันดึงข้อมูล
-    fetchData();
-  };
-
   // ตรวจสอบสถานะการโหลด
   if (loading && !universities.length && !semesters.length) {
     return (
@@ -3745,7 +2928,7 @@ export default function Course() {
                     Add CLO
                   </button>
 
-                  <button
+                  {/* <button
                     onClick={fetchPreviousYearCLOs}
                     className="btn btn-secondary"
                     disabled={
@@ -3755,7 +2938,7 @@ export default function Course() {
                       !selectedYear
                     }>
                     Load Previous Year CLOs
-                  </button>
+                  </button> */}
                 </div>
 
                 <div className="button-group ms-auto">

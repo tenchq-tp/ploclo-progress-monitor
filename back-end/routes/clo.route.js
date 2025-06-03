@@ -1,21 +1,24 @@
 import express from "express";
-import {
-  getAll,
-  getMapping,
-  updateMapping,
-  createMapping,
-  createOne,
-  deleteOneById,
-  updateById,
-} from "../controllers/clo.controller.js";
 const router = express.Router();
+import {
+  createOne,
+  deleteOne,
+  getAll,
+  getByCourseId,
+  getOne,
+  patchOne,
+  updateOne,
+  uploadExcel,
+} from "../controllers/clo.controller.js";
+import multer from "multer";
 
 router.get("/", getAll);
-router.put("/:clo_id", updateById);
-router.get("/mapping", getMapping);
-router.patch("/mapping", updateMapping);
-router.post("/mapping", createMapping);
+router.get("/a/:id", getOne);
+router.get("/course", getByCourseId);
 router.post("/", createOne);
-router.delete("/:clo_id", deleteOneById);
+router.put("/:id", updateOne);
+router.patch("/:id", patchOne);
+router.delete("/:id", deleteOne);
+router.post("/upload", uploadExcel);
 
 export default router;
