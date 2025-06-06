@@ -91,16 +91,6 @@ CREATE TABLE `course_plo` (
   CONSTRAINT `course_plo_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `course` (`course_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `plo_clo` (
-  `PLO_CLO_id` int NOT NULL AUTO_INCREMENT,
-  `weight` int NOT NULL,
-  `PLO_id` int NOT NULL,
-  `CLO_id` int NOT NULL,
-  PRIMARY KEY (`PLO_CLO_id`),
-  CONSTRAINT `plo_clo_ibfk_4` FOREIGN KEY (`PLO_id`) REFERENCES `program_plo` (`plo_id`),
-  CONSTRAINT `plo_clo_ibfk_5` FOREIGN KEY (`CLO_id`) REFERENCES `clo` (`CLO_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 CREATE TABLE `program_course` (
   `program_course_id` int NOT NULL AUTO_INCREMENT,
   `year` int NOT NULL,
@@ -127,6 +117,16 @@ CREATE TABLE `program_plo` (
   KEY `plo_id` (`plo_id`),
   CONSTRAINT `program_plo_ibfk_1` FOREIGN KEY (`program_id`) REFERENCES `program` (`program_id`) ON DELETE CASCADE,
   CONSTRAINT `program_plo_ibfk_2` FOREIGN KEY (`plo_id`) REFERENCES `plo` (`PLO_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `plo_clo` (
+  `PLO_CLO_id` int NOT NULL AUTO_INCREMENT,
+  `weight` int NOT NULL,
+  `PLO_id` int NOT NULL,
+  `CLO_id` int NOT NULL,
+  PRIMARY KEY (`PLO_CLO_id`),
+  CONSTRAINT `plo_clo_ibfk_4` FOREIGN KEY (`PLO_id`) REFERENCES `program_plo` (`plo_id`),
+  CONSTRAINT `plo_clo_ibfk_5` FOREIGN KEY (`CLO_id`) REFERENCES `clo` (`CLO_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE university (
@@ -235,6 +235,9 @@ CREATE TABLE `assignment_grade` (
   `graded_at` DATETIME,
   FOREIGN KEY (`assignment_student_id`) REFERENCES `assignment_student`(`id`) ON DELETE CASCADE
 );
+
+ALTER TABLE plo_clo
+ADD UNIQUE KEY unique_plo_clo (PLO_id, CLO_id);
 
 -- ข้อมูลเทส
 SET NAMES 'utf8mb4';

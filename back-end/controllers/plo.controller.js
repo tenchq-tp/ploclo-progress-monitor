@@ -229,9 +229,11 @@ async function createFromExcel(req, res) {
 }
 
 export async function savePloCloMappings(req, res) {
-  const mappings = req.body.mappings; // array ของ { clo_id, plo_id, weight }
+  const year = parseInt(req.body.year);
+  const course_id = parseInt(req.body.course_id);
+  const mappings = req.body.mappings;
 
-  if (!Array.isArray(mappings)) {
+  if (!Array.isArray(mappings) || isNaN(year) || isNaN(course_id)) {
     return res.status(400).json({ error: "Invalid payload format" });
   }
 
@@ -239,8 +241,18 @@ export async function savePloCloMappings(req, res) {
   try {
     await conn.beginTransaction();
 
+    // ลบ mapping เดิมก่อน (ตามที่คุณต้องการ)
+    await conn.query(
+      `
+      DELETE FROM plo_clo
+      WHERE CLO_id IN (
+        SELECT CLO_id FROM clo WHERE year = ? AND course_id = ?
+      )
+      `,
+      [year, course_id]
+    );
+
     for (const { clo_id, plo_id, weight } of mappings) {
-      // Validate
       if (
         typeof clo_id !== "number" ||
         typeof plo_id !== "number" ||
@@ -249,13 +261,10 @@ export async function savePloCloMappings(req, res) {
         throw new Error("Invalid mapping item");
       }
 
-      // ลบข้อมูลเก่าของ CLO นั้นก่อน เพื่อให้เป็น 1:1
-      await conn.query("DELETE FROM plo_clo WHERE CLO_id = ?", [clo_id]);
-
-      // Insert ใหม่
       await conn.query(
         `INSERT INTO plo_clo (PLO_id, CLO_id, weight)
-         VALUES (?, ?, ?)`,
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE weight = VALUES(weight)`,
         [plo_id, clo_id, weight]
       );
     }

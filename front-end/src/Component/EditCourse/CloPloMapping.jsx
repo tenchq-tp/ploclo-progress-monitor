@@ -32,6 +32,11 @@ export default function CloPloMapping({
     console.log(mappingState);
   }, [mappingState]);
 
+  function getTotalWeight(cloId) {
+    const ploMap = mappingState[cloId] || {};
+    return Object.values(ploMap).reduce((sum, { weight }) => sum + (weight || 0), 0);
+  }
+
   async function fetchMapping() {
     try {
       const response = await axios.get("/api/plo/mapping", {
@@ -43,12 +48,12 @@ export default function CloPloMapping({
 
       const mappings = {};
       response.data.forEach(({ clo_id, plo_id, weight }) => {
-        mappings[clo_id] = {
-          ploId: plo_id,
-          weight: weight,
-        };
+        if (!mappings[clo_id]) {
+          mappings[clo_id] = {};
+        }
+        mappings[clo_id][plo_id] = { weight: weight };
       });
-      setMappingState(mappings); // ✅ preload mapping เข้า checkbox
+      setMappingState(mappings);
     } catch (error) {
       console.error("Error loading CLO-PLO mappings:", error);
     }
@@ -98,50 +103,76 @@ export default function CloPloMapping({
 
   function handleToggleCheckbox(ploId, cloId) {
     setMappingState((prev) => {
-      const current = prev[cloId];
-      if (current?.ploId === ploId) {
-        const newState = { ...prev };
-        delete newState[cloId];
-        return newState;
+      const cloMapping = prev[cloId] || {};
+      const newMapping = { ...cloMapping };
+
+      if (newMapping[ploId]) {
+        delete newMapping[ploId]; // ถ้าเลือกซ้ำให้ลบออก
+      } else {
+        newMapping[ploId] = { weight: 0 };
       }
+
       return {
         ...prev,
-        [cloId]: {
-          ploId: ploId,
-          weight: current?.weight || 0,
-        },
+        [cloId]: newMapping,
       };
     });
   }
 
-  function handleWeightChange(cloId, value) {
-    setMappingState((prev) => ({
-      ...prev,
-      [cloId]: {
-        ...prev[cloId],
+  function handleWeightChange(cloId, ploId, value) {
+  setMappingState((prev) => ({
+    ...prev,
+    [cloId]: {
+      ...prev[cloId],
+      [ploId]: {
         weight: parseInt(value) || 0,
       },
-    }));
-  }
+    },
+  }));
+}
 
   async function handleSubmit() {
-    const payload = Object.entries(mappingState).map(
-      ([cloId, { ploId, weight }]) => ({
-        clo_id: parseInt(cloId),
-        plo_id: ploId,
-        weight: weight,
-      })
-    );
+  // สร้าง payload ใหม่จาก mappingState แบบ nested
+    const payload = [];
 
+    Object.entries(mappingState).forEach(([cloId, ploMap]) => {
+      Object.entries(ploMap).forEach(([ploId, { weight }]) => {
+        payload.push({
+          clo_id: parseInt(cloId),
+          plo_id: parseInt(ploId),
+          weight: weight,
+        });
+      });
+    });
+
+    // ตรวจสอบว่า weight > 0 ทุกตัว
     const isValid = payload.every((item) => item.weight > 0);
     if (!isValid) {
       alert("Please enter a weight greater than 0 for each mapping.");
       return;
     }
 
+    for (const clo of clos) {
+      const total = getTotalWeight(clo.CLO_id);
+      // ข้ามถ้า total = 0 แปลว่าไม่ได้เลือก mapping เลย
+      if (total === 0) continue;
+
+      if (total !== 100) {
+        alert(`Total weight for ${clo.CLO_code} must be exactly 100%. Currently: ${total}%`);
+        return;
+      }
+    }
+
     try {
-      const response = await axios.post("/api/plo/save", {
-        year: selectedYear, // ✅ ส่ง year ด้วย
+      console.log("SUBMIT payload", {
+      year: parseInt(selectedYear),
+      course_id: parseInt(selectedCourse),
+      mappings: payload,
+    });
+
+      const response = await axios.post("/api/plo/save", {     
+        year: selectedYear,
+        course_id: selectedCourse, // ✅ เพิ่มตรงนี้
         mappings: payload,
       });
 
@@ -170,42 +201,49 @@ export default function CloPloMapping({
           <thead>
             <tr>
               <th></th>
-              {clos.map((clo, index) => (
-                <th key={index}>{clo.CLO_code}</th>
+              {plos.map((plo, index) => (
+                <th key={index}>{plo.PLO_code}</th>
               ))}
+              <th>Total PLO</th>
             </tr>
           </thead>
           <tbody>
-            {plos.map((plo, index) => (
+            {clos.map((clo, index) => (
               <tr key={index}>
-                <th>{plo.PLO_code}</th>
-                {clos.map((clo) => {
+                <th>{clo.CLO_code}</th>
+                {plos.map((plo) => {
                   const key = `${plo.PLO_id}_${clo.CLO_id}`;
-                  const isChecked =
-                    mappingState[clo.CLO_id]?.ploId === plo.PLO_id;
+                  const isChecked = !!mappingState[clo.CLO_id]?.[plo.PLO_id];
+                  const weight = mappingState[clo.CLO_id]?.[plo.PLO_id]?.weight || "";
+
                   return (
                     <td key={key} className={styles.mappingCell}>
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        onChange={() =>
-                          handleToggleCheckbox(plo.PLO_id, clo.CLO_id)
-                        }
+                        onChange={() => handleToggleCheckbox(plo.PLO_id, clo.CLO_id)}
                       />
                       {isChecked && (
-                        <input
-                          type="number"
-                          className={styles.weightInput}
-                          placeholder="%"
-                          value={mappingState[clo.CLO_id]?.weight || ""}
-                          onChange={(e) =>
-                            handleWeightChange(clo.CLO_id, e.target.value)
-                          }
-                        />
+                        <>
+                          <input
+                            type="number"
+                            className={styles.weightInput}
+                            placeholder="%"
+                            value={weight}
+                            onChange={(e) =>
+                              handleWeightChange(clo.CLO_id, plo.PLO_id, e.target.value)
+                            }
+                            style={{ width: "50px", marginRight: "5px" }}
+                          />
+                          <span>{weight}%</span> {/* แสดงน้ำหนักข้างๆ input */}
+                        </>
                       )}
                     </td>
                   );
                 })}
+                <td>
+        <strong>{getTotalWeight(clo.CLO_id)}%</strong> {/* ✅ แสดงผลรวม */}
+      </td>
               </tr>
             ))}
           </tbody>
