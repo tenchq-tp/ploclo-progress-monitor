@@ -6,12 +6,13 @@ export default function ChooseCourse({ courseArray, onChange }) {
       <label className={styles.label}>Choose a course</label>
       <select className={styles.selector} onChange={onChange}>
         <option value={0}>--- select a course ---</option>
-        {courseArray.length > 0 &&
-          courseArray.map((courses) => (
-            <option key={courses.course_id} value={courses.course_id}>
-              {`${courses.course_id} ${courses.course_name} (${courses.course_engname})`}
-            </option>
-          ))}
+        {Array.from(
+          new Map(courseArray.map((course) => [course.course_name, course])).values()
+        ).map((courses) => (
+          <option key={courses.course_id} value={courses.course_id}>
+            {`${courses.course_id} ${courses.course_name} (${courses.course_engname})`}
+          </option>
+        ))}
       </select>
     </div>
   );

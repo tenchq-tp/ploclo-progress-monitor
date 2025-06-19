@@ -181,6 +181,9 @@ export default function Program() {
     }
   };
 
+  const existingStudentIds = new Set(students.map((s) => s.student_id?.trim().toLowerCase()));
+
+
   const handleStudentUploadButtonClick = async () => {
     if (studentExcelData && studentExcelData.length > 0) {
       // ตรวจสอบว่าได้เลือกฟิลเตอร์ครบหรือไม่
@@ -231,6 +234,7 @@ export default function Program() {
       window.alert("ไม่มีข้อมูลที่จะอัปโหลด กรุณาอัปโหลดไฟล์ก่อน");
     }
   };
+
 
   // ---------* Function *-----------
   async function fetchUniversity() {
@@ -439,13 +443,13 @@ export default function Program() {
         const updatedProgram = program.map((p) =>
           p.program_id === editProgram.program_id
             ? {
-                ...p,
-                program_name: editFormData.program_name,
-                program_name_th: editFormData.program_name_th,
-                year: editFormData.year,
-                program_shortname_en: editFormData.program_shortname_en,
-                program_shortname_th: editFormData.program_shortname_th,
-              }
+              ...p,
+              program_name: editFormData.program_name,
+              program_name_th: editFormData.program_name_th,
+              year: editFormData.year,
+              program_shortname_en: editFormData.program_shortname_en,
+              program_shortname_th: editFormData.program_shortname_th,
+            }
             : p
         );
         setProgram(updatedProgram);
@@ -786,129 +790,143 @@ export default function Program() {
   };
 
   const handleUploadButtonClick = async () => {
-  if (excelData && excelData.length > 0) {
-    // ตรวจสอบว่าได้เลือกโปรแกรมแล้วหรือไม่
-    if (!selectedProgramName || selectedProgramName === "all") {
-      window.alert("กรุณาเลือกโปรแกรมก่อนอัปโหลดข้อมูล");
-      return;
-    }
+    if (excelData && excelData.length > 0) {
+      // ตรวจสอบว่าได้เลือกโปรแกรมแล้วหรือไม่
+      if (!selectedProgramName || selectedProgramName === "all") {
+        window.alert("กรุณาเลือกโปรแกรมก่อนอัปโหลดข้อมูล");
+        return;
+      }
 
-    // ตรวจสอบว่าได้เลือกปีแล้วหรือไม่
-    if (!selectedYear || selectedYear === "all") {
-      window.alert("กรุณาเลือกปีการศึกษาก่อนอัปโหลดข้อมูล");
-      return;
-    }
+      // ตรวจสอบว่าได้เลือกปีแล้วหรือไม่
+      if (!selectedYear || selectedYear === "all") {
+        window.alert("กรุณาเลือกปีการศึกษาก่อนอัปโหลดข้อมูล");
+        return;
+      }
 
-    // แสดง confirmation dialog
-    if (
-      !window.confirm(
-        "Do you want to upload " +
+      // แสดง confirmation dialog
+      if (
+        !window.confirm(
+          "Do you want to upload " +
           excelData.length +
           " PLO records?" +
           "\n" +
           "คุณต้องการอัปโหลดข้อมูล PLO จำนวน " +
           excelData.length +
           " รายการใช่หรือไม่?"
-      )
-    ) {
-      return;
-    }
+        )
+      ) {
+        return;
+      }
 
+      try {
+        const result = await axios.get(
+          `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
+        );
+
+        // เตรียมข้อมูลสำหรับส่งไปยัง API
+        const dataToUpload = excelData.map((item) => ({
+          PLO_name: item.PLO_name,
+          PLO_engname: item.PLO_engname,
+          PLO_code: item.PLO_code,
+          program_id: result.data.program_id,
+          year: parseInt(selectedYear),
+        }));
+
+
+        const response = await axios.post("/api/plo/excel", dataToUpload);
+        if (response.data.skippedRows?.length > 0) {
+          console.log("Skipped Rows:", response.data.skippedRows);
+          window.alert(
+            `⚠️ บางรายการไม่ถูกอัปโหลด (Skipped):\n` +
+            response.data.skippedRows
+              .map((r, idx) => `${idx + 1}. ${r.row.PLO_code || "-"}: ${r.reason}`)
+              .join("\n")
+          );
+        }
+
+        window.alert("Data uploaded successfully\nอัปโหลดข้อมูลสำเร็จ");
+        // รีเฟรชข้อมูล PLO หลังจากอัปโหลด
+        fetchPlo();
+        setExcelData(null);
+
+      } catch (error) {
+        console.error("Error:", error);
+
+        // ตรวจสอบว่าเป็น error เรื่อง PLO ซ้ำหรือไม่
+        if (error.response?.status === 400 && error.response?.data?.message) {
+          const errorMessage = error.response.data.message;
+
+          // ตรวจสอบว่าเป็น error เรื่อง PLO ซ้ำหรือไม่
+          if (errorMessage.includes("already exists") ||
+            errorMessage.includes("already exist") ||
+            errorMessage.includes("Duplicate")) {
+
+            window.alert(
+              "⚠️ พบข้อมูล PLO ซ้ำในปีนี้แล้ว\n" +
+              "Found duplicate PLO data for this year\n\n" +
+              "รายละเอียด: " + errorMessage + "\n\n" +
+              "กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง"
+            );
+          } else {
+            window.alert("เกิดข้อผิดพลาด: " + errorMessage);
+          }
+        } else {
+          window.alert("เกิดข้อผิดพลาดในการอัปโหลดข้อมูล");
+        }
+      }
+    } else {
+      window.alert("ไม่มีข้อมูลที่จะอัปโหลด กรุณาอัปโหลดไฟล์หรือวางข้อมูลก่อน");
+    }
+  };
+
+  const handleAddPlo = async () => {
     try {
       const result = await axios.get(
         `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
       );
 
-      // เตรียมข้อมูลสำหรับส่งไปยัง API
-      const dataToUpload = excelData.map((item) => ({
-        PLO_name: item.PLO_name,
-        PLO_engname: item.PLO_engname, 
-        PLO_code: item.PLO_code,
-        program_id: result.data.program_id,
+      await axios.post("/api/plo", {
+        PLO_name: newPlo.PLO_name,
+        PLO_engname: newPlo.PLO_engname,
+        PLO_code: newPlo.PLO_code,
+        program_id: parseInt(result.data.program_id),
         year: parseInt(selectedYear),
-      }));
+      });
 
-
-      const response = await axios.post("/api/plo/excel", dataToUpload);
-      
-      window.alert("Data uploaded successfully\nอัปโหลดข้อมูลสำเร็จ");
-
-      // รีเฟรชข้อมูล PLO หลังจากอัปโหลด
+      setShowAddModal(false);
       fetchPlo();
-      setExcelData(null);
 
     } catch (error) {
-      console.error("Error:", error);
-      
+      console.error("Error adding PLO:", error);
+
       // ตรวจสอบว่าเป็น error เรื่อง PLO ซ้ำหรือไม่
       if (error.response?.status === 400 && error.response?.data?.message) {
         const errorMessage = error.response.data.message;
-        
-        // ตรวจสอบว่าเป็น error เรื่อง PLO ซ้ำหรือไม่
-        if (errorMessage.includes("already exists") || 
-            errorMessage.includes("already exist") || 
-            errorMessage.includes("Duplicate")) {
-          
+
+        if (errorMessage.includes("already exists") ||
+          errorMessage.includes("already exist") ||
+          errorMessage.includes("Duplicate")) {
+
           window.alert(
             "⚠️ พบข้อมูล PLO ซ้ำในปีนี้แล้ว\n" +
             "Found duplicate PLO data for this year\n\n" +
             "รายละเอียด: " + errorMessage + "\n\n" +
-            "กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง"
+            "กรุณาใช้รหัส PLO อื่นหรือตรวจสอบข้อมูลที่มีอยู่"
           );
         } else {
           window.alert("เกิดข้อผิดพลาด: " + errorMessage);
         }
       } else {
-        window.alert("เกิดข้อผิดพลาดในการอัปโหลดข้อมูล");
+        window.alert("เกิดข้อผิดพลาดในการเพิ่มข้อมูล PLO");
       }
     }
-  } else {
-    window.alert("ไม่มีข้อมูลที่จะอัปโหลด กรุณาอัปโหลดไฟล์หรือวางข้อมูลก่อน");
-  }
-};
+  };
 
-  const handleAddPlo = async () => {
-  try {
-    const result = await axios.get(
-      `/api/program/id?program_name=${selectedProgramName}&program_year=${selectedYear}`
-    );
-
-    await axios.post("/api/plo", {
-      PLO_name: newPlo.PLO_name,
-      PLO_engname: newPlo.PLO_engname,
-      PLO_code: newPlo.PLO_code,
-      program_id: parseInt(result.data.program_id),
-      year: parseInt(selectedYear),
-    });
-    
-    setShowAddModal(false);
-    fetchPlo();
-    
-  } catch (error) {
-    console.error("Error adding PLO:", error);
-    
-    // ตรวจสอบว่าเป็น error เรื่อง PLO ซ้ำหรือไม่
-    if (error.response?.status === 400 && error.response?.data?.message) {
-      const errorMessage = error.response.data.message;
-      
-      if (errorMessage.includes("already exists") || 
-          errorMessage.includes("already exist") || 
-          errorMessage.includes("Duplicate")) {
-        
-        window.alert(
-          "⚠️ พบข้อมูล PLO ซ้ำในปีนี้แล้ว\n" +
-          "Found duplicate PLO data for this year\n\n" +
-          "รายละเอียด: " + errorMessage + "\n\n" +
-          "กรุณาใช้รหัส PLO อื่นหรือตรวจสอบข้อมูลที่มีอยู่"
-        );
-      } else {
-        window.alert("เกิดข้อผิดพลาด: " + errorMessage);
-      }
-    } else {
-      window.alert("เกิดข้อผิดพลาดในการเพิ่มข้อมูล PLO");
-    }
-  }
-};
+  const existingPloMap = new Set(
+    plos.map((plo) =>
+      `${plo.PLO_code?.trim().toLowerCase()}|${plo.PLO_name?.trim().toLowerCase()}|${plo.PLO_engname?.trim().toLowerCase()}`
+    )
+  );
 
   // แก้ไขฟังก์ชัน handleEditPlo
   const handleEditPlo = (plo) => {
@@ -946,7 +964,7 @@ export default function Program() {
     }
   };
 
-  useEffect(() => {}, [showLoadPreviousPLOModal]);
+  useEffect(() => { }, [showLoadPreviousPLOModal]);
 
   const handleLoadPreviousPLO = async () => {
     try {
@@ -1863,18 +1881,19 @@ export default function Program() {
                             </thead>
                             <tbody>
                               {studentExcelData.map((item, index) => {
-                                console.log(item);
+                                const studentId = (item.student_id || item["รหัสนิสิต"] || "").trim().toLowerCase();
+                                const isExisting = existingStudentIds.has(studentId);
                                 return (
                                   <tr key={index}>
-                                    <td>
+                                    <td style={{ color: isExisting ? 'black' : 'red', backgroundColor: isExisting ? 'white' : '#ffe6e6' }}>
                                       {item.student_id ||
                                         item["รหัสนิสิต"] ||
                                         "-"}
                                     </td>
-                                    <td>
+                                    <td style={{ color: isExisting ? 'black' : 'red', backgroundColor: isExisting ? 'white' : '#ffe6e6' }}>
                                       {item.first_name || item["ชื่อ"] || "-"}
                                     </td>
-                                    <td>
+                                    <td style={{ color: isExisting ? 'black' : 'red', backgroundColor: isExisting ? 'white' : '#ffe6e6' }}>
                                       {item.last_name || item["นามสกุล"] || "-"}
                                     </td>
                                   </tr>
@@ -2086,13 +2105,24 @@ export default function Program() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {excelData.map((item, index) => (
-                                  <tr key={index}>
-                                    <td>{item.PLO_code || "-"}</td>
-                                    <td>{item.PLO_name || "-"}</td>
-                                    <td>{item.PLO_engname || "-"}</td>
-                                  </tr>
-                                ))}
+                                {excelData.map((item, index) => {
+                                  const key = `${item.PLO_code?.trim().toLowerCase()}|${item.PLO_name?.trim().toLowerCase()}|${item.PLO_engname?.trim().toLowerCase()}`;
+                                  const isExisting = existingPloMap.has(key);
+
+                                  return (
+                                    <tr key={index} >
+                                      <td style={{ color: isExisting ? 'black' : 'red', backgroundColor: isExisting ? 'white' : '#ffe6e6' }}>
+                                        {item.PLO_code || "-"}
+                                      </td>
+                                      <td style={{ color: isExisting ? 'black' : 'red', backgroundColor: isExisting ? 'white' : '#ffe6e6' }}>
+                                        {item.PLO_name || "-"}
+                                      </td>
+                                      <td style={{ color: isExisting ? 'black' : 'red', backgroundColor: isExisting ? 'white' : '#ffe6e6' }}>
+                                        {item.PLO_engname || "-"}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>

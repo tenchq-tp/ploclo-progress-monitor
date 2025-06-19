@@ -237,3 +237,46 @@ export async function getByCourseId(req, res) {
     error(res, "Error while fetching CLOs by course_id");
   }
 }
+
+export async function cloMapping(req, res) {
+  const { course_id } = req.params;
+
+  try {
+    const query = `
+      SELECT
+        c.course_id,
+        c.course_name,
+        cl.CLO_id,
+        cl.CLO_code,
+        cl.CLO_name,
+        ROUND(SUM(ac.weight), 4) AS clo_weight_raw,
+        ROUND(
+            SUM(ac.weight) / total_course_weight.total_weight * 100,
+            2
+        ) AS clo_weight_percent
+      FROM assignment_clo ac
+      JOIN assignments a ON ac.assignment_id = a.assignment_id
+      JOIN program_course pc ON a.program_course_id = pc.program_course_id
+      JOIN course c ON pc.course_id = c.course_id
+      JOIN clo cl ON ac.clo_id = cl.CLO_id
+      JOIN (
+          SELECT
+              pc.course_id,
+              SUM(ac.weight) AS total_weight
+          FROM assignment_clo ac
+          JOIN assignments a ON ac.assignment_id = a.assignment_id
+          JOIN program_course pc ON a.program_course_id = pc.program_course_id
+          GROUP BY pc.course_id
+      ) AS total_course_weight ON c.course_id = total_course_weight.course_id
+      WHERE c.course_id = ?
+      GROUP BY c.course_id, cl.CLO_id
+      ORDER BY c.course_id, cl.CLO_id;
+    `;
+
+    const result = await pool.query(query, [course_id]);
+    success(res, result);
+  } catch (error) {
+    console.error("Error in cloMapping: ", err);
+    error(res, "Error while fetching CLOs mapping by course_id");
+  }
+}

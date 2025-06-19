@@ -118,40 +118,49 @@ export async function assignStudent(req, res) {
     }
 
     for (const student of students) {
-      // เช็กว่า student มีอยู่แล้วไหม
+      // Ensure student exists in the student table
       const [exists] = await pool.query(
         "SELECT 1 FROM student WHERE student_id = ?",
         [student.student_id]
       );
-
-      // ถ้าไม่มี ให้ insert นักเรียนใหม่เข้าไป
       if (exists.length === 0) {
         await pool.query(
-          "INSERT INTO student (student_id, firstname, lastname) VALUES (?, ?, ?)",
+          "INSERT INTO student (student_id, first_name, last_name) VALUES (?, ?, ?)",
           [student.student_id, student.firstname, student.lastname]
         );
       }
     }
 
-    // สร้าง values string และ params array
     const values = [];
     const params = [];
 
-    students.forEach((student, index) => {
-      values.push(`(?, ?)`);
-      params.push(assignment_id);
-      params.push(student.student_id);
+    for (const student of students) {
+      // Check if student is already assigned to this assignment
+      const alreadyAssigned = await pool.query(
+        "SELECT 1 FROM assignment_student WHERE assignment_id = ? AND student_id = ?",
+        [assignment_id, student.student_id]
+      );
+
+      if (alreadyAssigned.length === 0) {
+        values.push(`(?, ?)`);
+        params.push(assignment_id);
+        params.push(student.student_id);
+      }
+    }
+
+    if (values.length > 0) {
+      const query = `
+        INSERT INTO assignment_student (assignment_id, student_id)
+        VALUES ${values.join(", ")}
+      `;
+      await pool.query(query, params);
+    }
+
+    res.status(200).json({
+      message: "Students assigned successfully (skipped existing assignments)",
     });
-
-    const query = `
-      INSERT INTO assignment_student (assignment_id, student_id)
-      VALUES ${values.join(", ")}
-    `;
-    // ใส่ assignment_id เป็นพารามิเตอร์ตัวแรก
-    await pool.query(query, params);
-
-    res.status(200).json({ message: "Students assigned successfully" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Error while assigning students", error });
   }
 }
@@ -182,8 +191,6 @@ export async function updateScore(req, res) {
     student_scores.map(async (student_score) => {
       const queryCheckExist = `SELECT assignment_student_id FROM assignment_grade WHERE assignment_student_id=?`;
       const exists = await conn.query(queryCheckExist, [student_score.id]);
-      console.log(student_score);
-      console.log(exists);
       if (exists.length > 0) {
         const updateQuery = `UPDATE assignment_grade SET score=? WHERE assignment_student_id=?`;
         await conn.query(updateQuery, [student_score.score, student_score.id]);
@@ -216,6 +223,204 @@ export async function getAssignmentClos(req, res) {
     res
       .status(500)
       .json({ message: "Error while fetching CLOs for assignment", error });
+  }
+}
+
+export async function createManyFromExcel(req, res) {
+  const { assignments, program_course_id, university_id, faculty_id } =
+    req.body;
+
+  const conn = await pool.getConnection();
+  await conn.beginTransaction();
+
+  try {
+    for (const assignment of assignments) {
+      const { Ast, Description, Nickname, Score, ...cloWeightsRaw } =
+        assignment;
+
+      // Check for duplicate assignment name
+      const existingRows = await conn.query(
+        `
+        SELECT assignment_id FROM assignments 
+        WHERE assignment_name = ? AND program_course_id = ? AND faculty_id = ? AND university_id = ?
+        `,
+        [Nickname, program_course_id, faculty_id, university_id]
+      );
+
+      if (existingRows.length > 0) {
+        console.log(`Skipped duplicate assignment "${Nickname}"`);
+        continue; // Skip this assignment if it already exists
+      }
+
+      // Extract CLOs
+      const clos = Object.entries(cloWeightsRaw)
+        .filter(([key]) => key.startsWith("CLO"))
+        .map(([key, weight]) => ({
+          id: key.replace("CLO", ""),
+          weight: parseFloat(weight),
+        }));
+
+      // Validate CLO weight sum
+      const totalWeight = clos.reduce((sum, clo) => sum + clo.weight, 0);
+      if (Math.abs(totalWeight - 1.0) > 0.001) {
+        await conn.rollback();
+        return res.status(400).json({
+          message: `CLO weights must sum up to 1.0 for assignment "${Nickname}"`,
+        });
+      }
+
+      // Insert assignment
+      const assignmentQuery = `
+        INSERT INTO assignments (program_course_id, assignment_name, description, total_score, due_date, faculty_id, university_id)
+        VALUES (?, ?, ?, ?, NULL, ?, ?)
+      `;
+      const result = await conn.query(assignmentQuery, [
+        program_course_id,
+        Nickname,
+        Description,
+        Score,
+        faculty_id,
+        university_id,
+      ]);
+
+      const assignmentId = Number(result.insertId);
+
+      // Insert CLOs
+      if (clos.length > 0) {
+        const cloInsertQuery = `
+          INSERT INTO assignment_clo (assignment_id, clo_id, weight)
+          VALUES ${clos.map(() => "(?, ?, ?)").join(", ")}
+        `;
+        const cloValues = clos.flatMap((clo) => [
+          assignmentId,
+          clo.id,
+          clo.weight,
+        ]);
+        await conn.query(cloInsertQuery, cloValues);
+      }
+    }
+
+    await conn.commit();
+    res.status(200).json({ message: "All assignments created successfully." });
+  } catch (error) {
+    await conn.rollback();
+    res.status(500).json({
+      message: "Error while creating assignments",
+      error: error.message,
+    });
+  } finally {
+    conn.release();
+  }
+}
+
+export async function insertStudentScore(req, res) {
+  const { student_id, assignment_name, score, program_course_id } = req.body;
+  const conn = await pool.getConnection();
+  await conn.beginTransaction();
+
+  try {
+    const assignmentRows = await conn.query(
+      `SELECT assignment_id FROM assignments WHERE assignment_name = ? AND program_course_id = ?`,
+      [assignment_name, program_course_id]
+    );
+    console.log("assignmentRows : ", assignmentRows);
+    if (assignmentRows.length === 0) {
+      throw new Error("Assignment not found");
+    }
+    const assignmentId = assignmentRows[0].assignment_id;
+
+    // Step 2: Get assignment_student_id
+    const studentRows = await conn.query(
+      `SELECT id FROM assignment_student WHERE assignment_id = ? AND student_id = ?`,
+      [assignmentId, student_id]
+    );
+    if (studentRows.length === 0) {
+      throw new Error("Student not assigned to this assignment");
+    }
+    const assignmentStudentId = studentRows[0].id;
+
+    // Step 3: Insert or update the grade
+    await conn.query(
+      `INSERT INTO assignment_grade (assignment_student_id, score, graded_at)
+       VALUES (?, ?, NOW())
+       ON DUPLICATE KEY UPDATE score = VALUES(score), graded_at = NOW()`,
+      [assignmentStudentId, score]
+    );
+
+    await conn.commit();
+    res.status(200).json({ message: "Score recorded successfully" });
+  } catch (err) {
+    console.error(err);
+    await conn.rollback();
+    res
+      .status(500)
+      .json({ message: "Error recording score", error: err.message });
+  } finally {
+    conn.release();
+  }
+}
+
+export async function insertStudentScoreExcel(req, res) {
+  const { program_course_id, student_score } = req.body;
+  const conn = await pool.getConnection();
+  await conn.beginTransaction();
+
+  try {
+    for (const row of student_score) {
+      const { student_id, __rowNum__, ...assignments } = row;
+
+      for (const [assignment_name, score] of Object.entries(assignments)) {
+        // Step 1: Get assignment_id
+        console.log(assignment_name);
+        const assignmentRows = await conn.query(
+          `SELECT assignment_id FROM assignments WHERE assignment_name = ? AND program_course_id = ?`,
+          [assignment_name, program_course_id]
+        );
+
+        if (assignmentRows.length === 0) {
+          console.warn(`Assignment '${assignment_name}' not found`);
+          continue; // Skip this assignment
+        }
+
+        const assignmentId = assignmentRows[0].assignment_id;
+
+        // Step 2: Get assignment_student.id
+        const studentRows = await conn.query(
+          `SELECT id FROM assignment_student WHERE assignment_id = ? AND student_id = ?`,
+          [assignmentId, student_id]
+        );
+
+        if (studentRows.length === 0) {
+          console.warn(
+            `Student ${student_id} not assigned to assignment '${assignment_name}'`
+          );
+          continue; // Skip this student-assignment combo
+        }
+
+        const assignmentStudentId = studentRows[0].id;
+
+        // Step 3: Insert or update the grade
+        await conn.query(
+          `INSERT INTO assignment_grade (assignment_student_id, score, graded_at)
+           VALUES (?, ?, NOW())
+           ON DUPLICATE KEY UPDATE score = VALUES(score), graded_at = NOW()`,
+          [assignmentStudentId, score]
+        );
+      }
+    }
+
+    await conn.commit();
+    res
+      .status(200)
+      .json({ message: "All scores inserted/updated successfully" });
+  } catch (err) {
+    console.error(err);
+    await conn.rollback();
+    res
+      .status(500)
+      .json({ message: "Failed to insert scores", error: err.message });
+  } finally {
+    conn.release();
   }
 }
 

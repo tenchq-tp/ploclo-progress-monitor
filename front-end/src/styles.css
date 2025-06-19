@@ -207,6 +207,7 @@ select {
   z-index: 1000;
   box-shadow: 4px 0px 10px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
+  transition: transform 0.3s ease;
 }
 
 /* Add white background for top sections */
@@ -271,6 +272,7 @@ select {
 .nav-list li a {
   background-color: transparent;
   padding-left: 10px;
+   transition: all 0.2s ease;
 }
 
 .nav-list li a:hover {
@@ -807,8 +809,7 @@ li.nav-item .dropdown-menu a:not(.active) {
 
 @media (max-width: 768px) {
   .nav {
-    width: 0;
-    overflow: hidden;
+    width: 250px; 
   }
 
   .nav.show {
@@ -835,6 +836,28 @@ li.nav-item .dropdown-menu a:not(.active) {
     width: 100%;
   }
 }
+
+.nav-container, .nav, .sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important; /* ห้าม wrap */
+}
+
+/* .nav-container, .nav, .sidebar {
+  display: grid !important;
+  grid-template-columns: 1fr !important; 
+  grid-auto-flow: row !important; 
+} */
+
+/* ✅ บังคับทุก breakpoint */
+@media (min-width: 1px) {
+  .nav-list {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 250px !important;
+  }
+}๙๙
 
 /* เพิ่มสไตล์สำหรับ select ที่ถูก disable */
 .form-select:disabled {

@@ -22,6 +22,9 @@ export default function AddProgram({
     program_shortname_th: "",
   });
 
+  const [programExcelData, setProgramExcelData] = useState([]);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
   // asdwad
   const showAlert = (message, type) => {
     setAlert({ show: true, message, type });
@@ -123,64 +126,84 @@ export default function AddProgram({
   };
 
 
-  const handleProgramExcelUpload = async (e) => {
-    const file = e.target.files[0];
-    e.target.value = ""; // reset input เพื่อให้เลือกไฟล์ซ้ำได้
+const handleProgramExcelUpload = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = ""; 
 
-    if (!file) return;
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const data = event.target.result;
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
-        console.log("Sheet Names:", workbook.SheetNames);
-        console.log("Excel JSON Data:", jsonData);
+  const reader = new FileReader();
+  reader.onload = async (event) => {
+    try {
+      const data = event.target.result;
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      console.log("Excel JSON Data:", jsonData);
 
-        if (jsonData.length === 0) {
-          showAlert("ไม่พบข้อมูลใน Excel", "warning");
-          return;
-        }
-
-        const dataToUpload = jsonData.map(row => ({
-          ...row,
-          faculty_id: selectedFaculty,
-        }));
-
-        const response = await axios.post("/api/program/excel", dataToUpload);
-
-        if (response.data.success) {
-          // อัปเดต state ด้วยข้อมูลที่ได้จาก backend
-          const newPrograms = response.data.programs;
-
-          if (newPrograms && newPrograms.length > 0) {
-            // เพิ่มข้อมูลใหม่เข้าไปใน state
-            setFilteredProgram([...filteredProgram, ...newPrograms]);
-            setProgram([...program, ...newPrograms]);
-          }
-
-          showAlert(`เพิ่มโปรแกรม ${newPrograms?.length || 0} รายการเรียบร้อยแล้ว`, "success");
-        } else {
-          showAlert("เกิดข้อผิดพลาด: " + response.data.message, "danger");
-        }
-      } catch (err) {
-        console.error("Error reading Excel file:", err);
-
-        if (err.response) {
-          const errorMessage = err.response.data.message || "เกิดข้อผิดพลาดในการอัปโหลด Excel";
-          showAlert(errorMessage, "danger");
-        } else if (err.request) {
-          showAlert("ไม่สามารถติดต่อเซิร์ฟเวอร์ได้", "danger");
-        } else {
-          showAlert("อ่านไฟล์ไม่สำเร็จ", "danger");
-        }
+      if (jsonData.length === 0) {
+        showAlert("ไม่พบข้อมูลใน Excel", "warning");
+        return;
       }
-    };
 
-    reader.readAsArrayBuffer(file);
+      const dataToUpload = jsonData.map(row => ({
+        ...row,
+        faculty_id: selectedFaculty,
+      }));
+
+      // 👉 เพิ่มตรงนี้ เพื่อ set preview excel
+      setProgramExcelData(dataToUpload);
+      setShowPreviewModal(true);
+
+
+      // 👉 ยังไม่ต้อง axios ทันที
+    } catch (err) {
+      console.error("Error reading Excel file:", err);
+      showAlert("อ่านไฟล์ไม่สำเร็จ", "danger");
+    }
   };
+
+  reader.readAsArrayBuffer(file);
+};
+
+const handleProgramUploadConfirm = async () => {
+  try {
+    const response = await axios.post("/api/program/excel", programExcelData);
+
+    if (response.data.success) {
+      const newPrograms = response.data.programs;
+      if (newPrograms && newPrograms.length > 0) {
+        setFilteredProgram([...filteredProgram, ...newPrograms]);
+        setProgram([...program, ...newPrograms]);
+      }
+      showAlert(`เพิ่มโปรแกรม ${newPrograms?.length || 0} รายการเรียบร้อยแล้ว`, "success");
+       setTimeout(() => {
+        setProgramExcelData([]);
+        setShowPreviewModal(false);
+      }, 1000);
+
+    } else {
+      showAlert("เกิดข้อผิดพลาด: " + response.data.message, "danger");
+    }
+  } catch (err) {
+    console.error("Error uploading program excel:", err);
+    showAlert("อัปโหลดไฟล์ไม่สำเร็จ", "danger");
+  }
+};
+
+const handleCloseModal = () => {
+  setShowPreviewModal(false);
+  setProgramExcelData([]); // เคลียร์ข้อมูล preview ถ้าต้องการ
+};
+
+const existingProgramMap = new Set(
+  program.map(p => 
+    `${p.code?.trim().toLowerCase()}|${p.program_name?.trim().toLowerCase()}|${p.year}`
+  )
+);
+
+
+
 
   return (
 
@@ -189,10 +212,6 @@ export default function AddProgram({
       <h5 className="form-label text-start" style={{ marginBottom: "15px" }}>
         {t('Add Program')}
       </h5>
-
-
-
-
       <div className="mb-2">
         <input
           type="text"
@@ -275,6 +294,55 @@ export default function AddProgram({
               onChange={handleProgramExcelUpload}
 
             />
+            {showPreviewModal && (
+  <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}>
+    <div className="modal-dialog modal-lg">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h5 className="modal-title">{t("Preview Programs from Excel")}</h5>
+          <button type="button" className="btn-close" onClick={handleCloseModal}></button>
+        </div>
+        <div className="modal-body" style={{ maxHeight: "400px", overflowY: "auto" }}>
+          <table className="table table-bordered">
+            <thead>
+              <tr>
+                <th>{t("Code")}</th>
+                <th>{t("Program Name")}</th>
+                <th>{t("Program Name (TH)")}</th>
+                <th>{t("Short Name")}</th>
+                <th>{t("Short Name (TH)")}</th>
+                <th>{t("Year")}</th>
+              </tr>
+            </thead>
+            <tbody>
+             {programExcelData.map((item, idx) => {
+        const key = `${item.code?.trim().toLowerCase()}|${item.program_name?.trim().toLowerCase()}|${item.year}`;
+        const isExisting = existingProgramMap.has(key);
+        const cellStyle = { color: isExisting ? "black" : "red", backgroundColor: isExisting ? "white" : "#ffe6e6" };
+
+        return (
+          <tr key={idx}>
+            <td style={cellStyle}>{item.code || "-"}</td>
+            <td style={cellStyle}>{item.program_name || "-"}</td>
+            <td style={cellStyle}>{item.program_name_th || "-"}</td>
+            <td style={cellStyle}>{item.program_shortname_en || "-"}</td>
+            <td style={cellStyle}>{item.program_shortname_th || "-"}</td>
+            <td style={cellStyle}>{item.year || "-"}</td>
+          </tr>
+        );
+      })}
+            </tbody>
+          </table>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={handleCloseModal}>{t("Cancel")}</button>
+          <button className="btn btn-success" onClick={handleProgramUploadConfirm}>{t("Upload Programs")}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
           </div>
         </div>
       </div>

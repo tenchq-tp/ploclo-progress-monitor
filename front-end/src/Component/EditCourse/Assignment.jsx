@@ -5,6 +5,7 @@ import EditAssignmentModal from "./assignment/EditAssignment";
 import * as XLSX from "xlsx";
 import StudentExcel from "./assignment/StudentExcel";
 import StudentScore from "./assignment/StudentScore";
+import ExcelDataDisplay from "../Excel/DataDisplay";
 
 export default function Assignment({
   selectedUniversity,
@@ -14,7 +15,6 @@ export default function Assignment({
   selectedSemester,
   activeTab,
 }) {
-  const [availableAssignments, setAvailableAssignmennts] = useState([]);
   const [availableCourses, setAvailableCourses] = useState([]);
   const [error, setError] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -28,6 +28,14 @@ export default function Assignment({
   const [showStudents, setShowStudents] = useState(false);
   const [selectedAssignmentStudent, setSelectedAssignmentStudent] = useState();
   const [showScores, setShowScores] = useState(false);
+
+  // Excel Assignment
+  const [assignmentExcel, setAssignmentExcel] = useState([]);
+  const [showAssignTable, setShowAssignTable] = useState(false);
+
+  // Student score excel
+  const [studentScoreExcel, setStudentScoreExcel] = useState([]);
+  const [showStudentScoreTable, setShowStudentScoreTable] = useState(false);
 
   async function fetchCourses() {
     try {
@@ -70,6 +78,42 @@ export default function Assignment({
     }
   }
 
+  async function uploadAssignExcel(e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    e.target.value = "";
+
+    reader.onload = (event) => {
+      const data = event.target.result;
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      setAssignmentExcel(jsonData);
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  async function uploadScoreStudentExcel(e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    e.target.value = "";
+
+    reader.onload = (event) => {
+      const data = event.target.result;
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      setStudentScoreExcel(jsonData);
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
   useEffect(() => {
     if (
       activeTab === 4 &&
@@ -88,6 +132,76 @@ export default function Assignment({
     fetchClo();
   }, [selectedProgramCourse]);
 
+  useEffect(() => {
+    if (assignmentExcel.length > 0) {
+      setShowAssignTable(true);
+    } else {
+      setShowAssignTable(false);
+    }
+  }, [assignmentExcel]);
+
+  useEffect(() => {
+    if (studentScoreExcel.length > 0) {
+      setShowStudentScoreTable(true);
+    } else {
+      setShowStudentScoreTable(false);
+    }
+  }, [studentScoreExcel]);
+
+  async function confirmAssign() {
+    const payload = {
+      assignment_id: selectedAssignmentStudent,
+      students: students,
+    };
+
+    try {
+      await axios.post("/api/assignment/assign", payload);
+      alert("มอบหมายงานเสร็จสิ้น");
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function handleAddAssignmentExcel() {
+    const payload = {
+      program_course_id: selectedProgramCourse,
+      university_id: selectedUniversity,
+      faculty_id: selectedFaculty,
+      assignments: assignmentExcel,
+    };
+
+    try {
+      const response = await axios.post("/api/assignment/excel", payload);
+
+      alert(response.data.message);
+      fetchAssignments();
+      setAssignmentExcel([]);
+    } catch (error) {
+      alert("An unexpected error occurred.");
+      console.error("Fetch Error:", error);
+    }
+  }
+
+  async function handleAddStudentScoreExcel() {
+    const payload = {
+      program_course_id: selectedProgramCourse,
+      student_score: studentScoreExcel,
+    };
+
+    try {
+      const response = await axios.post(
+        "/api/assignment/student-score-excel",
+        payload
+      );
+
+      alert(response.data.message);
+      setStudentScoreExcel([]);
+    } catch (error) {
+      alert("An unexpected error occurred.");
+      console.error("Fetch Error: ", error);
+    }
+  }
+
   return (
     <>
       <SelectorCourses
@@ -101,8 +215,34 @@ export default function Assignment({
         <button
           className={styles.btn_submit}
           onClick={() => setShowAddModal(true)}>
-          เพิ่ม
+          Add
         </button>
+        <button
+          className={styles.btn_submit}
+          onClick={() => document.getElementById("input-excel").click()}>
+          Add assignments from excel
+        </button>
+        <button
+          className={styles.btn_submit}
+          onClick={() =>
+            document.getElementById("input-student-score-excel").click()
+          }>
+          Add student score from excel
+        </button>
+        <input
+          type="file"
+          accept=".xlsx, .xls"
+          style={{ display: "none" }}
+          id="input-excel"
+          onChange={uploadAssignExcel}
+        />
+        <input
+          type="file"
+          accept=".xlsx, .xls"
+          style={{ display: "none" }}
+          id="input-student-score-excel"
+          onChange={uploadScoreStudentExcel}
+        />
       </div>
       {showAddModal && (
         <AddAssignmentModal
@@ -134,11 +274,31 @@ export default function Assignment({
         />
       )}
 
+      {showAssignTable && (
+        <ExcelDataDisplay
+          onClose={() => setShowAssignTable(false)}
+          dataArray={assignmentExcel}
+          onAdd={() => {
+            handleAddAssignmentExcel();
+            setShowAssignTable(false);
+          }}
+        />
+      )}
+
+      {showStudentScoreTable && (
+        <ExcelDataDisplay
+          onClose={() => setShowStudentScoreTable(false)}
+          dataArray={studentScoreExcel}
+          onAdd={handleAddStudentScoreExcel}
+        />
+      )}
+
       {showStudents && (
         <StudentExcel
           students={students}
           selectedAssignmentStudent={selectedAssignmentStudent}
           onClose={() => setShowStudents(false)}
+          onSubmit={confirmAssign}
         />
       )}
       {showScores && (
@@ -248,7 +408,6 @@ function AssignmentTable({
   setShowScores,
   selectedCourseId,
 }) {
-  const [selectedFile, setSelectedFile] = useState(null);
   const [studentData, setStudentData] = useState(null);
 
   async function deleteAssignment(id) {
@@ -275,47 +434,6 @@ function AssignmentTable({
     }
   }
 
-  function handleFileUpload(e) {
-    let fileTypes = [
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "text/csv",
-    ];
-    let selectedFile = e.target.files[0];
-    e.target.value = "";
-
-    if (selectedFile) {
-      if (fileTypes.includes(selectedFile.type)) {
-        let reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const data = event.target.result;
-            const workbook = XLSX.read(data, { type: "binary" });
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(sheet, {
-              header: ["student_id", "firstname", "lastname"], // กำหนดชื่อคอลัมน์เอง
-              range: 1, // ข้าม header แถวแรกใน Excel ถ้ามี
-            });
-
-            console.log(jsonData);
-            setStudents(jsonData);
-            setShowStudents(true);
-            setStudentData(jsonData);
-          } catch (error) {
-            console.error("Error reading file: ", error);
-            alert("Error reading file. Please try again");
-          }
-        };
-        reader.readAsArrayBuffer(selectedFile);
-      } else {
-        setStudentData(null);
-      }
-    } else {
-      console.log("Please select your file");
-    }
-  }
-
   return (
     <>
       <section className={styles.table_header}>
@@ -339,7 +457,7 @@ function AssignmentTable({
               {assignments.length > 0 ? (
                 assignments.map((assignment, index) => (
                   <tr key={index}>
-                    <td>{assignment.assignment_id}</td>
+                    <td>{index + 1}</td>
                     <td>{assignment.assignment_name}</td>
                     <td>{assignment.description}</td>
                     <td>{assignment.total_score}</td>

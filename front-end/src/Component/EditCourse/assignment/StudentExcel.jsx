@@ -2,25 +2,7 @@ import { useState } from "react";
 import styles from "./StudentExcel.module.css";
 import axios from "./../../axios";
 
-export default function StudentExcel({
-  students,
-  onClose,
-  selectedAssignmentStudent,
-}) {
-  async function handleSubmit() {
-    const payload = {
-      assignment_id: selectedAssignmentStudent,
-      students: students,
-    };
-    try {
-      await axios.post("/api/assignment/assign", payload);
-      alert("มอบหมายงายเสร็จสิ้น");
-      onClose();
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
+export default function StudentExcel({ students, onClose, onSubmit }) {
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
@@ -45,7 +27,12 @@ export default function StudentExcel({
             </tbody>
           </table>
         </div>
-        <button className={styles.closeButton} onClick={handleSubmit}>
+        <button
+          className={styles.closeButton}
+          onClick={() => {
+            onSubmit();
+            onClose();
+          }}>
           ตกลง
         </button>
         <button className={styles.closeButton} onClick={onClose}>

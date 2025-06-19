@@ -120,29 +120,21 @@ async function createFromExcel(req, res) {
   const rows = req.body;
 
   if (!Array.isArray(rows) || rows.length === 0) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Data should be a non-empty array" });
+    return res.status(400).json({ success: false, message: "Data should be a non-empty array" });
   }
 
   try {
     const conn = await pool.getConnection();
+    const insertedRows = [];
+    const skippedRows = [];
 
-    // เก็บ PLO codes ที่จะเพิ่มเพื่อตรวจสอบความซ้ำซ้อนภายใน batch
-    const batchPloCodes = new Set();
-    const yearPloCodes = new Map(); // Map เพื่อเก็บ year -> Set of PLO codes
-
-    // ตรวจสอบข้อมูลทั้งหมดก่อนเริ่ม insert
     for (const row of rows) {
       const { PLO_name, PLO_engname, PLO_code, program_id, year } = row;
 
-      // ตรวจสอบว่าข้อมูลครบถ้วน
+      // ตรวจสอบข้อมูลครบถ้วน
       if (!PLO_name || !PLO_engname || !PLO_code || !program_id || !year) {
-        conn.release();
-        return res.status(400).json({
-          success: false,
-          message: `Missing required fields in one of the rows: ${JSON.stringify(row)}`,
-        });
+        skippedRows.push({ row, reason: "Missing required fields" });
+        continue; // ข้ามแถวนี้
       }
 
       // ตรวจสอบว่า program_id และ year มีอยู่
@@ -151,82 +143,67 @@ async function createFromExcel(req, res) {
         [program_id, year]
       );
       if (!programCheck || programCheck.length === 0) {
-        conn.release();
-        return res.status(400).json({
-          success: false,
-          message: `Invalid program_id or year combination in row: ${JSON.stringify(row)}`,
-        });
+        skippedRows.push({ row, reason: "Invalid program_id or year" });
+        continue; // ข้ามแถวนี้
       }
 
-      // ตรวจสอบความซ้ำซ้อนภายใน batch
-      if (!yearPloCodes.has(year)) {
-        yearPloCodes.set(year, new Set());
-      }
-
-      if (yearPloCodes.get(year).has(PLO_code)) {
-        conn.release();
-        return res.status(400).json({
-          success: false,
-          message: `Duplicate PLO_code "${PLO_code}" found in batch for year ${year}`,
-        });
-      }
-
-      yearPloCodes.get(year).add(PLO_code);
-    }
-
-    // ตรวจสอบความซ้ำซ้อนกับข้อมูลที่มีอยู่ในฐานข้อมูล
-    for (const [year, codes] of yearPloCodes) {
-      const codesArray = Array.from(codes);
-      const placeholders = codesArray.map(() => "?").join(", ");
-
+      // ตรวจสอบว่า PLO_code ซ้ำกับในฐานข้อมูลหรือไม่
       const duplicateCheck = await conn.query(
-        `
-        SELECT p.PLO_code 
-        FROM plo p
-        INNER JOIN program_plo pp ON p.PLO_id = pp.PLO_id
-        INNER JOIN program pr ON pp.program_id = pr.program_id
-        WHERE p.PLO_code IN (${placeholders}) AND pr.year = ?
-      `,
-        [...codesArray, year]
+        `SELECT p.PLO_code
+         FROM plo p
+         INNER JOIN program_plo pp ON p.PLO_id = pp.PLO_id
+         INNER JOIN program pr ON pp.program_id = pr.program_id
+         WHERE p.PLO_code = ? AND pr.year = ?`,
+        [PLO_code, year]
       );
 
-      if (duplicateCheck && duplicateCheck.length > 0) {
-        const duplicateCodes = duplicateCheck.map((row) => row.PLO_code);
-        conn.release();
-        return res.status(400).json({
-          success: false,
-          message: `PLO codes already exist for year ${year}: ${duplicateCodes.join(", ")}`,
-        });
+      if (duplicateCheck.length > 0) {
+        skippedRows.push({ row, reason: "Duplicate PLO_code for this year" });
+        continue; // ข้ามแถวนี้
       }
-    }
 
-    // หากผ่านการตรวจสอบทั้งหมด จึงเริ่ม insert ข้อมูล
-    for (const row of rows) {
-      const { PLO_name, PLO_engname, PLO_code, program_id } = row;
+      // ถ้าไม่ซ้ำ insert ข้อมูล
+      try {
+        const ploResult = await conn.query(
+          "INSERT INTO plo (PLO_name, PLO_engname, PLO_code) VALUES (?, ?, ?)",
+          [PLO_name, PLO_engname, PLO_code]
+        );
+        const newPloId = Number(ploResult.insertId);
 
-      // เพิ่ม PLO ลงในตาราง plo
-      const ploQuery =
-        "INSERT INTO plo (PLO_name, PLO_engname, PLO_code) VALUES (?, ?, ?)";
-      const ploResult = await conn.query(ploQuery, [
-        PLO_name,
-        PLO_engname,
-        PLO_code,
-      ]);
-      const newPloId = Number(ploResult.insertId);
+        await conn.query(
+          "INSERT INTO program_plo (program_id, PLO_id) VALUES (?, ?)",
+          [program_id, newPloId]
+        );
 
-      // เพิ่มความสัมพันธ์ระหว่าง program_id และ PLO_id
-      const programPloQuery =
-        "INSERT INTO program_plo (program_id, PLO_id) VALUES (?, ?)";
-      await conn.query(programPloQuery, [program_id, newPloId]);
+        insertedRows.push(row);
+      } catch (insertErr) {
+        skippedRows.push({ row, reason: "Database insert error" });
+        console.error("Insert error for row:", row, insertErr);
+      }
     }
 
     conn.release();
-    res.json({ success: true, message: "All rows inserted successfully" });
+
+    if (insertedRows.length === 0) {
+  return res.status(400).json({
+    success: false,
+    message: "No data was inserted all rows were duplicates\nไม่มีข้อมูลใดถูกเพิ่มเข้าไป เนื่องจากข้อมูลทั้งหมดซ้ำกัน",
+    skippedRows,
+  });
+}
+
+    res.json({
+      success: true,
+      message: `${insertedRows.length} rows inserted successfully, ${skippedRows.length} rows skipped.`,
+      insertedRows,
+      skippedRows,
+    });
   } catch (err) {
     console.error("Error processing Excel upload:", err);
     res.status(500).json({ success: false, message: "Database error" });
   }
 }
+
 
 export async function savePloCloMappings(req, res) {
   const year = parseInt(req.body.year);

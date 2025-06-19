@@ -239,6 +239,9 @@ CREATE TABLE `assignment_grade` (
 ALTER TABLE plo_clo
 ADD UNIQUE KEY unique_plo_clo (PLO_id, CLO_id);
 
+ALTER TABLE assignment_grade
+ADD UNIQUE KEY unique_assignment_student (assignment_student_id);
+
 -- ข้อมูลเทส
 SET NAMES 'utf8mb4';
 SET character_set_client = 'utf8mb4';

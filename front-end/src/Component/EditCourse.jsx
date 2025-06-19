@@ -75,6 +75,7 @@ export default function Course() {
   const [previousYearCLOs, setPreviousYearCLOs] = useState([]);
   const [showPreviousYearCLOsModal, setShowPreviousYearCLOsModal] =
     useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false); // เพิ่ม maodal
   const [allPLOs, setAllPLOs] = useState([]);
   const [showPasteArea, setShowPasteArea] = useState(false);
   const [programCourseData, setProgramCourseData] = useState({
@@ -1408,6 +1409,7 @@ export default function Course() {
     fetchAllCourseByProgram(selectedProgram);
   };
 
+
   async function fetchSelectCourse() {
     try {
       const response = await axios.get(`/api/program-course/detail`, {
@@ -2005,6 +2007,7 @@ export default function Course() {
     setShowPasteArea(false);
   };
 
+  // อัปโหลด clo file
   const handleFileUpload = async (e) => {
     let fileTypes = [
       "application/vnd.ms-excel",
@@ -2058,6 +2061,7 @@ export default function Course() {
             }
 
             setExcelData(updatedData); // อัปเดตข้อมูลใน State
+            setShowPreviewModal(true);
           } catch (error) {
             console.error("Error reading file:", error);
             alert("Error processing file: " + error.message);
@@ -2074,6 +2078,15 @@ export default function Course() {
       }
     }
   };
+
+  //ฟังก์ชัน ตรวจข้อมูลซ้ำ
+  const existingCloMap = new Set(
+    CLOs.map(clo =>
+      `${clo.CLO_code?.trim().toLowerCase()}|${clo.CLO_name?.trim().toLowerCase()}|${clo.CLO_engname?.trim().toLowerCase()}`
+    )
+  );
+
+
 
   async function fetchFilteredCourseClo() {
     setSelectedCourseClo([]);
@@ -2171,6 +2184,7 @@ export default function Course() {
         params: { course_id: selectedCourseId, year: selectedYear },
       });
       alert(response.data.message);
+      setShowPreviewModal(false);
       setExcelData(null);
       fetchFilteredCourseClo();
     } catch (error) {
@@ -2418,11 +2432,11 @@ export default function Course() {
         const updatedCLOs = CLOs.map((clo) =>
           clo.CLO_id === editClo.CLO_id
             ? {
-                ...clo,
-                CLO_name: editCloName.trim(),
-                CLO_engname: editCloEngName.trim(),
-                CLO_code: editCloCode.trim(), // เพิ่ม CLO_code ในการอัปเดตที่แสดงในตาราง
-              }
+              ...clo,
+              CLO_name: editCloName.trim(),
+              CLO_engname: editCloEngName.trim(),
+              CLO_code: editCloCode.trim(), // เพิ่ม CLO_code ในการอัปเดตที่แสดงในตาราง
+            }
             : clo
         );
 
@@ -3004,29 +3018,52 @@ export default function Course() {
             </div>
 
             {/* Preview Data */}
-            {excelData && excelData.length > 0 && (
-              <div className="mt-3">
-                <h5>Preview Data</h5>
-                <table className="table table-bordered">
-                  <thead>
-                    <tr>
-                      <th>CLO Code</th>
-                      <th>CLO Name</th>
-                      <th>CLO English Name</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {excelData.map((row, index) => (
-                      <tr key={index}>
-                        <td>{row.CLO_code}</td>
-                        <td>{row.CLO_name}</td>
-                        <td>{row.CLO_engname}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {showPreviewModal && (
+              <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}>
+                <div className="modal-dialog modal-lg">
+                  <div className="modal-content">
+                    <div className="modal-header">
+                      <h5 className="modal-title">Preview Excel Data</h5>
+                      <button type="button" className="btn-close" onClick={() => setShowPreviewModal(false)}></button>
+                    </div>
+                    <div className="modal-body" style={{ maxHeight: "400px", overflowY: "auto" }}>
+                      <table className="table table-bordered">
+                        <thead>
+                          <tr>
+                            <th>CLO Code</th>
+                            <th>CLO Name</th>
+                            <th>CLO English Name</th>
+                          </tr>
+                        </thead>
+                        {excelData && excelData.length > 0 && (
+                          <tbody>
+                            {excelData.map((row, index) => {
+                              const key = `${row.CLO_code?.trim().toLowerCase()}|${row.CLO_name?.trim().toLowerCase()}|${row.CLO_engname?.trim().toLowerCase()}`;
+                              const isExisting = existingCloMap.has(key);
+                              const cellStyle = { color: isExisting ? "black" : "red", backgroundColor: isExisting ? "white" : "#ffe6e6" };
+
+                              return (
+                                <tr key={index}>
+                                  <td style={cellStyle}>{row.CLO_code}</td>
+                                  <td style={cellStyle}>{row.CLO_name}</td>
+                                  <td style={cellStyle}>{row.CLO_engname}</td>
+                                </tr>
+                              );
+                            })}
+
+                          </tbody>
+                        )}
+                      </table>
+                    </div>
+                    <div className="modal-footer">
+                      <button className="btn btn-secondary" onClick={() => setShowPreviewModal(false)}>Cancel</button>
+                      <button className="btn btn-success" onClick={handleUploadButtonClick}>Upload</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
+
           </div>
 
           {/* Modal for Add CLO */}
