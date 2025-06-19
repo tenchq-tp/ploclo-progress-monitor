@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "./axios";
 import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
@@ -2080,11 +2080,14 @@ export default function Course() {
   };
 
   //ฟังก์ชัน ตรวจข้อมูลซ้ำ
-  const existingCloMap = new Set(
-    CLOs.map(clo =>
+const existingCloMap = useMemo(() => {
+  // Use selectedCourseClo instead of clos, since that's what your fetch function populates
+  return new Set(
+    selectedCourseClo.map(clo => 
       `${clo.CLO_code?.trim().toLowerCase()}|${clo.CLO_name?.trim().toLowerCase()}|${clo.CLO_engname?.trim().toLowerCase()}`
     )
   );
+}, [selectedCourseClo]);
 
 
 
