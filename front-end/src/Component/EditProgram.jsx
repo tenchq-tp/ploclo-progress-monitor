@@ -78,6 +78,26 @@ export default function Program() {
   const [studentExcelData, setStudentExcelData] = useState(null);
   const [studentTypeError, setStudentTypeError] = useState(null);
 
+//   useEffect(() => {
+//   const filters = {
+//     university: selectedUniversity,
+//     faculty: selectedFaculty,
+//     program: selectedProgramName,
+//     year: selectedYear,
+//   };
+//   localStorage.setItem("filters", JSON.stringify(filters));
+// }, [selectedUniversity, selectedFaculty, selectedProgramName, selectedYear]);
+
+// useEffect(() => {
+//   const storedFilters = JSON.parse(localStorage.getItem("filters"));
+//   if (storedFilters) {
+//     setSelectedUniversity(storedFilters.university || "all");
+//     setSelectedFaculty(storedFilters.faculty || "all");
+//     setSelectedProgramName(storedFilters.program || "all");
+//     setSelectedYear(storedFilters.year || "all");
+//   }
+// }, []);
+
   async function fetchStudents() {
     try {
       if (!allFiltersSelected) return;
@@ -506,12 +526,60 @@ export default function Program() {
       });
   };
 
+// const handleUniversityChange = (e) => {
+//   const value = e.target.value;
+//   setSelectedUniversity(value);
+//   const currentFilters = JSON.parse(localStorage.getItem("filters")) || {};
+//   localStorage.setItem(
+//     "filters",
+//     JSON.stringify({ ...currentFilters, university: value })
+//   );
+// };
+
+// const handleFacultyChange = (e) => {
+//   const value = e.target.value;
+//   setSelectedFaculty(value);
+//   const currentFilters = JSON.parse(localStorage.getItem("filters")) || {};
+//   localStorage.setItem(
+//     "filters",
+//     JSON.stringify({ ...currentFilters, faculty: value })
+//   );
+// };
+
+// const handleProgramChange = (e) => {
+//   const value = e.target.value;
+//   setSelectedProgramName(value);
+//   const currentFilters = JSON.parse(localStorage.getItem("filters")) || {};
+//   localStorage.setItem(
+//     "filters",
+//     JSON.stringify({ ...currentFilters, program: value })
+//   );
+// };
+
+// const handleYearChange = (e) => {
+//   const value = e.target.value;
+//   setSelectedYear(value);
+//   const currentFilters = JSON.parse(localStorage.getItem("filters")) || {};
+//   localStorage.setItem(
+//     "filters",
+//     JSON.stringify({ ...currentFilters, year: value })
+//   );
+// };
+
   const handleUniversityChange = (e) => {
     setSelectedUniversity(e.target.value);
   };
 
   const handleFacultyChange = (e) => {
     setSelectedFaculty(e.target.value);
+  };
+
+  const handleProgramChange = (e) => {
+    setSelectedProgramName(e.target.value);
+  };
+
+  const handleYearChange = (e) => {
+    setSelectedYear(e.target.value);
   };
 
   const handleTabClick = (tabIndex) => {
@@ -1287,7 +1355,8 @@ export default function Program() {
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "380px" }} // ใช้ style inline แทน
                 value={selectedProgramName || "all"}
-                onChange={(e) => setSelectedProgramName(e.target.value)}
+                // onChange={(e) => setSelectedProgramName(e.target.value)}
+                onChange={handleProgramChange}
                 disabled={!selectedFaculty}>
                 <option value="all">{t("All Programs")}</option>
                 {program
@@ -1314,7 +1383,8 @@ export default function Program() {
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
                 style={{ width: "120px" }} // ใช้ style inline แทน
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
+                // onChange={(e) => setSelectedYear(e.target.value)}
+                onChange={handleYearChange}
                 disabled={!selectedProgram}>
                 <option value="all">{t("All Years")}</option>
                 {years.map((year) => (

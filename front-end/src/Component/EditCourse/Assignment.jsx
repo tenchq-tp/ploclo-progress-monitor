@@ -445,7 +445,7 @@ function AssignmentTable({
           <table className={styles.table}>
             <thead>
               <tr className={styles.column_wrap}>
-                <th className={styles.column_table}>Id</th>
+                <th className={styles.column_table}>No.</th>
                 <th className={styles.column_table}>Name</th>
                 <th className={styles.column_table}>Description</th>
                 <th className={styles.column_table}>Total score</th>

@@ -2015,6 +2015,7 @@ export default function Course() {
       "text/csv",
     ];
     let selectedFile = e.target.files[0];
+    e.target.value = "";
     setExcelData([]);
     if (selectedFile) {
       if (fileTypes.includes(selectedFile.type)) {
@@ -3419,7 +3420,7 @@ const existingCloMap = useMemo(() => {
             </div>
           </div>
 
-          {showMapping && selectedCourseId ? (
+          {true && selectedCourseId ? (
             <CloMapping
               handleEditToggle={handleEditToggle}
               editingScores={editingScores}
