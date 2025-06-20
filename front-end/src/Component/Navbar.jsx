@@ -200,17 +200,17 @@ export default function Navbar({ role }) {
             role === "Instructor" ||
             role === "Curriculum Admin" ||
             role === "System Admin") && (
-            <CustomLink
-              to="/ViewChart"
-              onMouseEnter={(e) => updateAnimationBar(e.currentTarget)}
-              onMouseLeave={() =>
-                activeItemRef.current &&
-                updateAnimationBar(activeItemRef.current)
-              }
-              setActiveRef={activeItemRef}>
-              {t("ViewChart")}
-            </CustomLink>
-          )}
+              <CustomLink
+                to="/ViewChart"
+                onMouseEnter={(e) => updateAnimationBar(e.currentTarget)}
+                onMouseLeave={() =>
+                  activeItemRef.current &&
+                  updateAnimationBar(activeItemRef.current)
+                }
+                setActiveRef={activeItemRef}>
+                {t("ViewChart")}
+              </CustomLink>
+            )}
 
           <CustomLink
             to="/aboutData"
@@ -238,18 +238,22 @@ export default function Navbar({ role }) {
           {/* แถบอนิเมชั่น */}
           <div className="animation-bar" style={animationStyle}></div>
         </ul>
-
         <div
           className="language-selector"
           onMouseEnter={() => handleDropdownEnter("language")}
-          onMouseLeave={() => handleDropdownLeave()}>
-          <span className="language-label">{t("Select Language")}</span>
-          <ul
-            className={`language-menu d-grid gap-0 ${activeDropdown === "language" ? "show" : ""}`}>
-            <li onClick={() => changeLanguage("th")}>Thai</li>
-            <li onClick={() => changeLanguage("en")}>English</li>
-            {/* <li onClick={() => changeLanguage('ch')}>Chinese</li> */}
-          </ul>
+          onMouseLeave={() => handleDropdownLeave()}
+        >
+          <span className="language-label">
+            {t("Select Language")}
+          </span>
+
+          {activeDropdown === "language" && (
+            <ul className="language-menu d-grid gap-0">
+              <li onClick={() => changeLanguage("th")}>Thai</li>
+              <li onClick={() => changeLanguage("en")}>English</li>
+              {/* <li onClick={() => changeLanguage("ch")}>Chinese</li> */}
+            </ul>
+          )}
         </div>
         {/* เพิ่มปุ่ม Logout ถ้ามี role (ล็อกอินแล้ว) */}
         {role && (

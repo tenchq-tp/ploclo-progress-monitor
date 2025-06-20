@@ -1313,7 +1313,7 @@ export default function Program() {
               <label className="form-label">{t("Choose a university")}</label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
-                style={{ width: "320px" }} // ใช้ style inline แทน
+                style={{ width: "100%" }} // ใช้ style inline แทน
                 value={selectedUniversity}
                 onChange={handleUniversityChange}>
                 <option value="all">{t("All Universities")}</option>
@@ -1334,7 +1334,7 @@ export default function Program() {
               </label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
-                style={{ width: "350px" }} // ใช้ style inline แทน
+                style={{ width: "100%" }} // ใช้ style inline แทน
                 value={selectedFaculty}
                 onChange={handleFacultyChange}
                 disabled={!selectedUniversity}>
@@ -1353,7 +1353,7 @@ export default function Program() {
               </label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
-                style={{ width: "380px" }} // ใช้ style inline แทน
+                style={{ width: "100%" }} // ใช้ style inline แทน
                 value={selectedProgramName || "all"}
                 // onChange={(e) => setSelectedProgramName(e.target.value)}
                 onChange={handleProgramChange}
@@ -1381,7 +1381,7 @@ export default function Program() {
               <label className="form-label text-start">{t("Year")}</label>
               <select
                 className="form-select" // ตัดคลาสเพิ่มเติมออก
-                style={{ width: "120px" }} // ใช้ style inline แทน
+                style={{ width: "100%" }} // ใช้ style inline แทน
                 value={selectedYear}
                 // onChange={(e) => setSelectedYear(e.target.value)}
                 onChange={handleYearChange}
