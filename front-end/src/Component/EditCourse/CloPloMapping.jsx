@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import ChooseCourse from "../ChooseCourse";
 import styles from "./styles/CloPloMapping.module.css";
 import axios from "./../axios";
+import { useTranslation } from "react-i18next";
 
 export default function CloPloMapping({
   selectedProgram,
   selectedYear,
   selectedSemester,
 }) {
+   const { t, i18n } = useTranslation();
   const [courseArray, setCourseArray] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(0);
   const [plos, setPlos] = useState([]);
@@ -252,7 +254,7 @@ export default function CloPloMapping({
 
       <div className={styles.submitWrapper}>
         <button onClick={handleSubmit} className={styles.submitButton}>
-          Submit
+          {t("Submit")}
         </button>
       </div>
     </div>

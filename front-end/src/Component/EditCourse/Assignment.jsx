@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import StudentExcel from "./assignment/StudentExcel";
 import StudentScore from "./assignment/StudentScore";
 import ExcelDataDisplay from "../Excel/DataDisplay";
+import { useTranslation } from "react-i18next"
 
 export default function Assignment({
   selectedUniversity,
@@ -36,6 +37,8 @@ export default function Assignment({
   // Student score excel
   const [studentScoreExcel, setStudentScoreExcel] = useState([]);
   const [showStudentScoreTable, setShowStudentScoreTable] = useState(false);
+
+   const { t, i18n } = useTranslation();
 
   async function fetchCourses() {
     try {
@@ -215,19 +218,19 @@ export default function Assignment({
         <button
           className={styles.btn_submit}
           onClick={() => setShowAddModal(true)}>
-          Add
+          {t("Add")}
         </button>
         <button
           className={styles.btn_submit}
           onClick={() => document.getElementById("input-excel").click()}>
-          Add assignments from excel
+          {t("Add assignments from excel")}
         </button>
         <button
           className={styles.btn_submit}
           onClick={() =>
             document.getElementById("input-student-score-excel").click()
           }>
-          Add student score from excel
+          {t("Add student score from excel")}
         </button>
         <input
           type="file"
@@ -318,6 +321,7 @@ function SelectorCourses({
   setProgramCourse,
   programCourseId,
 }) {
+     const { t, i18n } = useTranslation();
   const [courseWithSections, setCourseWithSections] = useState([]);
   const [availableSections, setAvailableSections] = useState([]);
 
@@ -361,12 +365,12 @@ function SelectorCourses({
     <>
       <div className={styles.container}>
         <div className={styles.filter_container}>
-          <label htmlFor="courseSelection">Choose a Course</label>
+          <label htmlFor="courseSelection">{t("Choose a Course")}</label>
           <select
             id="courseSelection"
             onChange={handleCourseChange}
             className={styles.selector}>
-            <option value="">-- Select Course --</option>
+            <option value="">-- {t("Select Course")} --</option>
             {courseWithSections.map((course, index) => (
               <option key={index} value={course.course_id}>
                 {course.course_name}
@@ -376,7 +380,7 @@ function SelectorCourses({
         </div>
 
         <div className={styles.filter_container}>
-          <label htmlFor="sectionSelection">Choose a Section</label>
+          <label htmlFor="sectionSelection">{t("Choose a Section")}</label>
           <select
             id="sectionSelection"
             className={styles.selector}
@@ -385,7 +389,7 @@ function SelectorCourses({
               setProgramCourse(e.target.value);
             }}
             value={programCourseId}>
-            <option value="default">Select section</option>
+            <option value="default">{t("Select Section")}</option>
             {availableSections.map((sec, index) => (
               <option key={index} value={sec.id}>
                 Section {sec.section}
@@ -408,6 +412,7 @@ function AssignmentTable({
   setShowScores,
   selectedCourseId,
 }) {
+  const { t, i18n } = useTranslation();
   const [studentData, setStudentData] = useState(null);
 
   async function deleteAssignment(id) {
@@ -437,7 +442,7 @@ function AssignmentTable({
   return (
     <>
       <section className={styles.table_header}>
-        <h1>Assignments</h1>
+        <h1>{t("Assignment")}</h1>
       </section>
 
       <section className={styles.table_body_wrapper}>
@@ -496,7 +501,7 @@ function AssignmentTable({
               ) : (
                 <tr>
                   <td colSpan="6" style={{ textAlign: "center" }}>
-                    ยังไม่มีข้อมูลแสดง
+                    No data available
                   </td>
                 </tr>
               )}
