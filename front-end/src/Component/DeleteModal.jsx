@@ -10,18 +10,17 @@ function DeleteModal({show, onHide, onDelete}){
    //Form Validation:
    //const correctFrom = PLOID.trim() !== '' && PLONAME_TH.trim() !== ''; 
 
-   //Search Handler:
-   const handleDelete = async () => {
-    const url = `http://localhost:8000/delete?PLOID=${PLOID}&PLONAME_TH=${PLONAME_TH}`;
-  
+
+  const handleDelete = async () => {
+    const url = `/delete?PLOID=${PLOID}&PLONAME_TH=${PLONAME_TH}`;
+
     try {
-      const response = await fetch(url, {
-        method: 'DELETE'
-      });
-  
-      if (!response.ok) {
+      const response = await axios.delete(url); // ใช้ axios.delete แทน fetch
+
+      if (response.status !== 200) {
         throw new Error('Network response was not ok');
       }
+
       window.location.reload();
     } catch (error) {
       console.error('Error performing delete operation', error);
@@ -29,6 +28,7 @@ function DeleteModal({show, onHide, onDelete}){
       onHide();
     }
   };
+
     //Modal Component:
 
     return(

@@ -11,24 +11,21 @@ function SearchModal({show, onHide, onSearch}){
    const correctForm = PLOID.trim() !== '' && PLONAME_TH.trim() !== ''; 
 
    //Search Handler:
-   const handleSearch = async () => {
+  const handleSearch = async () => {
     try {
-      const url = `http://localhost:8000/search?PLOID=${PLOID}&PLONAME_TH=${PLONAME_TH}`;
-      
-      const response = await fetch(url);
-  
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-  
-      const data = await response.json();
-      onSearch(data); // Pass search results to the callback
+      const url = `/search?PLOID=${PLOID}&PLONAME_TH=${PLONAME_TH}`;
+
+      const response = await axios.get(url);
+
+      const data = response.data;
+      onSearch(data); // ส่งผลลัพธ์ให้ callback
     } catch (error) {
       console.error('Error performing search', error);
     } finally {
-      onHide(); // Close the modal
+      onHide(); // ปิด modal
     }
   };
+
     //Modal Component:
 
     return(

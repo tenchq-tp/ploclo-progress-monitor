@@ -222,7 +222,7 @@ export default function Navbar({ role }) {
             {t("About")}
           </CustomLink>
 
-          {role === "System Admin" && (
+          {role === "System Admin" || role === "Curriculum Admin" && (
             <CustomLink
               to="/manageAccount"
               onMouseEnter={(e) => updateAnimationBar(e.currentTarget)}

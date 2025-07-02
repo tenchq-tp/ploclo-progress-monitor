@@ -19,11 +19,13 @@ import accountRoutes from "./routes/account.route.js";
 import dashboardRoutes from "./routes/dashboard.route.js";
 import studentCourseRoutes from "./routes/student_course.route.js";
 import cloRoutes from "./routes/clo.route.js";
+ 
 
 dotenv.config();
 import pool from "./utils/db.js";
 
-const port = process.env.PORT || 8000;
+const server = process.env.SERVER || 'localhost';
+const port = process.env.PORT || 3000;
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -43,14 +45,15 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/student-course", studentCourseRoutes);
 app.use("/api/clo", cloRoutes);
 
-app.listen(port, () => {
+app.listen(port, server ,() => {
   console.log(`Server is running on http://localhost:${port}`);
 });
 
+
 // API root route
-// app.get("/", (req, res) => {
-//   res.send("Server is working");
-// });
+app.get("/api/health", (req, res) => {
+  res.send("Server is working");
+});
 
 // API route to get data from database
 app.get("/getdata", async (req, res) => {
@@ -1491,7 +1494,6 @@ app.get("/assignment_clo", async (req, res) => {
 });
 
 // API route to search data in database
-// http://localhost:8000/search?column=id&value=3
 app.get("/search", async (req, res) => {
   const data = req.query;
 
@@ -1519,7 +1521,6 @@ app.get("/search", async (req, res) => {
 });
 
 // API route to delete data from database
-// http://localhost:8000/delete?column=name&value=test2
 app.delete("/delete", async (req, res) => {
   const data_select = req.query;
 
@@ -1552,7 +1553,6 @@ app.delete("/delete", async (req, res) => {
 });
 
 // API route to update data in database
-// http://localhost:8000/update?column=id&value=1
 app.put("/update", async (req, res) => {
   const data_select = req.query;
   const data_update = req.body;

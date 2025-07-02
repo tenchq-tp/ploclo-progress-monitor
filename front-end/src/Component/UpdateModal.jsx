@@ -18,50 +18,51 @@ function UpdateModal({show, onHide}){
    const [error, setError] = useState(null);
  
    //Search Handler:
-    const handleSearch =() =>{
-        const url = `http://localhost:8000/search?PLOID=${SearchPLOID}&PLONAME_TH=${SearchPLONAME_TH}`;
+const handleSearch = async () => {
+  try {
+    const url = `/search?PLOID=${SearchPLOID}&PLONAME_TH=${SearchPLONAME_TH}`;
+    const response = await axios.get(url);
 
+    const data = response.data;
 
+    const fetchedData = Array.isArray(data) && data.length > 0 ? data[0] : {};
 
-        fetch(url)
-        .then(response =>{
-            if(!response.ok){
-                throw new Error('Network response is not ok');
-            }
-            return response.json();
-        })
-        .then(data =>{
-            const fetchedData = data[0];
-            setPLOID(fetchedData.PLOID || '');
-            setPLONAME_TH(fetchedData.PLONAME_TH || '');
-            setPLONAME_ENG(fetchedData.PLONAME_ENG || '');
-            setPLO_DATA(fetchedData.PLO_DATA || '');
-            setError(null); // Clear any previous error
-        })
-        .catch(error =>{
-            console.error('Error performing serch ',error);
-        });
+    setPLOID(fetchedData.PLOID || '');
+    setPLONAME_TH(fetchedData.PLONAME_TH || '');
+    setPLONAME_ENG(fetchedData.PLONAME_ENG || '');
+    setPLO_DATA(fetchedData.PLO_DATA || '');
+    setError(null);
+  } catch (error) {
+    console.error('Error performing search', error);
+    setError('Failed to perform search');
+  }
+};
+
+const handleUpdate = async () => {
+  try {
+    const url = `/update?PLOID=${SearchPLOID}&PLONAME_TH=${SearchPLONAME_TH}`;
+    const data = {
+      PLOID,
+      PLONAME_TH,
+      PLONAME_ENG,
+      PLO_DATA,
     };
 
-    const handleUpdate = () => {
-        const url = `http://localhost:8000/update?PLOID=${SearchPLOID}&PLONAME_TH=${SearchPLONAME_TH}`;
-    
-        const data = {
-          PLOID,
-          PLONAME_TH,
-          PLONAME_ENG,
-          PLO_DATA,
-        };
-        
-        fetch(url, {
-          method:'PUT',
-          headers: {'Content-Type' : 'application/json'},
-          body: JSON.stringify(data)
-        });
-    
-        window.location.reload();
-        onHide();
-      };
+    const response = await axios.put(url, data, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (response.status === 200) {
+      window.location.reload();
+      onHide();
+    } else {
+      throw new Error('Update failed');
+    }
+  } catch (error) {
+    console.error('Error performing update', error);
+    alert(error.response?.data || error.message || 'Update failed');
+  }
+};
     //Modal Component:
 
     return(

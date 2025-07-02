@@ -653,8 +653,8 @@ export default function Program() {
       if (!selectedProgramObj) return false;
 
       // 1. รีเฟรช PLO data
-      const ploResponse = await fetch(
-        `http://localhost:8000/program_plo?program_id=${selectedProgramObj.program_id}`
+      const ploResponse = await axios.get(
+        `/program_plo?program_id=${selectedProgramObj.program_id}`
       );
       const ploData = await ploResponse.json();
 
@@ -668,8 +668,8 @@ export default function Program() {
       }
 
       // 2. รีเฟรช Course data
-      const courseResponse = await fetch(
-        `http://localhost:8000/course?program_id=${selectedProgramObj.program_id}&year=${selectedYear}`
+      const courseResponse = await axios.get(
+        `/course?program_id=${selectedProgramObj.program_id}&year=${selectedYear}`
       );
 
       if (!courseResponse.ok) {
@@ -690,8 +690,8 @@ export default function Program() {
       }
 
       // 3. รีเฟรช weights data
-      const mappingResponse = await fetch(
-        `http://localhost:8000/course_plo?program_id=${selectedProgramObj.program_id}&year=${selectedYear}`
+      const mappingResponse = await axios.get(
+        `/course_plo?program_id=${selectedProgramObj.program_id}&year=${selectedYear}`
       );
       const mappingData = await mappingResponse.json();
 
@@ -1115,8 +1115,8 @@ export default function Program() {
         }
 
         // ดึงข้อมูล PLO
-        const ploResponse = await fetch(
-          `http://localhost:8000/program_plo?program_id=${previousYearProgram.program_id}`
+        const ploResponse = await axios.get(
+          `/program_plo?program_id=${previousYearProgram.program_id}`
         );
 
         if (!ploResponse.ok) {
@@ -1253,7 +1253,7 @@ export default function Program() {
   return (
     <div
       className="mb-3"
-      style={{ paddingTop: "80px", maxWidth: "1000px", marginLeft: "20px" }}>
+      style={{ paddingTop: "80px", maxWidth: "1500px", marginLeft: "20px" }}>
       <div
         style={{
           position: "fixed", // เปลี่ยนจาก sticky เป็น fixed เพื่อให้ติดอยู่ที่ตำแหน่งเดิมตลอด
@@ -1269,7 +1269,7 @@ export default function Program() {
         {/* หัวข้อหลักสูตรและแถบเมนู */}
         <div
           style={{
-            maxWidth: "1000px",
+            maxWidth: "1150px",
             margin: "0 0",
             marginLeft: "15px",
             padding: "0 15px",

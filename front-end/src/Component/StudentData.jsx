@@ -19,60 +19,45 @@ function StudentData() {
   const [show, setShow] = useState(false);
 
   // Function to fetch student data from the backend
-  const fetchStudents = () => {
-  fetch('http://localhost:8000/students')
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`Failed to fetch students: ${response.statusText}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      console.log('Fetched students:', data);  // ตรวจสอบข้อมูลที่ได้รับจาก API
+const fetchStudents = async () => {
+  try {
+    const response = await axios.get('/students');
+    const data = response.data;
 
-      // ตรวจสอบว่า data เป็นอาเรย์หรือไม่
-      if (Array.isArray(data)) {
-        setStudents(data); // ถ้า data เป็นอาเรย์ของนักเรียน
-      } else if (data.students && Array.isArray(data.students)) {
-        setStudents(data.students); // ถ้ามี key "students" และมันเป็นอาเรย์
-      } else {
-        // ถ้า data ไม่ใช่อาเรย์ ก็อาจจะใส่ไว้ในอาเรย์เพื่อการแสดงผล
-        setStudents([data]);
-      }
-    })
-    .catch((error) => {
-      console.error('Error fetching students:', error);
-      alert('Failed to fetch student data. Please check the API or try again later.');
-    });
+    if (Array.isArray(data)) {
+      setStudents(data);
+    } else if (data.students && Array.isArray(data.students)) {
+      setStudents(data.students);
+    } else {
+      setStudents([data]);
+    }
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    alert('Failed to fetch student data. Please check the API or try again later.');
+  }
 };
 
 
 
 
 const handleDeleteStudent = async (studentid) => {
-    try {
-        // ส่งคำขอ DELETE ไปที่ Backend
-        const response = await fetch(`http://localhost:8000/students/${studentid}`, {
-            method: 'DELETE',
-        });
+  try {
+    const response = await axios.delete(`/students/${studentid}`);
 
-        // ตรวจสอบว่า response.ok มีค่าจริงหรือไม่
-        if (!response.ok) {
-            const errorData = await response.text();
-            throw new Error(errorData || 'Failed to delete student');
-        }
-
-        // แสดงข้อความลบสำเร็จ
-        alert('Student deleted successfully');
-
-        // ลบข้อมูลนักเรียนจาก students ใน state
-        setStudents((prevStudents) =>
-            prevStudents.filter(student => student.studentid !== studentid)
-        );
-    } catch (error) {
-        console.error('Error deleting student:', error);
-        alert(error.message || 'Failed to delete student');
+    if (response.status !== 200) {
+      throw new Error(response.data || 'Failed to delete student');
     }
+
+    alert('Student deleted successfully');
+
+    // ลบข้อมูลนักเรียนออกจาก state
+    setStudents((prevStudents) =>
+      prevStudents.filter(student => student.studentid !== studentid)
+    );
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    alert(error.response?.data || error.message || 'Failed to delete student');
+  }
 };
 
 
@@ -105,30 +90,25 @@ const handleDeleteStudent = async (studentid) => {
     }
   };
 
-  const handleUploadButtonClick = () => {
+
+  const handleUploadButtonClick = async () => {
     if (excelData) {
-      fetch('http://localhost:8000/insert', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(excelData),
-      })
-      .then(response => {
-        if (!response.ok) {
-          return response.text().then(text => { throw new Error(text) });
-        }
-        return response.json();
-      })
-      .then(data => {
+      try {
+        const response = await axios.post('/insert', excelData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
         alert('Data Uploaded Successfully!');
-        fetchStudents(); // Refresh after upload
-      })
-      .catch(error => {
+        fetchStudents(); // รีเฟรชข้อมูลหลังอัปโหลด
+      } catch (error) {
         console.error('Error:', error);
-      });
+        alert(error.response?.data || error.message || 'Upload failed');
+      }
     } else {
       console.error('No data to upload');
+      alert('No data to upload');
     }
   };
 
@@ -166,32 +146,26 @@ const handleDeleteStudent = async (studentid) => {
     }
   };
 
-  const handleSaveButtonClick = () => {
-    if (parsedData && parsedData.length > 0) {
-      fetch('http://localhost:8000/insert', {
-        method: 'POST',
+const handleSaveButtonClick = async () => {
+  if (parsedData && parsedData.length > 0) {
+    try {
+      const response = await axios.post('/insert', parsedData, {
         headers: {
-            'Content-Type': 'application/json',
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(parsedData),
-      })
-      .then((response) => {
-          if (!response.ok) {
-              throw new Error('Network response was not ok');
-          }
-          return response.json();
-      })
-      .then((data) => {
-          alert('Data saved successfully!');
-          fetchStudents(); // Refresh after save
-      })
-      .catch((error) => {
-          console.error('Save Error:', error);
       });
-    } else {
-        alert('No data to save');
+
+      alert('Data saved successfully!');
+      fetchStudents(); // รีเฟรชข้อมูลหลังบันทึก
+    } catch (error) {
+      console.error('Save Error:', error);
+      alert(error.response?.data || error.message || 'Save failed');
     }
-  };
+  } else {
+    alert('No data to save');
+  }
+};
+
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
