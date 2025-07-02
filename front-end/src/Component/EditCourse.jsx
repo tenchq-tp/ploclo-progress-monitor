@@ -2900,7 +2900,7 @@ const existingCloMap = useMemo(() => {
           style={{ marginTop: "0px" }}>
           <div className="row" style={{ padding: "0px 10px 0 10px" }}>
             <div className="col-md-3">
-              <label className="form-label text-start">Choose a Course</label>
+              <label className="form-label text-start">{t("Choose a Course")}</label>
               <select
                 className="form-select"
                 value={selectedCourseId || ""}
@@ -2909,7 +2909,7 @@ const existingCloMap = useMemo(() => {
                 }}
                 disabled={!newCourse.semester_id}>
                 <option value="" disabled>
-                  Select Course
+                  {t("Select Course")}
                 </option>
                 {Array.from(
                   new Map(
@@ -2925,11 +2925,11 @@ const existingCloMap = useMemo(() => {
           </div>
 
           <div className="mt-3">
-            <h3>CLO Management</h3>
+            <h3>{t("CLO Management")}</h3>
             <hr className="my-4" />
 
             {/* CLO List Section */}
-            <h5>CLO List</h5>
+            <h5>{t("CLO List")}</h5>
 
             {role === "Curriculum Admin" && (
               <div className="action-buttons">
@@ -2944,7 +2944,7 @@ const existingCloMap = useMemo(() => {
                       !selectedSemesterId ||
                       !selectedYear
                     }>
-                    Add CLO
+                    {t("Add CLO")}
                   </button>
 
                   {/* <button
@@ -2972,7 +2972,7 @@ const existingCloMap = useMemo(() => {
                       !selectedSemesterId ||
                       !selectedYear
                     }>
-                    Upload Excel
+                    {t("Upload Excel")}
                   </button>
                   <input
                     type="file"
@@ -2986,7 +2986,7 @@ const existingCloMap = useMemo(() => {
                     onClick={handleUploadButtonClick}
                     className="btn btn-success"
                     disabled={!excelData || excelData.length === 0}>
-                    Submit Excel Data
+                    {t("Submit Excel Data")}
                   </button>
                 </div>
               </div>
@@ -3205,7 +3205,7 @@ const existingCloMap = useMemo(() => {
                       disabled={
                         !previousYearCLOs || previousYearCLOs.length === 0
                       }>
-                      Submit Excel Data
+                      {t("Submit Excel Data")}
                     </button>
                   </div>
                 </div>
@@ -3396,7 +3396,7 @@ const existingCloMap = useMemo(() => {
           style={{ marginTop: "0px" }}>
           <div className="row" style={{ padding: "0px 10px 0 10px" }}>
             <div className="col-md-3">
-              <label className="form-label text-start">Choose a Course</label>
+              <label className="form-label text-start">{t("Choose a Course")}</label>
               <select
                 className="form-select"
                 value={selectedCourseId || ""}
@@ -3405,7 +3405,7 @@ const existingCloMap = useMemo(() => {
                 }}
                 disabled={!newCourse.semester_id}>
                 <option value="" disabled>
-                  Select Course
+                  {t("Select Course")}
                 </option>
                 {Array.from(
                   new Map(
@@ -3437,6 +3437,9 @@ const existingCloMap = useMemo(() => {
             />
           ) : (
             <div style={{ marginTop: "20px", textAlign: "center" }}>
+               <p style={{ fontSize: "16px", color: "#666" }}>
+                    Please select all required options to show the Course-CLO Mapping table.
+                  </p>
               <p style={{ fontSize: "16px", color: "#666" }}>
                 กรุณาเลือกตัวเลือกให้ครบเพื่อแสดงตาราง Course-CLO Mapping
               </p>
